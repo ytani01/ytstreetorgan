@@ -1,0 +1,83 @@
+#
+tmp*
+
+## Gemini CLI
+# prompts.md
+# Plan*.md
+# Tasks*.md
+# .gemini/
+# .serena/
+# archives/
+
+#
+.markdown*
+
+## FreeCAD
+*.FCBak
+
+#
+*.lock
+
+#
+*:Zone.Identifier
+*.temp
+
+.env
+.pypirc
+.coverage
+
+.*_cache/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Editors
+.idea/
+.vscode/
+
+# Virtual environment
+.venv/
+virtualenv/
+env/
+
+# Emacs
+# https://www.gnu.org/software/emacs/manual/html_node/emacs/Backup-Files.html
+# https://www.gnu.org/software/emacs/manual/html_node/emacs/Auto-Save-Files.html
+# https://www.gnu.org/software/emacs/manual/html_node/emacs/Version-Control.html
+
+*~
+.*~
+\#*
+.#*
+/.emacs.desktop
+/.emacs.desktop.lock
+.abbrev_defs
+.dir-locals.el
+
+# Org-mode
+.org-id-locations
+*_archive
+
+# Flycheck
+flycheck_*
+
+# Elpy
+.elpy/
+
+# Other
+*.swp
+*.bak
+*.log
+
+# Ignore dynaconf secret files
+.secrets.*
