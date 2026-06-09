@@ -7,6 +7,7 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Yoichi Tanibayashi", email = "yoichi@tanibayashi.jp" }
 ]
+urls = { Repository = "https://github.com/ytani01/ytstreetorgan/" }
 requires-python = ">=3.13"
 dependencies = [
   "click",
@@ -16,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ytstreetorgan = "ytstreetorgan:__main__:cli"
+ytstreetorgan = "ytstreetorgan.__main__:cli"
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
@@ -28,6 +29,7 @@ source = "vcs"
 [dependency-groups]
 dev = [
     "basedpyright>=1.37.3",
+    "flake8>=7.3.0",
     "mypy>=1.19.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",

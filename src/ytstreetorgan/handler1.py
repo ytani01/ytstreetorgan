@@ -6,7 +6,6 @@
 Handler1
 """
 __author__ = 'Yoichi Tanibayashi'
-__date__ = '2021/01'
 
 import os
 import tornado.web
@@ -54,7 +53,9 @@ class Download(tornado.web.RequestHandler):
         """
         self._mylog.debug('request=%s', self.request)
 
-        fname = self.request.uri.split('/')[-1]
+        uri = self.request.uri
+        assert uri is not None
+        fname = uri.split('/')[-1]
         self._mylog.debug('fname=%s', fname)
 
         path_name = '%s/svg/%s' % (self._webroot, fname)
@@ -128,7 +129,7 @@ class Handler1(tornado.web.RequestHandler):
 
         return f_size, size_unit[0]
 
-    def get_filesize(self, file_path):
+    def get_filesize(self, file_path: str) -> tuple[float, str] | None:
         """
         Parameters
         ----------
@@ -181,7 +182,9 @@ class Handler1(tornado.web.RequestHandler):
             with open(file1_path, mode='wb') as f:
                 f.write(file1['body'])
 
-        f_size, unit = self.get_filesize(file1_path)
+        result = self.get_filesize(file1_path)
+        assert result is not None
+        f_size, unit = result
         msg = '%s (%.1f %s)' % (file1['filename'], f_size, unit)
 
         svg_data = self._rollbook.parse(file1_path)

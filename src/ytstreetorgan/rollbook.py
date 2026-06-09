@@ -9,7 +9,7 @@ __date__ = '2021/01'
 
 import os
 import json
-from midilib import Parser
+from ytmidilib import NoteInfo, Parser
 from .my_logger import get_logger
 
 
@@ -70,7 +70,7 @@ class HoleInfo:
 
     Attributes
     ----------
-    note_info: midilib.NoteInfo
+    note_info: ytmidilib.NoteInfo
         MIDI note information
     sec: float
         length in sec
@@ -79,7 +79,7 @@ class HoleInfo:
     x, y, w, h: float
         coordinate in mm
     """
-    def __init__(self, note_info=None, conf=None, debug=False):
+    def __init__(self, note_info: NoteInfo, conf: dict, debug: bool = False):
         self._dbg = debug
         self._log = get_logger(self.__class__.__name__, self._dbg)
 
@@ -157,7 +157,7 @@ class RollBook:
 
         self._width = 0
         self._height = self._conf['book height']
-        self._holes = []
+        self._holes: list[HoleInfo] = []
         self._svg = ''
 
         self._midi_parser = Parser(debug=self._dbg)

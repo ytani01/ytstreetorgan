@@ -6,7 +6,7 @@ main for midi_tools
 """
 import os
 import click
-from midilib import Parser, Player
+from ytmidilib import Parser, Player
 from . import RollBook, WebServer
 from .my_logger import get_logger
 
