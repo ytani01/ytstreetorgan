@@ -6,9 +6,11 @@ main for midi_tools
 """
 import os
 import click
+from loguru import logger
 from ytmidilib import Parser, Player
 from . import RollBook, WebServer
 from .my_logger import get_logger
+from .mylog import loggerInit
 
 
 class RollBookApp:
@@ -135,6 +137,9 @@ storgan Apps
 @click.pass_context
 def cli(ctx):
     """ click group """
+    loggerInit(True)
+    logger.debug(ctx)
+    
     subcmd = ctx.invoked_subcommand
 
     if subcmd is None:
