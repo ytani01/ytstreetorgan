@@ -96,7 +96,7 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
 
         parsed_data = self._parser.parse(self._midi_file, self._channel)
 
-        self._log.debug('parsed_data=')
+        logger.debug('parsed_data=')
         if self._dbg or self._parse_only:
             for i, data in enumerate(parsed_data['note_info']):
                 print('(%4d) %s' % (i, data), flush=True)
