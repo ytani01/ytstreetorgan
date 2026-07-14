@@ -10,7 +10,7 @@ __author__ = 'Yoichi Tanibayashi'
 import os
 import tornado.web
 from .rollbook import RollBook
-from .my_logger import get_logger
+from loguru import logger
 
 
 class Download(tornado.web.RequestHandler):
@@ -20,19 +20,18 @@ class Download(tornado.web.RequestHandler):
     def __init__(self, app, req):
         """ Constructor """
         self._dbg = app.settings.get('debug')
-        self._mylog = get_logger(self.__class__.__name__, self._dbg)
-        self._mylog.debug('debug=%s', self._dbg)
-        self._mylog.debug('app=%s', app)
-        self._mylog.debug('req=%s', req)
+        logger.debug('debug={}', self._dbg)
+        logger.debug('app={}', app)
+        logger.debug('req={}', req)
 
         self._webroot = app.settings.get('webroot')
-        self._mylog.debug('webroot=%s', self._webroot)
+        logger.debug('webroot={}', self._webroot)
 
         self._workdir = app.settings.get('workdir')
-        self._mylog.debug('workdir=%s', self._workdir)
+        logger.debug('workdir={}', self._workdir)
 
         self._size_limit = app.settings.get('size_limit')
-        self._mylog.debug('size_limit=%s', self._size_limit)
+        logger.debug('size_limit={}', self._size_limit)
 
         # [!! 重要 !!] 末尾の「/」
         self._url_path = app.settings.get('url_prefix_handler1') + '/'
@@ -51,15 +50,15 @@ class Download(tornado.web.RequestHandler):
         """
         GET method and rendering
         """
-        self._mylog.debug('request=%s', self.request)
+        logger.debug('request={}', self.request)
 
         uri = self.request.uri
         assert uri is not None
         fname = uri.split('/')[-1]
-        self._mylog.debug('fname=%s', fname)
+        logger.debug('fname={}', fname)
 
         path_name = '%s/svg/%s' % (self._webroot, fname)
-        self._mylog.debug('path_name=%s', path_name)
+        logger.debug('path_name={}', path_name)
 
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition',
@@ -87,19 +86,18 @@ class Handler1(tornado.web.RequestHandler):
     def __init__(self, app, req):
         """ Constructor """
         self._dbg = app.settings.get('debug')
-        self._mylog = get_logger(self.__class__.__name__, self._dbg)
-        self._mylog.debug('debug=%s', self._dbg)
-        self._mylog.debug('app=%s', app)
-        self._mylog.debug('req=%s', req)
+        logger.debug('debug={}', self._dbg)
+        logger.debug('app={}', app)
+        logger.debug('req={}', req)
 
         self._webroot = app.settings.get('webroot')
-        self._mylog.debug('webroot=%s', self._webroot)
+        logger.debug('webroot={}', self._webroot)
 
         self._workdir = app.settings.get('workdir')
-        self._mylog.debug('workdir=%s', self._workdir)
+        logger.debug('workdir={}', self._workdir)
 
         self._size_limit = app.settings.get('size_limit')
-        self._mylog.debug('size_limit=%s', self._size_limit)
+        logger.debug('size_limit={}', self._size_limit)
 
         # [!! 重要 !!] 末尾の「/」
         self._url_path = app.settings.get('url_prefix_handler1') + '/'
@@ -148,8 +146,7 @@ class Handler1(tornado.web.RequestHandler):
         """
         GET method and rendering
         """
-        # self._mylog.debug('svg_data=%s', svg_data)
-        self._mylog.debug('request=%s', self.request)
+        logger.debug('request={}', self.request)
 
         if self.request.uri != self._url_path:
             self.redirect(self._url_path, permanent=True)
@@ -188,7 +185,7 @@ class Handler1(tornado.web.RequestHandler):
         msg = '%s (%.1f %s)' % (file1['filename'], f_size, unit)
 
         svg_data = self._rollbook.parse(file1_path)
-        self._mylog.debug('svg_data=%a', svg_data)
+        logger.debug('svg_data=%a', svg_data)
 
         with open(svg1_path, mode='w') as f:
             f.write(svg_data)

@@ -12,7 +12,7 @@ import tornado.ioloop
 import tornado.httpserver
 import tornado.web
 from .handler1 import Handler1, Download
-from .my_logger import get_logger
+from loguru import logger
 
 
 class WebServer:
@@ -50,10 +50,9 @@ class WebServer:
             version string
         """
         self._dbg = debug
-        self._log = get_logger(self.__class__.__name__, self._dbg)
-        self._log.info('port=%s, webroot=%s, workdir=%s, size_limit=%s',
-                       port, webroot, workdir, size_limit)
-        self._log.info('version=%s', version)
+        logger.info('port={}, webroot={}, workdir={}, size_limit={}',
+                    port, webroot, workdir, size_limit)
+        logger.info('version={}', version)
 
         self._port = port
         self._webroot = webroot
@@ -90,19 +89,19 @@ class WebServer:
 
             debug=self._dbg
         )
-        self._log.debug('app=%s', self._app.__dict__)
+        logger.debug('app={}', self._app.__dict__)
 
         self._svr = tornado.httpserver.HTTPServer(
             self._app, max_buffer_size=self._size_limit)
-        self._log.debug('svr=%s', self._svr.__dict__)
+        logger.debug('svr={}', self._svr.__dict__)
 
     def main(self):
         """ main """
-        self._log.debug('')
+        logger.debug('')
 
         self._svr.listen(self._port)
-        self._log.info('start server: run forever ..')
+        logger.info('start server: run forever ..')
 
         tornado.ioloop.IOLoop.current().start()
 
-        self._log.debug('done')
+        logger.debug('done')

@@ -10,7 +10,7 @@ __date__ = '2021/01'
 import os
 import json
 from ytmidilib import NoteInfo, Parser
-from .my_logger import get_logger
+from loguru import logger
 
 
 DEF_LINE_WIDTH = 0.1
@@ -81,7 +81,6 @@ class HoleInfo:
     """
     def __init__(self, note_info: NoteInfo, conf: dict, debug: bool = False):
         self._dbg = debug
-        self._log = get_logger(self.__class__.__name__, self._dbg)
 
         self.note_info = note_info
         self.conf = conf
@@ -145,15 +144,14 @@ class RollBook:
         conf_file: str
         """
         self._dbg = debug
-        self._log = get_logger(self.__class__.__name__, self._dbg)
-        self._log.debug('model=%s', model)
+        logger.debug('model={}', model)
 
         self._model = model
         self._conf_file = conf_file
-        self._log.debug('conf_file=%s', self._conf_file)
+        logger.debug('conf_file={}', self._conf_file)
 
         self._conf = self.get_conf(self._model, self._conf_file)
-        self._log.debug('conf=%s', json.dumps(self._conf))
+        logger.debug('conf={}', json.dumps(self._conf))
 
         self._width = 0
         self._height = self._conf['book height']
@@ -171,8 +169,7 @@ class RollBook:
         conf_file: str
             configuration file name
         """
-        self._log.debug('model=%s, conf_file=%s',
-                        model, conf_file)
+        logger.debug('model={}, conf_file={}', model, conf_file)
 
         with open(conf_file) as f:
             all_conf = json.load(f)
@@ -236,22 +233,21 @@ class RollBook:
         svg: str
             SVG data (text)
         """
-        self._log.debug('midi_file=%s', midi_file)
+        logger.debug('midi_file={}', midi_file)
 
         midi = self._midi_parser.parse(midi_file, channel)
-        self._log.debug('midi[channel_set]=%s', midi['channel_set'])
+        logger.debug('midi[channel_set]={}', midi['channel_set'])
 
         for ni in midi['note_info']:
             hi = HoleInfo(ni, self._conf, debug=self._dbg)
-            self._log.debug('hi=%s', hi)
+            logger.debug('hi={}', hi)
 
             if hi:
                 self._width = max(hi.x + hi.w, self._width)
 
             self._holes.append(hi)
 
-        self._log.debug('width=%s, len(hole)=%s',
-                        self._width, len(self._holes))
+        logger.debug('width={}, len(hole)={}', self._width, len(self._holes))
 
         svg = self.svg()
         return svg

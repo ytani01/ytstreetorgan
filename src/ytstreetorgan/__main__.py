@@ -9,7 +9,6 @@ import click
 from loguru import logger
 from ytmidilib import Parser, Player
 from . import RollBook, WebServer
-from .my_logger import get_logger
 from .mylog import loggerInit
 
 
@@ -25,13 +24,11 @@ class RollBookApp:
                  debug=False):
         """ Constructor """
         self._dbg = debug
-        self._log = get_logger(self.__class__.__name__, self._dbg)
-        self._log.debug('midi_file=%s, conf_file=%s',
-                        midi_file, conf_file)
-        self._log.debug('model_name=%s', model_name)
-        self._log.debug('channel=%s', channel)
-        self._log.debug('out_file=%s', out_file)
-        self._log.debug('version=%s', version)
+        logger.debug('midi_file={}, conf_file={}', midi_file, conf_file)
+        logger.debug('model_name={}', model_name)
+        logger.debug('channel={}', channel)
+        logger.debug('out_file={}', out_file)
+        logger.debug('version={}', version)
 
         self._midi_file = midi_file
         self._conf_file = conf_file
@@ -45,14 +42,14 @@ class RollBookApp:
         out_file = os.path.basename(out_file)
         out_file = '%s/%s' % (self.DEF_OUT_DIR, out_file)
         self._out_file = os.path.expanduser(out_file)
-        self._log.debug('[fix] out_file=%s', self._out_file)
+        logger.debug('[fix] out_file={}', self._out_file)
 
         self._rollbook = RollBook(self._model_name, self._conf_file,
                                   debug=self._dbg)
 
     def main(self):
         """ main """
-        self._log.debug('')
+        logger.debug('')
 
         svg = self._rollbook.parse(self._midi_file, self._channel)
 
@@ -75,14 +72,11 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
                  debug=False) -> None:
         """ Constructor """
         self._dbg = debug
-        self._log = get_logger(self.__class__.__name__, self._dbg)
-        self._log.debug('midi_file=%s, channel=%s',
-                        midi_file, channel)
-        self._log.debug('parse_only=%s, visual_flag=%s',
-                        parse_only, visual_flag)
-        self._log.debug('rate=%s', rate)
-        self._log.debug('sec_min/max=%s/%s', sec_min, sec_max)
-        self._log.debug('pos_sec=%s', pos_sec)
+        logger.debug('midi_file={}, channel={}', midi_file, channel)
+        logger.debug('parse_only={}, visual_flag={}', parse_only, visual_flag)
+        logger.debug('rate={}', rate)
+        logger.debug('sec_min/max={}/{}', sec_min, sec_max)
+        logger.debug('pos_sec={}', pos_sec)
 
         self._midi_file = midi_file
         self._channel = channel
@@ -98,7 +92,7 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
 
     def main(self) -> None:
         """ main """
-        self._log.debug('')
+        logger.debug('')
 
         parsed_data = self._parser.parse(self._midi_file, self._channel)
 
@@ -169,14 +163,14 @@ Web server""")
               help='debug flag')
 def webapp(port, webroot, workdir, size_limit, version, debug):
     """ cmd1  """
-    log = get_logger(__name__, debug)
+    loggerInit(debug)
 
     app = WebServer(port, webroot, workdir, size_limit, version,
                     debug=debug)
     try:
         app.main()
     finally:
-        log.info('end')
+        logger.info('end')
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS, help='''
@@ -201,14 +195,14 @@ def rollbook(midi_file, conf_file, model_name, channel, version,
     """
     rollbook main
     """
-    log = get_logger(__name__, dbg)
+    loggerInit(dbg)
 
     app = RollBookApp(midi_file, conf_file, model_name, channel,
                       version, debug=dbg)
     try:
         app.main()
     finally:
-        log.debug('finally')
+        logger.debug('finally')
         app.end()
 
 
@@ -227,7 +221,7 @@ def parse(midi_file, channel, visual_flag, dbg) -> None:
     """
     parser main
     """
-    log = get_logger(__name__, dbg)
+    loggerInit(dbg)
 
     app = MidiApp(midi_file, channel, parse_only=True,
                   visual_flag=visual_flag,
@@ -235,7 +229,7 @@ def parse(midi_file, channel, visual_flag, dbg) -> None:
     try:
         app.main()
     finally:
-        log.debug('finally')
+        logger.debug('finally')
         app.end()
 
 
@@ -263,7 +257,7 @@ def play(midi_file,  # pylint: disable=too-many-arguments
     """
     player main
     """
-    log = get_logger(__name__, dbg)
+    loggerInit(dbg)
 
     app = MidiApp(midi_file, channel, parse_only=False,
                   visual_flag=False, rate=rate,
@@ -272,7 +266,7 @@ def play(midi_file,  # pylint: disable=too-many-arguments
     try:
         app.main()
     finally:
-        log.debug('finally')
+        logger.debug('finally')
         app.end()
 
 

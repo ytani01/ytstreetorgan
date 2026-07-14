@@ -14,10 +14,10 @@ loguru ベースの `mylog.py` に移行し、`my_logger.py` を削除する。
 - [x] `tests/test_mylog.py` を作成（`mylog.py` の動作確認テスト）
 
 ### Task 1.2: `rollbook.py` の移行
-- [ ] `rollbook.py` から `from .my_logger import get_logger` を削除
-- [ ] `from loguru import logger` に置き換え
-- [ ] `self._log = get_logger(...)` のパターンをすべて `logger` 直接使用に置き換え
-- [ ] テスト実行で動作確認
+- [~] `rollbook.py` から `from .my_logger import get_logger` を削除
+- [~] `from loguru import logger` に置き換え
+- [~] `self._log = get_logger(...)` のパターンをすべて `logger` 直接使用に置き換え
+- [~] テスト実行で動作確認
 
 ### Task 1.3: `handler1.py` の移行
 - [ ] `handler1.py` から `from .my_logger import get_logger` を削除
