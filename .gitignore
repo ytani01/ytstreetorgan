@@ -1,6 +1,9 @@
 #
 tmp*
 
+## Obsidian
+.obsidian/
+
 ## Gemini CLI
 # prompts.md
 # Plan*.md

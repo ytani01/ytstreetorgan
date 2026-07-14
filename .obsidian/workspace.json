@@ -185,6 +185,9 @@
   },
   "active": "96ac6af0243669c2",
   "lastOpenFiles": [
+    "00-WebClip/Claude Code入門 1 インストールから使える初期設定まで.md",
+    "plan.md",
+    "00-WebClip",
     "tests/__pycache__/test_mylog.cpython-313-pytest-9.1.1.pyc",
     "tests/__pycache__/conftest.cpython-313-pytest-9.1.1.pyc",
     "tests/__pycache__",
@@ -192,7 +195,6 @@
     "tests/conftest.py",
     "tests",
     "tech-stack.md",
-    "plan.md",
     "README.md"
   ]
 }
