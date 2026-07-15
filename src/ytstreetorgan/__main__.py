@@ -1,5 +1,5 @@
 #
-# (c) 2021 Yoichi Tanibayashi
+# (c) 2026 Yoichi Tanibayashi
 #
 """
 main for midi_tools
@@ -7,21 +7,25 @@ main for midi_tools
 import os
 import click
 from loguru import logger
+
 from ytmidilib import Parser, Player
-from . import RollBook, WebServer
+from . import RollBook, WebServer, __version__
 from .mylog import loggerInit
+from .click_utils import click_common_opts
 
 
 class RollBookApp:
     """ RollBookApp """
     DEF_OUT_DIR = '~/Desktop'
 
-    def __init__(self, midi_file, conf_file,
-                 model_name,
-                 channel=[],
-                 out_file=None,
-                 version='current',
-                 debug=False):
+    def __init__(
+        self, midi_file, conf_file,
+        model_name,
+        channel=[],
+        out_file=None,
+        version='current',
+        debug=False
+    ):
         """ Constructor """
         self._dbg = debug
         logger.debug('midi_file={}, conf_file={}', midi_file, conf_file)
@@ -44,8 +48,9 @@ class RollBookApp:
         self._out_file = os.path.expanduser(out_file)
         logger.debug('[fix] out_file={}', self._out_file)
 
-        self._rollbook = RollBook(self._model_name, self._conf_file,
-                                  debug=self._dbg)
+        self._rollbook = RollBook(
+            self._model_name, self._conf_file, debug=self._dbg
+        )
 
     def main(self):
         """ main """
@@ -124,15 +129,13 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
-@click.group(invoke_without_command=True,
-             context_settings=CONTEXT_SETTINGS, help='''
-storgan Apps
-''')
-@click.pass_context
-def cli(ctx):
+@click.group()
+@click_common_opts(__version__)
+def cli(ctx, debug):
     """ click group """
-    loggerInit(True)
+    loggerInit(debug)
     logger.debug(ctx)
+    logger.debug(debug)
     
     subcmd = ctx.invoked_subcommand
 
@@ -142,8 +145,7 @@ def cli(ctx):
         pass
 
 
-@cli.command(help="""
-Web server""")
+@cli.command()
 @click.option('--port', '-p', 'port', type=int,
               default=WebServer.DEF_PORT,
               help='port number')
@@ -157,15 +159,13 @@ Web server""")
               default=100*1024*1024,
               help='upload size limit, default=%s' % (
                   WebServer.DEF_SIZE_LIMIT))
-@click.option('--version', 'version', type=str, default='current',
-              help='version string')
-@click.option('--debug', '-d', 'debug', is_flag=True, default=False,
-              help='debug flag')
-def webapp(port, webroot, workdir, size_limit, version, debug):
+@click_common_opts(__version__)
+def webapp(ctx, port, webroot, workdir, size_limit, debug):
     """ cmd1  """
     loggerInit(debug)
+    logger.debug(f"command='{ctx.command.name}'")
 
-    app = WebServer(port, webroot, workdir, size_limit, version,
+    app = WebServer(port, webroot, workdir, size_limit,
                     debug=debug)
     try:
         app.main()
@@ -173,32 +173,37 @@ def webapp(port, webroot, workdir, size_limit, version, debug):
         logger.info('end')
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, help='''
-Roll Book
-''')
+@cli.command()
 @click.argument('midi_file', type=click.Path(exists=True))
-@click.option('--conf_file', '-f', 'conf_file',
-              type=click.Path(exists=True),
-              default='%s' % (RollBook.DEF_CONF_FILE),
-              help='configuration file')
-@click.option('--model', '-m', 'model_name', type=str,
-              default='ModelName',
-              help='Model Name')
-@click.option('--channel', '-c', 'channel', type=int, multiple=True,
-              help='MIDI channel')
-@click.option('--version', 'version', type=str, default='current',
-              help='version string')
-@click.option('--debug', '-d', 'dbg', is_flag=True, default=False,
-              help='debug flag')
-def rollbook(midi_file, conf_file, model_name, channel, version,
-             dbg) -> None:
+@click.option(
+    '--conf_file', '-f', 'conf_file',
+    type=click.Path(exists=True),
+    default='%s' % (RollBook.DEF_CONF_FILE),
+    help='configuration file'
+)
+@click.option(
+    '--model', '-m', 'model_name', type=str,
+    default='ModelName',
+    help='Model Name'
+)
+@click.option(
+    '--channel', '-c', 'channel', type=int, multiple=True,
+    help='MIDI channel'
+)
+@click_common_opts(__version__)
+def rollbook(
+    ctx, midi_file, conf_file, model_name, channel, debug
+) -> None:
     """
     rollbook main
     """
-    loggerInit(dbg)
+    loggerInit(debug)
+    logger.debug(f"command='{ctx.command.name}'")
 
-    app = RollBookApp(midi_file, conf_file, model_name, channel,
-                      version, debug=dbg)
+    app = RollBookApp(
+        midi_file, conf_file, model_name, channel, None, __version__,
+        debug=debug
+    )
     try:
         app.main()
     finally:
@@ -206,26 +211,27 @@ def rollbook(midi_file, conf_file, model_name, channel, version,
         app.end()
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, help='''
-MIDI parser
-''')
+@cli.command()
 @click.argument('midi_file', type=click.Path(exists=True))
-@click.option('--channel', '-c', 'channel', type=int, multiple=True,
-              help='MIDI channel')
-@click.option('--visual', '-v', 'visual_flag', is_flag=True,
-              default=False,
-              help='Visual flag')
-@click.option('--debug', '-d', 'dbg', is_flag=True, default=False,
-              help='debug flag')
-def parse(midi_file, channel, visual_flag, dbg) -> None:
+@click.option(
+    '--channel', '-c', 'channel', type=int, multiple=True,
+    help='MIDI channel'
+)
+@click.option(
+    '--visual', '-v', 'visual_flag', is_flag=True,
+    default=False,
+    help='Visual flag'
+)
+def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     """
     parser main
     """
-    loggerInit(dbg)
+    loggerInit(debug)
 
-    app = MidiApp(midi_file, channel, parse_only=True,
-                  visual_flag=visual_flag,
-                  debug=dbg)
+    app = MidiApp(
+        midi_file, channel, parse_only=True, visual_flag=visual_flag,
+        debug=debug
+    )
     try:
         app.main()
     finally:
@@ -233,36 +239,46 @@ def parse(midi_file, channel, visual_flag, dbg) -> None:
         app.end()
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, help='''
-MIDI player
-''')
+@cli.command()
 @click.argument('midi_file', type=click.Path(exists=True))
-@click.option('--pos_sec', '-s', 'pos_sec', type=float, default=0,
-              help='seek position in sec')
-@click.option('--channel', '-c', 'channel', type=int, multiple=True,
-              help='MIDI channel')
-@click.option('--rate', '-r', 'rate', type=int,
-              default=Player.DEF_RATE,
-              help='sampling rate, default=%s Hz' % Player.DEF_RATE)
-@click.option('--sec_min', '--min', 'sec_min', type=float,
-              default=Player.SEC_MIN,
-              help='min sound length, default=%s' % (Player.SEC_MIN))
-@click.option('--sec_max', '--max', 'sec_max', type=float,
-              default=Player.SEC_MAX,
-              help='max sound length, default=%s' % (Player.SEC_MAX))
-@click.option('--debug', '-d', 'dbg', is_flag=True, default=False,
-              help='debug flag')
-def play(midi_file,  # pylint: disable=too-many-arguments
-         pos_sec, channel, rate, sec_min, sec_max, dbg) -> None:
+@click.option(
+    '--pos_sec', '-s', 'pos_sec', type=float, default=0,
+    help='seek position in sec'
+)
+@click.option(
+    '--channel', '-c', 'channel', type=int, multiple=True,
+    help='MIDI channel'
+)
+@click.option(
+    '--rate', '-r', 'rate', type=int,
+    default=Player.DEF_RATE,
+    help='sampling rate, default=%s Hz' % Player.DEF_RATE
+)
+@click.option(
+    '--sec_min', '--min', 'sec_min', type=float,
+    default=Player.SEC_MIN,
+    help='min sound length, default=%s' % (Player.SEC_MIN)
+)
+@click.option(
+    '--sec_max', '--max', 'sec_max', type=float, default=Player.SEC_MAX,
+    help='max sound length, default=%s' % (Player.SEC_MAX)
+)
+@click_common_opts(__version__)
+def play(  # pylint: disable=too-many-arguments
+    ctx, midi_file, pos_sec, channel, rate, sec_min, sec_max, debug
+) -> None:
     """
     player main
     """
-    loggerInit(dbg)
+    loggerInit(debug)
+    logger.debug(f"command='{ctx.command.name}'")
 
-    app = MidiApp(midi_file, channel, parse_only=False,
-                  visual_flag=False, rate=rate,
-                  sec_min=sec_min, sec_max=sec_max, pos_sec=pos_sec,
-                  debug=dbg)
+    app = MidiApp(
+        midi_file, channel, parse_only=False,
+        visual_flag=False, rate=rate,
+        sec_min=sec_min, sec_max=sec_max, pos_sec=pos_sec,
+        debug=debug
+    )
     try:
         app.main()
     finally:
