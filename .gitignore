@@ -31,6 +31,9 @@ tmp*
 
 .*_cache/
 
+## uv
+uv.lock
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.pyc
