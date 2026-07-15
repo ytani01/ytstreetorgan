@@ -17,10 +17,15 @@ else:
 
 from .rollbook import RollBook
 from .webapp import WebServer
+from .conf import Conf
+from .mylog import loggerInit, exmsg
 
 __all__ = [
     "__version__",
     "logger",
+    "Conf",
+    "loggerInit",
+    "exmsg",
     "RollBook",
     "WebServer"
 ]
