@@ -1,4 +1,8 @@
-# Street Organ Roll Book Maker - モダン化計画書
+# TBD: Street Organ Roll Book Maker - モダン化計画書
+
+by GitHub copilot
+
+**この改造は、まだ、実施しない。**
 
 ## 概要
 
