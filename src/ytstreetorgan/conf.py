@@ -18,12 +18,12 @@ class Conf:
     CONF_FNAME = 'storgan-conf.json'
 
     def __init__(self, config_file: str = '', debug=False):
-        """Constructor"""
+        """Constructor."""
         logger.debug(f'config_file=\'{config_file}\'')
 
         self.config_file: Path | None = None
-        self.data: dict | None = None
-        self.models = []
+        self.data: list[dict] = []
+        self.models: list[str] = []
 
         conf_path: Path = Path(config_file).expanduser()
         logger.debug(f'conf_path=\'{conf_path}\'')
@@ -39,7 +39,7 @@ class Conf:
             self.load()
 
     def search(self) -> Path | None:
-        """Search config file"""
+        """Search config file."""
         logger.debug('')
 
         for dir in self.SEARCH_PATH:
@@ -51,25 +51,26 @@ class Conf:
                 self.config_file = conf_path
                 return self.config_file
 
+        logger.error(f'\'{self.CONF_FNAME}\': not found')
         return None
         
-    def load(self):
-        """Load config file"""
+    def load(self) -> list:
+        """Load config file."""
         logger.debug(f'config_file={self.config_file}')
 
         if self.config_file is None:
             logger.error('config_file is None')
-            return None
+            return []
 
         try:
             json_text = self.config_file.read_text(encoding='utf-8')
             self.data = json.loads(json_text)
         except json.JSONDecodeError as e:
             logger.error(exmsg(e))
-            return None
+            return []
         except Exception as e:
             logger.error(exmsg(e))
-            return None
+            return []
             
         self.models = self.get_models()
         return self.data
@@ -88,16 +89,19 @@ class Conf:
         logger.error(f'mode:\'{model_name}\' not found')
         return None
 
-    def get_models(self):
+    def get_models(self) -> list[str]:
         """Get model_name list."""
         logger.debug('')
 
         self.models = []
 
         if self.data is None:
-            return self.models
-        
-        for d in self.data:
-            self.models.append(d['model'])
-
+            logger.error('data is None')
+        else:
+            try:
+                self.models = [d['model'] for d in self.data]
+            except KeyError as e:
+                logger.error(exmsg(e))
+            except Exception as e:
+                logger.error(exmsg(e))
         return self.models
