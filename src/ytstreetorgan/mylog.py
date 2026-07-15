@@ -6,12 +6,16 @@
 # sample
 
 ```python
-from .mylog import LOG_FMT, logLevel
+from .mylog import loggerInit, exmsg
 
 def main(debug: bool = False):
-    logger.remove()
-    logger.add(sys.stderr, format=LOG_FMT
+    logInit(debug=debug)
+    logger.debug(debg)
 
+    try:
+     :
+    except Exception as e:
+      logger.error(exmsg(e))
 ```
 """
 
@@ -39,3 +43,7 @@ def loggerInit(debug: bool = False, out=sys.stderr) -> None:
     """Initialize logger."""
     logger.remove()
     logger.add(out, format=LOG_FMT, level=logLevel(debug))
+
+def exmsg(ex) -> str:
+    """exception to message string."""
+    return f'{type(ex).__name__}: {ex}'
