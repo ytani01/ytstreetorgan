@@ -33,6 +33,8 @@ class Conf:
 
         if self.config_file is None:
             logger.error('config_file is None')
+        else:
+            self.load()
 
     def search(self) -> Path | None:
         """Search config file"""
@@ -46,7 +48,7 @@ class Conf:
                 logger.debug(f'find: \'{conf_path}\'')
                 self.config_file = conf_path
                 return self.config_file
-            
+
         return None
         
     def load(self):
@@ -68,3 +70,17 @@ class Conf:
             return None
             
         return self.data
+
+    def get(self, model_name=''):
+        """Get config data for ``model_name``."""
+        logger.debug(f'model_name=\'{model_name}\'')
+
+        if self.data is None:
+            return None
+
+        for d in self.data:
+            if d['model'] == model_name:
+                return d
+
+        logger.error(f'mode:\'{model_name}\' not found')
+        return None
