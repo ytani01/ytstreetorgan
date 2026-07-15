@@ -4,10 +4,10 @@
 import json
 from loguru import logger
 from pathlib import Path
-from ytstreetorgan.mylog import exmsg
+from .mylog import exmsg
 
 class Conf:
-    """Configuration File"""
+    """Configuration data class."""
     SEARCH_PATH = [
         Path('.'),
         Path('~/.config'),
