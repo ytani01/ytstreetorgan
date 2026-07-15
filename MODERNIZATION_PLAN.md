@@ -24,7 +24,8 @@ ytstreetorgan/
 │   ├── static/               ← jQuery（古い）❌
 │   ├── midi/                 ← アップロード先
 │   └── svg/                  ← 出力先
-├── pyproject.toml            ← Python 設定
+├── pyproject.toml            ← Python 設定（uv 対応）
+├── uv.lock                   ← uv ロックファイル
 └── README.md
 ```
 
@@ -90,7 +91,8 @@ ytstreetorgan/
 │   ├── static/
 │   └── ...
 │
-├── pyproject.toml               ← 更新：FastAPI 追加
+├── pyproject.toml               ← 更新：FastAPI 追加（uv 対応）
+├── uv.lock                      ← uv ロックファイル（自動更新）
 ├── MODERNIZATION_PLAN.md        ← このドキュメント
 └── README.md                    ← 更新予定
 ```
@@ -106,7 +108,7 @@ ytstreetorgan/
           ↕ (API proxy)
 ┌──────────────────────┐
 │ FastAPI             │
-│ http://localhost:8000│ ← python -m ytstreetorgan webapp
+│ http://localhost:8000│ ← uv run python -m ytstreetorgan webapp
 └──────────────────────┘
           ↕
 ┌──────────────────────┐
@@ -160,10 +162,13 @@ WS     /ws/{task_id}            ← WebSocket（進捗通知）
 GET    /health                  ← ヘルスチェック
 ```
 
-#### 1-2. pyproject.toml 更新
+#### 1-2. pyproject.toml 更新（uv 対応）
 
-**追加：**
+**追加依存関係：**
 ```toml
+[project]
+name = "ytstreetorgan"
+requires-python = ">=3.13"
 dependencies = [
   "fastapi",           # ← 新規（Tornado 削除）
   "uvicorn[standard]", # ← 新規
@@ -173,23 +178,39 @@ dependencies = [
   "ytmidilib",
   "loguru>=0.7.3",
 ]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.37.3",
+    "flake8>=7.3.0",
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.14",
+]
+```
+
+**更新方法：**
+```bash
+# pyproject.toml を編集後
+uv sync --all-groups
 ```
 
 #### 1-3. CLI インターフェース維持
 
 ```bash
 # 既存コマンドは変わらない
-ytstreetorgan webapp --port 8000 --debug
+uv run ytstreetorgan webapp --port 8000 --debug
 
 # 他のコマンドも継続
-ytstreetorgan rollbook <midi_file>
-ytstreetorgan parse <midi_file>
+uv run ytstreetorgan rollbook <midi_file>
+uv run ytstreetorgan parse <midi_file>
 ```
 
 #### 1-4. テスト
 
 ```bash
-pytest tests/  # 既存テスト継続
+uv run pytest tests/  # 既存テスト継続
 ```
 
 ---
@@ -251,7 +272,7 @@ app.add_middleware(
 
 #### 3-3. 互換性テスト
 
-- [ ] 既存 CLI コマンド動作確認
+- [ ] 既存 CLI コマンド動作確認（`uv run` で実行）
 - [ ] RollBook ロジック動作確認
 - [ ] ytmidilib 統合確認
 
@@ -266,11 +287,11 @@ cd frontend
 npm run build  # dist/ に HTML 生成
 ```
 
-#### 4-2. Python パッケージング
+#### 4-2. Python パッケージング（uv 利用）
 
 ```bash
-pip install build
-python -m build
+# uv を使用してビルド
+uv build
 ```
 
 #### 4-3. Docker 対応（オプション）
@@ -278,17 +299,24 @@ python -m build
 ```dockerfile
 FROM python:3.13-slim
 
+# uv をインストール
+RUN pip install uv
+
 WORKDIR /app
 
-COPY pyproject.toml .
-RUN pip install -e .
+# pyproject.toml と uv.lock をコピー
+COPY pyproject.toml uv.lock ./
 
-COPY src ./src
+# 依存関係をインストール（uv 使用）
+RUN uv sync --frozen
 
 # フロントエンド構築済み HTML をコピー
 COPY frontend/dist ./frontend_dist
 
-CMD ["uvicorn", "ytstreetorgan.webapp:app", "--host", "0.0.0.0", "--port", "8000"]
+# ソースコードをコピー
+COPY src ./src
+
+CMD ["uv", "run", "uvicorn", "ytstreetorgan.webapp:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ---
@@ -793,29 +821,47 @@ function showError(message) {
 
 ---
 
-## 開発環境セットアップ
+## 開発環境セットアップ（uv 利用）
 
 ### 前提条件
 
 - Python 3.13+
+- uv（Python パッケージマネージャー）
 - Node.js 20+
 - npm 10+
 
-### インストール
+### uv のインストール
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# または pip で
+pip install uv
+```
+
+### Python 環境セットアップ
 
 ```bash
 # リポジトリクローン
 git clone https://github.com/ytani01/ytstreetorgan.git
 cd ytstreetorgan
 
-# Python 環境セットアップ
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# uv で依存関係をインストール（venv 自動作成）
+uv sync --all-groups
 
-# Python 依存関係
-pip install -e ".[dev]"
+# または開発依存を含める
+uv sync --all-groups
+```
 
-# フロントエンド環境
+**注：uv は自動的に `.venv/` を作成して仮想環境を管理します**
+
+### フロントエンド環境
+
+```bash
 cd frontend
 npm install
 ```
@@ -824,10 +870,11 @@ npm install
 
 **ターミナル 1：バックエンド**
 ```bash
-source venv/bin/activate
-python -m ytstreetorgan webapp --debug
-# または
-uvicorn ytstreetorgan.webapp:app --reload
+# uv run で Python コマンドを実行（venv 自動アクティベート）
+uv run python -m ytstreetorgan webapp --debug
+
+# または uvicorn で直接実行
+uv run uvicorn ytstreetorgan.webapp:app --reload
 ```
 
 **ターミナル 2：フロントエンド**
@@ -840,7 +887,7 @@ npm run dev
 
 ---
 
-## 本番デプロイ
+## 本番デプロイ（uv 利用）
 
 ### フロントエンド ビルド
 
@@ -850,44 +897,71 @@ npm run build
 # dist/ に静的ファイルが生成される
 ```
 
-### Python パッケージングと実行
+### Python パッケージングと実行（uv 利用）
 
 ```bash
 # ビルド
-python -m build
+uv build
 
-# インストール
-pip install dist/ytstreetorgan-*.whl
-
-# 実行
-python -m ytstreetorgan webapp --port 8000
+# または、直接実行する場合
+uv run python -m ytstreetorgan webapp --port 8000
 ```
 
-### Docker での実行（オプション）
+### Docker での実行（uv 対応）
 
 ```dockerfile
 FROM python:3.13-slim
 
+# uv をインストール
+RUN pip install uv
+
 WORKDIR /app
 
-# Node.js を一時的に使用（ビルドのみ）
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY frontend/ .
-RUN npm install && npm run build
+# pyproject.toml と uv.lock をコピー
+COPY pyproject.toml uv.lock ./
 
-# Python イメージ
-FROM python:3.13-slim
-WORKDIR /app
+# 依存関係をインストール
+RUN uv sync --frozen --no-dev
 
-COPY pyproject.toml .
-RUN pip install -e .
+# フロントエンド構築済み HTML をコピー
+COPY frontend/dist ./static
 
+# ソースコードをコピー
 COPY src ./src
-COPY --from=builder /app/dist ./static
 
 EXPOSE 8000
-CMD ["uvicorn", "ytstreetorgan.webapp:app", "--host", "0.0.0.0"]
+CMD ["uv", "run", "uvicorn", "ytstreetorgan.webapp:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Docker Compose での実行
+
+```yaml
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uv run uvicorn ytstreetorgan.webapp:app --host 0.0.0.0 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    command: npm run dev
+```
+
+```bash
+# 起動
+docker-compose up
 ```
 
 ---
@@ -898,8 +972,8 @@ CMD ["uvicorn", "ytstreetorgan.webapp:app", "--host", "0.0.0.0"]
 
 - ✅ **CLI コマンド** - そのまま動作
   ```bash
-  ytstreetorgan rollbook input.mid -m ModelName
-  ytstreetorgan parse input.mid --visual
+  uv run ytstreetorgan rollbook input.mid -m ModelName
+  uv run ytstreetorgan parse input.mid --visual
   ```
 
 - ✅ **RollBook ロジック** - 完全に保持
@@ -950,6 +1024,11 @@ def test_parse_midi():
     assert '<svg' in svg
 ```
 
+実行方法：
+```bash
+uv run pytest tests/
+```
+
 ### API テスト
 
 ```python
@@ -969,6 +1048,11 @@ def test_upload_midi():
     
     assert response.status_code == 200
     assert 'task_id' in response.json()
+```
+
+実行方法：
+```bash
+uv run pytest tests/test_api.py -v
 ```
 
 ### 手動テスト
@@ -1015,6 +1099,84 @@ mkdir -p /tmp/storgan/midi /tmp/storgan/svg
 chmod 755 /tmp/storgan
 ```
 
+### uv で依存関係エラー
+
+**症状：** `ModuleNotFoundError` が発生
+
+**解決：**
+```bash
+# uv.lock を再構築
+uv sync --all-groups
+
+# または、依存関係を更新
+uv pip compile pyproject.toml > uv.lock
+```
+
+### Python バージョンエラー
+
+**症状：** `Python 3.13 is required`
+
+**確認と解決：**
+```bash
+# インストール済みの Python バージョン確認
+python --version
+uv python list
+
+# Python 3.13 をダウンロード
+uv python install 3.13
+```
+
+---
+
+## uv 固有のコマンド集
+
+### よく使うコマンド
+
+```bash
+# 依存関係をインストール
+uv sync
+
+# 開発依存を含める
+uv sync --all-groups
+
+# 依存関係をロック
+uv lock
+
+# Python コマンド実行（venv 自動アクティベート）
+uv run <command>
+
+# テスト実行
+uv run pytest
+
+# linting
+uv run ruff check .
+uv run mypy src/
+
+# Python REPL
+uv run python
+
+# 特定のパッケージを追加
+uv add fastapi
+
+# 開発依存を追加
+uv add --group dev pytest
+
+# パッケージを削除
+uv remove fastapi
+```
+
+### uv.lock の管理
+
+- **自動生成：** `uv sync` 実行時に自動更新
+- **Git 管理：** 本番環境でロック版をインストール
+  ```bash
+  uv sync --frozen  # uv.lock を変更しない
+  ```
+- **更新：**
+  ```bash
+  uv lock --upgrade  # 全依存関係を更新
+  ```
+
 ---
 
 ## まとめ
@@ -1039,6 +1201,11 @@ chmod 755 /tmp/storgan
 - 1 つのリポジトリで管理
 - Python に集中できる
 - 本番環境は Python 単独
+
+✅ **パッケージ管理の最適化**
+- uv での高速・確実な依存関係管理
+- uv.lock による再現可能なビルド
+- 開発環境と本番環境の統一
 
 ✅ **スケーラビリティ**
 - 将来的に Celery + Redis に拡張可能
