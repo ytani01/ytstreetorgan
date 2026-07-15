@@ -4,9 +4,6 @@
 """
 storgan
 """
-__author__ = 'Yoichi Tanibayashi'
-__date__ = '2021/01'
-
 from importlib.metadata import PackageNotFoundError, version
 from loguru import logger
 
