@@ -23,6 +23,7 @@ class Conf:
 
         self.config_file: Path | None = None
         self.data: dict | None = None
+        self.models = []
 
         conf_path: Path = Path(config_file).expanduser()
         logger.debug(f'conf_path=\'{conf_path}\'')
@@ -70,6 +71,7 @@ class Conf:
             logger.error(exmsg(e))
             return None
             
+        self.models = self.get_models()
         return self.data
 
     def get(self, model_name=''):
@@ -85,3 +87,17 @@ class Conf:
 
         logger.error(f'mode:\'{model_name}\' not found')
         return None
+
+    def get_models(self):
+        """Get model_name list."""
+        logger.debug('')
+
+        self.models = []
+
+        if self.data is None:
+            return self.models
+        
+        for d in self.data:
+            self.models.append(d['model'])
+
+        return self.models
