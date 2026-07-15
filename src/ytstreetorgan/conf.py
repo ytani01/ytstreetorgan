@@ -4,6 +4,7 @@
 import json
 from loguru import logger
 from pathlib import Path
+from ytstreetorgan.mylog import exmsg
 
 class Conf:
     """Configuration File"""
@@ -63,10 +64,10 @@ class Conf:
             json_text = self.config_file.read_text(encoding='utf-8')
             self.data = json.loads(json_text)
         except json.JSONDecodeError as e:
-            logger.error(f'{type(e).__name__}: {e} ')
+            logger.error(exmsg(e))
             return None
         except Exception as e:
-            logger.error(f'{type(e).__name__}: {e} ')
+            logger.error(exmsg(e))
             return None
             
         return self.data
