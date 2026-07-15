@@ -1,12 +1,9 @@
 #
-# (c) 2021 Yoichi Tanibayashi
+# (c) 2026 Yoichi Tanibayashi
 #
 """
 Street Organ Roll Book Maker
 """
-__author__ = 'Yoichi Tanibayashi'
-__date__ = '2021/01'
-
 import os
 import json
 from ytmidilib import NoteInfo, Parser
