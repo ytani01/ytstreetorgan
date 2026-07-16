@@ -194,7 +194,7 @@ class Handler1(tornado.web.RequestHandler):
         msg = '%s (%.1f %s)' % (file1['filename'], f_size, unit)
 
         svg_data = self._rollbook.parse(file1_path)
-        logger.debug('svg_data=%a', svg_data)
+        logger.debug('svg_data={}', svg_data)
 
         with open(svg1_path, mode='w') as f:
             f.write(svg_data)
