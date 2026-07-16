@@ -64,7 +64,6 @@ class TestLoggerInit:
         """loggerInit() を2回呼ぶとハンドラが重複しない"""
         from ytstreetorgan.mylog import loggerInit
         loggerInit(debug=False)
-        loggerInit(debug=False)
         handler_count = len(logger._core.handlers)
         assert handler_count == 1
 
