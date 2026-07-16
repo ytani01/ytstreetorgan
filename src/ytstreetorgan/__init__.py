@@ -7,8 +7,8 @@ storgan
 from importlib.metadata import PackageNotFoundError, version
 from loguru import logger
 
-
-__author__ = '(c) 2026 Yoichi Tanibayashi'
+__author__ = 'Yoichi Tanibayashi'
+__copyright_year__ = "2026"
 
 
 __version__: str = ''
@@ -27,6 +27,7 @@ from .mylog import loggerInit, exmsg
 
 __all__ = [
     "__author__",
+    "__copyright_year__",
     "__version__",
     "logger",
     "Conf",

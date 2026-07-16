@@ -163,9 +163,10 @@ def cli(ctx, debug):
                   WebServer.DEF_SIZE_LIMIT))
 @click_common_opts(__version__)
 def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
-    """ cmd1  """
+    """"Web application."""
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
+    logger.debug("__version__={}", __version__)
 
     app = WebServer(port, urlprefix, webroot, workdir, size_limit, debug=debug)
     try:

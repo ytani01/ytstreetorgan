@@ -4,7 +4,7 @@
 import os
 import tornado.web
 from loguru import logger
-from . import __author__
+from . import __author__, __copyright_year__
 from .rollbook import RollBook
 from .conf import Conf
 
@@ -160,7 +160,7 @@ class Handler1(tornado.web.RequestHandler):
                     title=self.TITLE,
                     author=__author__,
                     version=self._version,
-                    copyright_year='2026',
+                    copyright_year=__copyright_year__,
                     urlprefix=self._urlprefix,
                     size_limit=size_limit,
                     size_unit=size_unit,
