@@ -148,6 +148,9 @@ def cli(ctx, debug):
 @click.option('--port', '-p', 'port', type=int,
               default=WebServer.DEF_PORT,
               help='port number')
+@click.option('--urlprefix', '-u', 'urlprefix', type=str,
+              default=WebServer.URL_PREFIX,
+              help='URL prefix')
 @click.option('--webroot', '-r', 'webroot', type=click.Path(exists=True),
               default=WebServer.DEF_WEBROOT,
               help='Web root directory')
@@ -159,12 +162,12 @@ def cli(ctx, debug):
               help='upload size limit, default=%s' % (
                   WebServer.DEF_SIZE_LIMIT))
 @click_common_opts(__version__)
-def webapp(ctx, port, webroot, workdir, size_limit, debug):
+def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
     """ cmd1  """
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
 
-    app = WebServer(port, webroot, workdir, size_limit)
+    app = WebServer(port, urlprefix, webroot, workdir, size_limit, debug=debug)
     try:
         app.main()
     finally:

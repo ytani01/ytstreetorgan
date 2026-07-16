@@ -24,17 +24,6 @@
   </head>
   <body style="background-color: white;">
     <header>
-      <!--
-           <div class="container">
-           <div class="row">
-           <div class="col">
-           <strong>[page1]</strong>
-           <a href="/storgan/page2/">[page2]</a>
-           </div>
-           </div>
-           </div>
-           <hr />
-      -->
     </header>
     <main>
       <div class="container">
@@ -47,7 +36,7 @@
           {% if svg_data == '' %}
           <div class="col text-center">
             <form enctype="multipart/form-data"
-              action="/storgan/"
+              action="{{urlprefix}}/"
               method="post">
               {% if len(models) > 0 %}
               <div>
@@ -79,7 +68,7 @@
           <a href="./">[ ファイル選択に戻る ]</a>
           <strong>{{ msg }}</strong>
           <p>
-            <a href="/storgan/download/{{ svg_filename }}"
+            <a href="/{{urlprefix}}/download/{{ svg_filename }}"
               target="_blank">
               {{ svg_data }}
             </a>

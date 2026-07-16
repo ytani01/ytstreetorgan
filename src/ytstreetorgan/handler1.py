@@ -18,6 +18,9 @@ class Download(tornado.web.RequestHandler):
         logger.debug('app={}', app)
         logger.debug('req={}', req)
 
+        self._urlprefix = app.settings.get('urlprefix')
+        logger.debug('urlprefix={}', self._urlprefix)
+
         self._webroot = app.settings.get('webroot')
         logger.debug('webroot={}', self._webroot)
 
@@ -83,6 +86,9 @@ class Handler1(tornado.web.RequestHandler):
         logger.debug('app={}', app)
         logger.debug('req={}', req)
 
+        self._urlprefix = app.settings.get('urlprefix')
+        logger.debug('urlprefix={}', self._urlprefix)
+
         self._webroot = app.settings.get('webroot')
         logger.debug('webroot={}', self._webroot)
 
@@ -134,8 +140,9 @@ class Handler1(tornado.web.RequestHandler):
 
         return self.get_size_unit(f_size)
 
-    def get(self, svg_data='', svg_filename='',
-            msg='Please select a MIDI file'):
+    def get(
+        self, svg_data='', svg_filename='', msg='Please select a MIDI file'
+    ):
         """
         GET method and rendering
         """
@@ -151,7 +158,8 @@ class Handler1(tornado.web.RequestHandler):
                     title=self.TITLE,
                     author=__author__,
                     version=self._version,
-                    copyright_year='2021',
+                    copyright_year='2026',
+                    urlprefix=self._urlprefix,
                     size_limit=size_limit,
                     size_unit=size_unit,
                     models=self._models,
