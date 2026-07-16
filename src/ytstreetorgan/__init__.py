@@ -11,6 +11,7 @@ from loguru import logger
 __author__ = '(c) 2026 Yoichi Tanibayashi'
 
 
+__version__: str = ''
 if __package__:
     try:
         __version__ = version(__package__)

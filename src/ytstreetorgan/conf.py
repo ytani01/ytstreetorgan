@@ -6,6 +6,7 @@ from loguru import logger
 from pathlib import Path
 from .mylog import exmsg
 
+
 class Conf:
     """Configuration data class."""
     SEARCH_PATH = [
@@ -64,7 +65,7 @@ class Conf:
         except Exception as e:
             logger.error(exmsg(e))
             return []
-            
+
         return self.data
 
     def get(self, model_name='') -> dict:

@@ -47,9 +47,7 @@ class RollBookApp:
         self._out_file = os.path.expanduser(out_file)
         logger.debug('[fix] out_file={}', self._out_file)
 
-        self._rollbook = RollBook(
-            self._model_name, self._conf_file, debug=self._dbg
-        )
+        self._rollbook = RollBook(self._model_name, self._conf_file)
 
     def main(self):
         """ main """
@@ -128,6 +126,8 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
 """
 # click コマンド群
 """
+
+
 @click.group()
 @click_common_opts(__version__)
 def cli(ctx, debug):
@@ -135,7 +135,7 @@ def cli(ctx, debug):
     loggerInit(debug)
     logger.debug(ctx)
     logger.debug(debug)
-    
+
     subcmd = ctx.invoked_subcommand
 
     if subcmd is None:
@@ -231,6 +231,7 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     parser main
     """
     loggerInit(debug)
+    logger.debug(f"command='{ctx.command.name}'")
 
     app = MidiApp(
         midi_file, channel, parse_only=True, visual_flag=visual_flag,
@@ -264,7 +265,8 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     help='min sound length, default=%s' % (Player.SEC_MIN)
 )
 @click.option(
-    '--sec_max', '--max', 'sec_max', type=float, default=Player.SEC_MAX, show_default=True,
+    '--sec_max', '--max', 'sec_max',
+    type=float, default=Player.SEC_MAX, show_default=True,
     help='max sound length, default=%s' % (Player.SEC_MAX)
 )
 @click_common_opts(__version__)

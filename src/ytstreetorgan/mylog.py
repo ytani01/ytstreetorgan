@@ -44,6 +44,7 @@ def loggerInit(debug: bool = False, out=sys.stderr) -> None:
     logger.remove()
     logger.add(out, format=LOG_FMT, level=logLevel(debug))
 
+
 def exmsg(ex) -> str:
     """exception to message string."""
     return f'{type(ex).__name__}: {ex}'

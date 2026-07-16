@@ -105,10 +105,12 @@ class Handler1(tornado.web.RequestHandler):
 
         self._conf_file = RollBook.DEF_CONF_FILE
         self._model_name = RollBook.DEF_MODEL_NAME
-        logger.debug("conf_file={}, model_name={}", self._conf_file, self._model_name)
+        logger.debug(
+            "conf_file={}, model_name={}", self._conf_file, self._model_name
+        )
 
         self._models = Conf(self._conf_file).models
-        
+
         super().__init__(app, req)
 
     def get_size_unit(self, f_size):
@@ -172,7 +174,7 @@ class Handler1(tornado.web.RequestHandler):
         POST method
         """
         logger.debug(dir(self.request))
-        
+
         file1 = self.request.files['file1'][0]
         file1_fname = file1['filename']
         file1_path = '%s/midi/%s' % (self._webroot, file1_fname)
@@ -183,7 +185,7 @@ class Handler1(tornado.web.RequestHandler):
         logger.debug('model=\'{}\'', self._model)
 
         self._rollbook = RollBook(self._model, self._conf_file)
-        
+
         if not os.path.exists(file1_path):
             with open(file1_path, mode='wb') as f:
                 f.write(file1['body'])

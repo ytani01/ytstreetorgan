@@ -3,7 +3,6 @@ tests/conftest.py - 共通フィクスチャ
 """
 import pytest
 from loguru import logger
-import sys
 
 
 @pytest.fixture(autouse=True)

@@ -8,7 +8,7 @@ import tornado.web
 from loguru import logger
 from . import __version__
 from .conf import Conf
-from .mylog import loggerInit, exmsg
+from .mylog import exmsg
 from .handler1 import Handler1, Download
 
 
