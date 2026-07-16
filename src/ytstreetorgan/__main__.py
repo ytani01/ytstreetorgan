@@ -146,19 +146,19 @@ def cli(ctx, debug):
 
 @cli.command()
 @click.option('--port', '-p', 'port', type=int,
-              default=WebServer.DEF_PORT,
+              default=WebServer.DEF_PORT, show_default=True,
               help='port number')
 @click.option('--urlprefix', '-u', 'urlprefix', type=str,
-              default=WebServer.URL_PREFIX,
+              default=WebServer.URL_PREFIX, show_default=True,
               help='URL prefix')
 @click.option('--webroot', '-r', 'webroot', type=click.Path(exists=True),
-              default=WebServer.DEF_WEBROOT,
+              default=WebServer.DEF_WEBROOT, show_default=True,
               help='Web root directory')
 @click.option('--workdir', '-w', 'workdir', type=click.Path(),
-              default=WebServer.DEF_WORKDIR,
+              default=WebServer.DEF_WORKDIR, show_default=True,
               help='work directory')
 @click.option('--size_limit', '-l', 'size_limit', type=int,
-              default=100*1024*1024,
+              default=100*1024*1024, show_default=True,
               help='upload size limit, default=%s' % (
                   WebServer.DEF_SIZE_LIMIT))
 @click_common_opts(__version__)
@@ -180,11 +180,13 @@ def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
     '--conf_file', '-f', 'conf_file',
     type=click.Path(exists=False),
     default=RollBook.DEF_CONF_FILE,
+    show_default=True,
     help='configuration file'
 )
 @click.option(
     '--model', '-m', 'model_name', type=str,
     default=RollBook.DEF_MODEL_NAME,
+    show_default=True,
     help='Model Name'
 )
 @click.option(
@@ -220,9 +222,10 @@ def rollbook(
 )
 @click.option(
     '--visual', '-v', 'visual_flag', is_flag=True,
-    default=False,
+    default=False,  show_default=True,
     help='Visual flag'
 )
+@click_common_opts(__version__, use_v=False)
 def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     """
     parser main
@@ -243,7 +246,7 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
 @cli.command()
 @click.argument('midi_file', type=click.Path(exists=True))
 @click.option(
-    '--pos_sec', '-s', 'pos_sec', type=float, default=0,
+    '--pos_sec', '-s', 'pos_sec', type=float, default=0.0, show_default=True,
     help='seek position in sec'
 )
 @click.option(
@@ -252,16 +255,16 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
 )
 @click.option(
     '--rate', '-r', 'rate', type=int,
-    default=Player.DEF_RATE,
+    default=Player.DEF_RATE, show_default=True,
     help='sampling rate, default=%s Hz' % Player.DEF_RATE
 )
 @click.option(
     '--sec_min', '--min', 'sec_min', type=float,
-    default=Player.SEC_MIN,
+    default=Player.SEC_MIN, show_default=True,
     help='min sound length, default=%s' % (Player.SEC_MIN)
 )
 @click.option(
-    '--sec_max', '--max', 'sec_max', type=float, default=Player.SEC_MAX,
+    '--sec_max', '--max', 'sec_max', type=float, default=Player.SEC_MAX, show_default=True,
     help='max sound length, default=%s' % (Player.SEC_MAX)
 )
 @click_common_opts(__version__)
