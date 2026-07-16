@@ -125,9 +125,9 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
         """
 
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
-
+"""
+# click コマンド群
+"""
 @click.group()
 @click_common_opts(__version__)
 def cli(ctx, debug):
@@ -164,8 +164,7 @@ def webapp(ctx, port, webroot, workdir, size_limit, debug):
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
 
-    app = WebServer(port, webroot, workdir, size_limit,
-                    debug=debug)
+    app = WebServer(port, webroot, workdir, size_limit)
     try:
         app.main()
     finally:

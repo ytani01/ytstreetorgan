@@ -1,7 +1,6 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-import os
 import json
 from ytmidilib import NoteInfo, Parser
 from loguru import logger
@@ -74,9 +73,7 @@ class HoleInfo:
     x, y, w, h: float
         coordinate in mm
     """
-    def __init__(self, note_info: NoteInfo, conf: dict, debug: bool = False):
-        self._dbg = debug
-
+    def __init__(self, note_info: NoteInfo, conf: dict):
         self.note_info = note_info
         self.conf = conf
 
@@ -128,8 +125,9 @@ class RollBook:
     DEF_MODEL_NAME = '34notes'
     DEF_CONF_FILE = ''
 
-    def __init__(self, model: str = DEF_MODEL_NAME,
-                 conf_file: str = DEF_CONF_FILE, debug=False):
+    def __init__(
+        self, model: str = DEF_MODEL_NAME, conf_file: str = DEF_CONF_FILE
+    ):
         """ Constructor
 
         Parameters
@@ -138,8 +136,7 @@ class RollBook:
             Model Name
         conf_file: str
         """
-        self._dbg = debug
-        logger.debug('model={}', model)
+        logger.info('model={}', model)
 
         self._model = model
         self._conf_file = conf_file
@@ -153,7 +150,7 @@ class RollBook:
         self._holes: list[HoleInfo] = []
         self._svg = ''
 
-        self._midi_parser = Parser(debug=self._dbg)
+        self._midi_parser = Parser()
 
     def svg(self, color='#0000FF', hole_color='#FF0000',
             line_width=DEF_LINE_WIDTH, stroke_dasharray='none'):
@@ -214,7 +211,7 @@ class RollBook:
         logger.debug('midi[channel_set]={}', midi['channel_set'])
 
         for ni in midi['note_info']:
-            hi = HoleInfo(ni, self._conf, debug=self._dbg)
+            hi = HoleInfo(ni, self._conf)
             logger.debug('hi={}', hi)
 
             if hi:

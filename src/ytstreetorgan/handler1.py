@@ -4,11 +4,9 @@
 import os
 import tornado.web
 from loguru import logger
+from . import __author__
 from .rollbook import RollBook
 from .conf import Conf
-
-
-__author__ = 'Yoichi Tanibayashi'
 
 
 class Download(tornado.web.RequestHandler):
@@ -17,8 +15,6 @@ class Download(tornado.web.RequestHandler):
     """
     def __init__(self, app, req):
         """ Constructor """
-        self._dbg = app.settings.get('debug')
-        logger.debug('debug={}', self._dbg)
         logger.debug('app={}', app)
         logger.debug('req={}', req)
 
@@ -41,8 +37,7 @@ class Download(tornado.web.RequestHandler):
         self._model_name = RollBook.DEF_MODEL_NAME
         self._conf_file = RollBook.DEF_CONF_FILE
 
-        self._rollbook = RollBook(self._model_name, self._conf_file,
-                                  debug=self._dbg)
+        self._rollbook = RollBook(self._model_name, self._conf_file)
 
         super().__init__(app, req)
 
@@ -85,8 +80,6 @@ class Handler1(tornado.web.RequestHandler):
 
     def __init__(self, app, req):
         """ Constructor """
-        self._dbg = app.settings.get('debug')
-        logger.debug('debug={}', self._dbg)
         logger.debug('app={}', app)
         logger.debug('req={}', req)
 
@@ -110,10 +103,6 @@ class Handler1(tornado.web.RequestHandler):
 
         self._models = Conf(self._conf_file).models
         
-        self._rollbook = RollBook(
-            self._model_name, self._conf_file, debug=self._dbg
-        )
-
         super().__init__(app, req)
 
     def get_size_unit(self, f_size):

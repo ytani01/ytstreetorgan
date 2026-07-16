@@ -5,8 +5,9 @@ import os
 import tornado.ioloop
 import tornado.httpserver
 import tornado.web
-from .handler1 import Handler1, Download
 from loguru import logger
+from . import __version__
+from .handler1 import Handler1, Download
 from .conf import Conf
 
 
@@ -20,16 +21,15 @@ class WebServer:
     URL_PREFIX = '/storgan'
     URL_PREFIX_HANDLER1 = URL_PREFIX + '/handler1'
 
-    DEF_WORKDIR = '/tmp/storgan'
+    DEF_WORKDIR = '/tmp'
 
-    DEF_SIZE_LIMIT = 100*1024*1024  # 100MB
+    DEF_SIZE_LIMIT = 100 * 1024 * 1024  # 100MB
 
     def __init__(
         self, port=DEF_PORT,
         webroot=DEF_WEBROOT, workdir=DEF_WORKDIR,
         size_limit=DEF_SIZE_LIMIT,
-        version='current',
-        debug=False
+        version=__version__,
     ):
         """ Constructor
 
@@ -46,10 +46,9 @@ class WebServer:
         version: str
             version string
         """
-        self._dbg = debug
-        logger.info('port={}, webroot={}, workdir={}, size_limit={}',
+        logger.debug('port={}, webroot={}, workdir={}, size_limit={}',
                     port, webroot, workdir, size_limit)
-        logger.info('version={}', version)
+        logger.debug('version={}', version)
 
         self._port = port
         self._webroot = webroot
@@ -87,8 +86,6 @@ class WebServer:
             size_limit=self._size_limit,
             version=self._version,
             models=self._models,
-
-            debug=self._dbg
         )
         logger.debug('app={}', self._app.__dict__)
 

@@ -7,6 +7,10 @@ storgan
 from importlib.metadata import PackageNotFoundError, version
 from loguru import logger
 
+
+__author__ = '(c) 2026 Yoichi Tanibayashi'
+
+
 if __package__:
     try:
         __version__ = version(__package__)
@@ -21,6 +25,7 @@ from .conf import Conf
 from .mylog import loggerInit, exmsg
 
 __all__ = [
+    "__author__",
     "__version__",
     "logger",
     "Conf",
