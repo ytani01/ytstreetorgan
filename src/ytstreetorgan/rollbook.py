@@ -1,13 +1,11 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""
-Street Organ Roll Book Maker
-"""
 import os
 import json
 from ytmidilib import NoteInfo, Parser
 from loguru import logger
+from .conf import Conf
 
 
 DEF_LINE_WIDTH = 0.1
@@ -127,8 +125,8 @@ class HoleInfo:
 class RollBook:
     """ RollBook class
     """
-    DEF_MODEL_NAME = 'ModelName'
-    DEF_CONF_FILE = os.path.expanduser('~/bin/storgan.conf')
+    DEF_MODEL_NAME = '34notes'
+    DEF_CONF_FILE = ''
 
     def __init__(self, model: str = DEF_MODEL_NAME,
                  conf_file: str = DEF_CONF_FILE, debug=False):
@@ -145,9 +143,9 @@ class RollBook:
 
         self._model = model
         self._conf_file = conf_file
-        logger.debug('conf_file={}', self._conf_file)
+        logger.debug('model={},conf_file={}', self._model, self._conf_file)
 
-        self._conf = self.get_conf(self._model, self._conf_file)
+        self._conf = Conf(self._conf_file).get(self._model)
         logger.debug('conf={}', json.dumps(self._conf))
 
         self._width = 0
@@ -156,26 +154,6 @@ class RollBook:
         self._svg = ''
 
         self._midi_parser = Parser(debug=self._dbg)
-
-    def get_conf(self, model='ModelName', conf_file=DEF_CONF_FILE):
-        """
-        Parameters
-        ----------
-        model: str
-            Model Name
-        conf_file: str
-            configuration file name
-        """
-        logger.debug('model={}, conf_file={}', model, conf_file)
-
-        with open(conf_file) as f:
-            all_conf = json.load(f)
-
-        for conf in all_conf:
-            if conf['model'] == model:
-                return conf
-
-        return {}
 
     def svg(self, color='#0000FF', hole_color='#FF0000',
             line_width=DEF_LINE_WIDTH, stroke_dasharray='none'):

@@ -1,16 +1,14 @@
-#!/usr/bin/env python3
 #
-# (c) 2021 Yoichi Tanibayashi
+# (c) 2026 Yoichi Tanibayashi
 #
-"""
-Handler1
-"""
-__author__ = 'Yoichi Tanibayashi'
-
 import os
 import tornado.web
-from .rollbook import RollBook
 from loguru import logger
+from .rollbook import RollBook
+from .conf import Conf
+
+
+__author__ = 'Yoichi Tanibayashi'
 
 
 class Download(tornado.web.RequestHandler):
@@ -37,6 +35,8 @@ class Download(tornado.web.RequestHandler):
         self._url_path = app.settings.get('url_prefix_handler1') + '/'
 
         self._version = app.settings.get('version')
+
+        self._model = ''
 
         self._model_name = RollBook.DEF_MODEL_NAME
         self._conf_file = RollBook.DEF_CONF_FILE
@@ -104,11 +104,15 @@ class Handler1(tornado.web.RequestHandler):
 
         self._version = app.settings.get('version')
 
-        self._model_name = RollBook.DEF_MODEL_NAME
         self._conf_file = RollBook.DEF_CONF_FILE
+        self._model_name = RollBook.DEF_MODEL_NAME
+        logger.debug("conf_file={}, model_name={}", self._conf_file, self._model_name)
 
-        self._rollbook = RollBook(self._model_name, self._conf_file,
-                                  debug=self._dbg)
+        self._models = Conf(self._conf_file).models
+        
+        self._rollbook = RollBook(
+            self._model_name, self._conf_file, debug=self._dbg
+        )
 
         super().__init__(app, req)
 
@@ -161,6 +165,7 @@ class Handler1(tornado.web.RequestHandler):
                     copyright_year='2021',
                     size_limit=size_limit,
                     size_unit=size_unit,
+                    models=self._models,
                     svg_data=svg_data,
                     svg_filename=svg_filename,
                     msg=msg)
@@ -169,12 +174,19 @@ class Handler1(tornado.web.RequestHandler):
         """
         POST method
         """
+        logger.debug(dir(self.request))
+        
         file1 = self.request.files['file1'][0]
         file1_fname = file1['filename']
         file1_path = '%s/midi/%s' % (self._webroot, file1_fname)
         svg1_fname = '%s.svg' % (file1_fname)
         svg1_path = '%s/svg/%s' % (self._webroot, svg1_fname)
 
+        self._model = self.get_argument('model')
+        logger.debug('model=\'{}\'', self._model)
+
+        self._rollbook = RollBook(self._model, self._conf_file)
+        
         if not os.path.exists(file1_path):
             with open(file1_path, mode='wb') as f:
                 f.write(file1['body'])

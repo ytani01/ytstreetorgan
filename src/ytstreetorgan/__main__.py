@@ -1,15 +1,14 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""
-main for midi_tools
-"""
 import os
 import click
 from loguru import logger
 
 from ytmidilib import Parser, Player
-from . import RollBook, WebServer, __version__
+from . import __version__
+from .rollbook import RollBook
+from .webapp import WebServer
 from .mylog import loggerInit
 from .click_utils import click_common_opts
 
@@ -177,13 +176,13 @@ def webapp(ctx, port, webroot, workdir, size_limit, debug):
 @click.argument('midi_file', type=click.Path(exists=True))
 @click.option(
     '--conf_file', '-f', 'conf_file',
-    type=click.Path(exists=True),
-    default='%s' % (RollBook.DEF_CONF_FILE),
+    type=click.Path(exists=False),
+    default=RollBook.DEF_CONF_FILE,
     help='configuration file'
 )
 @click.option(
     '--model', '-m', 'model_name', type=str,
-    default='ModelName',
+    default=RollBook.DEF_MODEL_NAME,
     help='Model Name'
 )
 @click.option(

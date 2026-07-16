@@ -1,18 +1,13 @@
 #
-# (c) 2021 Yoichi Tanibayashi
+# (c) 2026 Yoichi Tanibayashi
 #
-"""
-Web Interface
-"""
-__author__ = 'Yoichi Tanibayashi'
-__date__ = '2021/01'
-
 import os
 import tornado.ioloop
 import tornado.httpserver
 import tornado.web
 from .handler1 import Handler1, Download
 from loguru import logger
+from .conf import Conf
 
 
 class WebServer:
@@ -29,11 +24,13 @@ class WebServer:
 
     DEF_SIZE_LIMIT = 100*1024*1024  # 100MB
 
-    def __init__(self, port=DEF_PORT,
-                 webroot=DEF_WEBROOT, workdir=DEF_WORKDIR,
-                 size_limit=DEF_SIZE_LIMIT,
-                 version='current',
-                 debug=False):
+    def __init__(
+        self, port=DEF_PORT,
+        webroot=DEF_WEBROOT, workdir=DEF_WORKDIR,
+        size_limit=DEF_SIZE_LIMIT,
+        version='current',
+        debug=False
+    ):
         """ Constructor
 
         Parameters
@@ -59,6 +56,9 @@ class WebServer:
         self._workdir = workdir
         self._size_limit = size_limit
         self._version = version
+
+        self._models = Conf().models
+        logger.info('_models={}', self._models)
 
         try:
             os.makedirs(self._workdir, exist_ok=True)
@@ -86,13 +86,15 @@ class WebServer:
             workdir=self._workdir,
             size_limit=self._size_limit,
             version=self._version,
+            models=self._models,
 
             debug=self._dbg
         )
         logger.debug('app={}', self._app.__dict__)
 
         self._svr = tornado.httpserver.HTTPServer(
-            self._app, max_buffer_size=self._size_limit)
+            self._app, max_buffer_size=self._size_limit
+        )
         logger.debug('svr={}', self._svr.__dict__)
 
     def main(self):
