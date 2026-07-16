@@ -1,6 +1,12 @@
 #
 tmp*
 
+## ytstreetorgan
+*.svg
+*.midi
+*.mid
+*.MID
+
 ## Obsidian
 .obsidian/
 
