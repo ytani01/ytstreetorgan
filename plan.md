@@ -45,7 +45,7 @@ loguru ベースの `mylog.py` に移行し、`my_logger.py` を削除する。
 
 ---
 
-## Phase 2: 品質確認
+## Phase 2: 品質確認 [checkpoint: 1cd01db]
 
 ### Task 2.1: 全テスト実行・カバレッジ確認
 - [x] `CI=true uv run pytest --cov=ytstreetorgan --cov-report=term-missing` 実行 0367905
