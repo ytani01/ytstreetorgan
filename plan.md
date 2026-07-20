@@ -25,7 +25,7 @@
 
 ---
 
-## Phase 1: セーフティネットの構築（テスト追加）
+## Phase 1: セーフティネットの構築（テスト追加） [checkpoint: 4bc0e9a]
 
 現状 `tests/` にあるのは `test_conf.py` と `test_mylog.py` のみ。
 `rollbook.py` / `webapp.py` / `handler1.py` は無テストのままリファクタすると壊れても気づけない。
