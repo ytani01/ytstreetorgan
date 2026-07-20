@@ -158,7 +158,7 @@ def cli(ctx, debug):
               default=WebServer.DEF_WORKDIR, show_default=True,
               help='work directory')
 @click.option('--size_limit', '-l', 'size_limit', type=int,
-              default=100*1024*1024, show_default=True,
+              default=WebServer.DEF_SIZE_LIMIT, show_default=True,
               help='upload size limit, default=%s' % (
                   WebServer.DEF_SIZE_LIMIT))
 @click_common_opts(__version__)
@@ -194,9 +194,14 @@ def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
     '--channel', '-c', 'channel', type=int, multiple=True,
     help='MIDI channel'
 )
+@click.option(
+    '--out_file', '-o', 'out_file', type=click.Path(),
+    default=None,
+    help='Output SVG file path'
+)
 @click_common_opts(__version__)
 def rollbook(
-    ctx, midi_file, conf_file, model_name, channel, debug
+    ctx, midi_file, conf_file, model_name, channel, out_file, debug
 ) -> None:
     """
     rollbook main
@@ -205,7 +210,7 @@ def rollbook(
     logger.debug(f"command='{ctx.command.name}'")
 
     app = RollBookApp(
-        midi_file, conf_file, model_name, channel, None, __version__,
+        midi_file, conf_file, model_name, channel, out_file, __version__,
         debug=debug
     )
     try:

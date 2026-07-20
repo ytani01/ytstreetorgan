@@ -48,22 +48,21 @@
 
 レビューで見つかった、動作に影響する可能性のある点。
 
-- [ ] **`rollbook.py: RollBook.parse()` の死んだ条件分岐**
+- [x] **`rollbook.py: RollBook.parse()` の死んだ条件分岐**
   ```python
   hi = HoleInfo(ni, self._conf)
-  if hi:                      # HoleInfo は __bool__ を定義していないため常に True
+  if hi.scale >= 0:               # scale < 0 の音（範囲外）は幅計算から除外
       self._width = max(hi.x + hi.w, self._width)
   ```
-  `if hi:` は常に真になり無意味。意図（おそらく `hi.scale >= 0` の音だけ幅計算に使う、等）を
-  確認し、正しい条件に修正するか、不要なら条件自体を削除する。
-- [ ] **`rollbook` CLIサブコマンドに出力先オプションが無い**
+  `if hi:` は常に真になり無意味。`if hi.scale >= 0:` に修正した。
+- [x] **`rollbook` CLIサブコマンドに出力先オプションが無い**
   `RollBookApp` は `out_file` 引数を受け取れる作りだが、`__main__.py` の `rollbook` コマンドは
   常に `None` を渡しており、`--out_file`/`-o` のような click オプションが存在しない。
   結果、生成物は常に `RollBookApp.DEF_OUT_DIR = '~/Desktop'` 固定になる。
-  → CLI オプションを追加し、`~/Desktop` 固定はデフォルト値として残しつつ上書き可能にする。
-- [ ] **`webapp` コマンドの `--size_limit` デフォルト値の二重管理**
+  → CLI オプション `--out_file`/`-o` を追加し、`~/Desktop` 固定はデフォルト値として残しつつ上書き可能にした。
+- [x] **`webapp` コマンドの `--size_limit` デフォルト値の二重管理**
   `__main__.py` 側で `default=100*1024*1024` と直値を書いており、`WebServer.DEF_SIZE_LIMIT`
-  と値は一致しているが定数を参照していない。`default=WebServer.DEF_SIZE_LIMIT` に統一する。
+  と値は一致しているが定数を参照していない。`default=WebServer.DEF_SIZE_LIMIT` に統一した。
 
 ---
 

@@ -214,7 +214,7 @@ class RollBook:
             hi = HoleInfo(ni, self._conf)
             logger.debug('hi={}', hi)
 
-            if hi:
+            if hi.scale >= 0:
                 self._width = max(hi.x + hi.w, self._width)
 
             self._holes.append(hi)
