@@ -48,8 +48,8 @@ loguru ベースの `mylog.py` に移行し、`my_logger.py` を削除する。
 ## Phase 2: 品質確認
 
 ### Task 2.1: 全テスト実行・カバレッジ確認
-- [ ] `CI=true uv run pytest --cov=ytstreetorgan --cov-report=term-missing` 実行
-- [ ] カバレッジ >80% を確認
+- [x] `CI=true uv run pytest --cov=ytstreetorgan --cov-report=term-missing` 実行 0367905
+- [x] カバレッジ >80% を確認 0367905
 
 ### Task 2.2: 型チェック・Lint
 - [ ] `uv run ruff check src/` 実行
