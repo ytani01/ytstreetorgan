@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import patch
 from click.testing import CliRunner
-from ytstreetorgan.__main__ import cli, RollBookApp, MidiApp
+from ytstreetorgan.__main__ import cli
+from ytstreetorgan.apps import RollBookApp, MidiApp
 
 @pytest.fixture
 def runner():
@@ -53,7 +54,7 @@ def test_play_command(mock_midiapp, runner, tmp_path):
     mock_instance.main.assert_called_once()
     mock_instance.end.assert_called_once()
 
-@patch('ytstreetorgan.__main__.RollBook')
+@patch('ytstreetorgan.apps.RollBook')
 def test_rollbook_app_class(mock_rollbook, tmp_path):
     midi_file = str(tmp_path / "test.mid")
     app = RollBookApp(midi_file, "conf.json", "test_model")
@@ -74,20 +75,20 @@ def test_rollbook_app_class(mock_rollbook, tmp_path):
 
     assert (tmp_path / "out.svg").exists()
 
-@patch('ytstreetorgan.__main__.Parser')
-@patch('ytstreetorgan.__main__.Player')
+@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.Player')
 def test_midi_app_class(mock_player, mock_parser, tmp_path):
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, channel=[1])
-    
+
     mock_parser_instance = mock_parser.return_value
     mock_parser_instance.parse.return_value = {
         'note_info': ['note1'],
         'channel_set': {1}
     }
-    
+
     app.main()
     app.end()
-    
+
     mock_parser_instance.parse.assert_called_once()
     mock_player.return_value.play.assert_called_once()

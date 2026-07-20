@@ -2,9 +2,31 @@
 # (c) 2026 Yoichi Tanibayashi
 #
 import json
+from typing import TypedDict
 from loguru import logger
 from pathlib import Path
 from .mylog import exmsg
+
+
+class ModelConf(TypedDict):
+    """
+    Typed schema for a single model's configuration entry in storgan-conf.json.
+
+    Keys correspond exactly to the JSON field names in the config file.
+    """
+    model: str
+    book_height: float   # JSON key: "book height"
+    margin: float
+    pitch: float
+    hole_height: float   # JSON key: "hole height"
+    sec_per_sec: float   # JSON key: "1sec"
+    note_name: list[str]   # JSON key: "note name"
+    note_offset: list[int]   # JSON key: "note offset"
+    base_note: int   # JSON key: "base note"
+    bridge_width: float   # JSON key: "bridge width"
+    bridge_interval: float   # JSON key: "bridge interval"
+    bridge_threshold: float  # JSON key: "bridge threshold"
+    memo: str
 
 
 class Conf:
@@ -69,7 +91,12 @@ class Conf:
         return self.data
 
     def get(self, model_name='') -> dict:
-        """Get config data for ``model_name``."""
+        """Get config data for ``model_name``.
+
+        Returns a dict whose keys match the raw JSON field names
+        (e.g. ``'base note'``, ``'note offset'``, ``'1sec'``, …).
+        See :class:`ModelConf` for the full schema documentation.
+        """
         logger.debug(f'model_name=\'{model_name}\'')
 
         if self.data is None:

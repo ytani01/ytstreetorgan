@@ -10,7 +10,7 @@ from .conf import Conf
 DEF_LINE_WIDTH = 0.1
 
 
-def note2scale(midi_note, base_note, note_offset=[]) -> int:
+def note2scale(midi_note: int, base_note: int, note_offset: list[int]) -> int:
     """
     Parameters
     ----------
@@ -32,8 +32,9 @@ def note2scale(midi_note, base_note, note_offset=[]) -> int:
     return scale
 
 
-def svg_square(x, y, w, h, color, line_width=DEF_LINE_WIDTH,
-               stroke_dasharray='none') -> str:
+def svg_square(x: float, y: float, w: float, h: float,
+               color: str, line_width: float = DEF_LINE_WIDTH,
+               stroke_dasharray: str = 'none') -> str:
     """
     Parameters
     ----------
