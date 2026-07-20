@@ -4,6 +4,13 @@ from unittest.mock import patch, MagicMock
 from ytstreetorgan.handler1 import Handler1, Download
 
 def test_handler1_size_unit():
+    # get_size_unit is now in utils, test via utils directly
+    from ytstreetorgan.utils import get_size_unit
+    assert get_size_unit(1023) == (1023, 'B')
+    assert get_size_unit(1024) == (1.0, 'KB')
+    assert get_size_unit(1024 * 1024) == (1.0, 'MB')
+
+    # Handler1 still has get_filesize (via StorganBaseHandler)
     app = MagicMock()
     app.settings = {
         'urlprefix': '/',
@@ -14,18 +21,11 @@ def test_handler1_size_unit():
         'version': '1.0.0'
     }
     req = MagicMock()
-    
-    # We patch __init__ of RequestHandler to avoid calling the real one
     with patch('tornado.web.RequestHandler.__init__'):
         handler = Handler1(app, req)
-        # Manually set what super().__init__ would set
         handler.application = app
         handler.request = req
-        
-        # Test get_size_unit
-        assert handler.get_size_unit(1023) == (1023, 'B')
-        assert handler.get_size_unit(1024) == (1.0, 'KB')
-        assert handler.get_size_unit(1024 * 1024) == (1.0, 'MB')
+        assert handler.get_filesize('/nonexistent') is None
 
 def test_handler1_get_filesize(tmp_path):
     app = MagicMock()

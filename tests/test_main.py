@@ -58,13 +58,20 @@ def test_rollbook_app_class(mock_rollbook, tmp_path):
     midi_file = str(tmp_path / "test.mid")
     app = RollBookApp(midi_file, "conf.json", "test_model")
     app._out_file = str(tmp_path / "out.svg")
-    
+
     mock_instance = mock_rollbook.return_value
-    mock_instance.parse.return_value = "<svg></svg>"
-    
+
+    # parse_to_file writes the file, so simulate it
+    def fake_parse_to_file(midi_file, out_file, channel=[]):
+        with open(out_file, 'w') as f:
+            f.write('<svg></svg>')
+        return '<svg></svg>'
+
+    mock_instance.parse_to_file.side_effect = fake_parse_to_file
+
     app.main()
     app.end()
-    
+
     assert (tmp_path / "out.svg").exists()
 
 @patch('ytstreetorgan.__main__.Parser')

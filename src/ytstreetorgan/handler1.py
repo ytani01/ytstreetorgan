@@ -7,11 +7,12 @@ from loguru import logger
 from . import __author__, __copyright_year__
 from .rollbook import RollBook
 from .conf import Conf
+from .utils import get_size_unit
 
 
-class Download(tornado.web.RequestHandler):
+class StorganBaseHandler(tornado.web.RequestHandler):
     """
-    Download SVG file
+    Common base handler that extracts shared settings from app.settings.
     """
     def __init__(self, app, req):
         """ Constructor """
@@ -35,11 +36,30 @@ class Download(tornado.web.RequestHandler):
 
         self._version = app.settings.get('version')
 
-        self._model = ''
+        super().__init__(app, req)
 
+    def get_filesize(self, file_path: str) -> tuple[float, str] | None:
+        """
+        Parameters
+        ----------
+        file_path: str
+        """
+        if not os.path.exists(file_path):
+            return None
+
+        f_size = os.path.getsize(file_path)
+        return get_size_unit(f_size)
+
+
+class Download(StorganBaseHandler):
+    """
+    Download SVG file
+    """
+    def __init__(self, app, req):
+        """ Constructor """
+        self._model = ''
         self._model_name = RollBook.DEF_MODEL_NAME
         self._conf_file = RollBook.DEF_CONF_FILE
-
         self._rollbook = RollBook(self._model_name, self._conf_file)
 
         super().__init__(app, req)
@@ -73,7 +93,7 @@ class Download(tornado.web.RequestHandler):
         self.finish()
 
 
-class Handler1(tornado.web.RequestHandler):
+class Handler1(StorganBaseHandler):
     """
     Web handler1
     """
@@ -83,64 +103,17 @@ class Handler1(tornado.web.RequestHandler):
 
     def __init__(self, app, req):
         """ Constructor """
-        logger.debug('app={}', app)
-        logger.debug('req={}', req)
-
-        self._urlprefix = app.settings.get('urlprefix')
-        logger.debug('urlprefix={}', self._urlprefix)
-
-        self._webroot = app.settings.get('webroot')
-        logger.debug('webroot={}', self._webroot)
-
-        self._workdir = app.settings.get('workdir')
-        logger.debug('workdir={}', self._workdir)
-
-        self._size_limit = app.settings.get('size_limit')
-        logger.debug('size_limit={}', self._size_limit)
-
-        # [!! 重要 !!] 末尾の「/」
-        self._url_path = app.settings.get('url_prefix_handler1') + '/'
-
-        self._version = app.settings.get('version')
-
         self._conf_file = RollBook.DEF_CONF_FILE
         self._model_name = RollBook.DEF_MODEL_NAME
-        logger.debug(
-            "conf_file={}, model_name={}", self._conf_file, self._model_name
-        )
 
         self._models = Conf(self._conf_file).models
+        self._model = ''
 
         super().__init__(app, req)
 
-    def get_size_unit(self, f_size):
-        """
-        Parameters
-        ----------
-        f_size: int
-            file size (bytes)
-        """
-        size_unit = ['B', 'KB', 'MB', 'GB', 'TB']
-
-        while f_size >= 1024:
-            size_unit.pop(0)
-            f_size /= 1024
-
-        return f_size, size_unit[0]
-
-    def get_filesize(self, file_path: str) -> tuple[float, str] | None:
-        """
-        Parameters
-        ----------
-        file_path: str
-
-        """
-        if not os.path.exists(file_path):
-            return None
-
-        f_size = os.path.getsize(file_path)
-
-        return self.get_size_unit(f_size)
+        logger.debug(
+            "conf_file={}, model_name={}", self._conf_file, self._model_name
+        )
 
     def get(
         self, svg_data='', svg_filename='', msg='Please select a MIDI file'
@@ -154,7 +127,7 @@ class Handler1(tornado.web.RequestHandler):
             self.redirect(self._url_path, permanent=True)
             return
 
-        size_limit, size_unit = self.get_size_unit(self._size_limit)
+        size_limit, size_unit = get_size_unit(self._size_limit)
 
         self.render(self.HTML_FILE,
                     title=self.TITLE,
@@ -184,7 +157,7 @@ class Handler1(tornado.web.RequestHandler):
         self._model = self.get_argument('model')
         logger.debug('model=\'{}\'', self._model)
 
-        self._rollbook = RollBook(self._model, self._conf_file)
+        rollbook = RollBook(self._model, self._conf_file)
 
         if not os.path.exists(file1_path):
             with open(file1_path, mode='wb') as f:
@@ -195,10 +168,7 @@ class Handler1(tornado.web.RequestHandler):
         f_size, unit = result
         msg = '%s (%.1f %s)' % (file1['filename'], f_size, unit)
 
-        svg_data = self._rollbook.parse(file1_path)
+        svg_data = rollbook.parse_to_file(file1_path, svg1_path)
         logger.debug('svg_data={}', svg_data)
-
-        with open(svg1_path, mode='w') as f:
-            f.write(svg_data)
 
         self.get(svg_data=svg_data, svg_filename=svg1_fname, msg=msg)

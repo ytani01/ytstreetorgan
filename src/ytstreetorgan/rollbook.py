@@ -223,3 +223,27 @@ class RollBook:
 
         svg = self.svg()
         return svg
+
+    def parse_to_file(self, midi_file: str, out_file: str, channel: list = []) -> str:
+        """
+        Parse MIDI and write the resulting SVG directly to a file.
+
+        Parameters
+        ----------
+        midi_file: str
+            Path to the MIDI file.
+        out_file: str
+            Path to write the SVG output.
+        channel: list of int
+            Selected MIDI channels ([] = all).
+
+        Returns
+        -------
+        svg: str
+            The generated SVG data.
+        """
+        svg = self.parse(midi_file, channel)
+        with open(out_file, mode='w') as f:
+            f.write(svg)
+        logger.debug('svg written to {}', out_file)
+        return svg

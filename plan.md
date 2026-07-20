@@ -68,19 +68,19 @@
 
 ## Phase 3: 重複コードの共通化
 
-- [ ] **「MIDI解析 → SVG生成 → ファイル書き出し」ロジックの重複**
+- [x] **「MIDI解析 → SVG生成 → ファイル書き出し」ロジックの重複**
   `__main__.py: RollBookApp.main()` と `handler1.py: Handler1.post()` がほぼ同じ処理
   （`RollBook(...).parse(...)` → `open(path, 'w').write(svg)`）を別々に実装している。
-  → `RollBook` に `parse_to_file(midi_file, out_file, channel=[])` のようなメソッドを追加し、
-    CLI・Web の両方から呼び出す形に集約する。
-- [ ] **`Handler1` と `Download` のコンストラクタ重複**
-  両クラスとも `app.settings.get('urlprefix' / 'webroot' / 'workdir' / 'size_limit' / ...)` を
-  ほぼ同じ手順で取り出している。
-  → 共通の基底クラス（例: `StorganBaseHandler(tornado.web.RequestHandler)`）を作り、
-    設定値の取得を1箇所にまとめる。
-- [ ] **ファイルサイズ整形ユーティリティの置き場所**
+  → `RollBook.parse_to_file(midi_file, out_file, channel=[])` を追加し、
+    CLI・Web の両方から呼び出す形に集約した。
+- [x] **`Handler1` と `Download` のコンストラクタ重複**
+  両クラスとも `app.settings.get(...)` をほぼ同じ手順で取り出している。
+  → 共通基底クラス `StorganBaseHandler(tornado.web.RequestHandler)` を作り、
+    設定値の取得を1箇所にまとめた。
+- [x] **ファイルサイズ整形ユーティリティの置き場所**
   `Handler1.get_size_unit()` / `get_filesize()` はハンドラ固有のロジックではなく汎用ユーティリティ。
-  → `utils.py`（新規）に切り出し、他クラスからも再利用できるようにする。
+  → `utils.py`（新規）に `get_size_unit()` を切り出し、`StorganBaseHandler` および
+    `__main__.py` から再利用できるようにした。
 
 ---
 

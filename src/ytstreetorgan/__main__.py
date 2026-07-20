@@ -53,10 +53,9 @@ class RollBookApp:
         """ main """
         logger.debug('')
 
-        svg = self._rollbook.parse(self._midi_file, self._channel)
-
-        with open(self._out_file, mode='w') as f:
-            f.write(svg)
+        self._rollbook.parse_to_file(
+            self._midi_file, self._out_file, self._channel
+        )
 
     def end(self) -> None:
         """ end ... do nothing """
