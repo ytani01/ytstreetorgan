@@ -17,31 +17,31 @@ loguru ベースの `mylog.py` に移行し、`my_logger.py` を削除する。
 - [x] `rollbook.py` から `from .my_logger import get_logger` を削除
 - [x] `from loguru import logger` に置き換え
 - [x] `self._log = get_logger(...)` のパターンをすべて `logger` 直接使用に置き換え
-- [ ] テスト実行で動作確認
+- [x] テスト実行で動作確認 849d156
 
 ### Task 1.3: `handler1.py` の移行
 - [x] `handler1.py` から `from .my_logger import get_logger` を削除
 - [x] `from loguru import logger` に置き換え
 - [x] `self._mylog = get_logger(...)` のパターンをすべて `logger` 直接使用に置き換え
-- [ ] テスト実行で動作確認
+- [x] テスト実行で動作確認 849d156
 
 ### Task 1.4: `webapp.py` の移行
 - [x] `webapp.py` から `from .my_logger import get_logger` を削除
 - [x] `from loguru import logger` に置き換え
 - [x] `self._log = get_logger(...)` のパターンをすべて `logger` 直接使用に置き換え
-- [ ] テスト実行で動作確認
+- [x] テスト実行で動作確認 849d156
 
 ### Task 1.5: `__main__.py` の移行
 - [x] `__main__.py` から `from .my_logger import get_logger` を削除
 - [x] `from loguru import logger` に置き換え
 - [x] `log = get_logger(...)` のパターンをすべて `logger` 直接使用に置き換え
-- [ ] 各 CLI コマンド関数で `loggerInit(debug)` が呼ばれていることを確認（既存の呼び出しを活用）
-- [ ] テスト実行で動作確認
+- [x] 各 CLI コマンド関数で `loggerInit(debug)` が呼ばれていることを確認（既存の呼び出しを活用） 849d156
+- [x] テスト実行で動作確認 849d156
 
 ### Task 1.6: `my_logger.py` の削除
 - [x] `my_logger.py` への参照がすべてなくなったことを確認
 - [x] `my_logger.py` を削除
-- [ ] テスト実行で動作確認
+- [x] テスト実行で動作確認 849d156
 
 ---
 
