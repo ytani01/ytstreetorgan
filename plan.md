@@ -6,7 +6,7 @@ loguru ベースの `mylog.py` に移行し、`my_logger.py` を削除する。
 
 ---
 
-## Phase 1: テスト作成と移行実施
+## Phase 1: テスト作成と移行実施 [checkpoint: 4a7f734]
 
 ### Task 1.1: テスト基盤の作成
 - [x] `tests/` ディレクトリを作成
