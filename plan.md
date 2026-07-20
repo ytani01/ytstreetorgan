@@ -52,5 +52,5 @@ loguru ベースの `mylog.py` に移行し、`my_logger.py` を削除する。
 - [x] カバレッジ >80% を確認 0367905
 
 ### Task 2.2: 型チェック・Lint
-- [ ] `uv run ruff check src/` 実行
-- [ ] `uv run mypy src/` または `uv run basedpyright src/` 実行
+- [x] `uv run ruff check src/` 実行 f0d561f
+- [x] `uv run mypy src/` または `uv run basedpyright src/` 実行 f0d561f
