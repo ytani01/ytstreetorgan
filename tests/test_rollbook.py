@@ -67,3 +67,16 @@ def test_holeinfo_str():
     hi = HoleInfo(mock_note, conf)
     s = str(hi)
     assert 'note:060' in s
+
+import os
+def test_rollbook_parse_real_midi():
+    # Verify that parse works with a real MIDI file (fixture)
+    midi_file = 'webroot/midi/d-kaeru.mid'
+    if os.path.exists(midi_file):
+        rb = RollBook()
+        svg = rb.parse(midi_file)
+        assert '<svg ' in svg
+        assert '</svg>' in svg
+        # There should be some notes parsed
+        assert len(rb._holes) > 0
+        assert rb._width > 0

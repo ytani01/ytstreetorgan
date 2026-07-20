@@ -30,16 +30,16 @@
 現状 `tests/` にあるのは `test_conf.py` と `test_mylog.py` のみ。
 `rollbook.py` / `webapp.py` / `handler1.py` は無テストのままリファクタすると壊れても気づけない。
 
-- [ ] `tests/test_rollbook.py` を作成
-  - [ ] `note2scale()` の単体テスト（正常系・該当なし(-1)系）
-  - [ ] `svg_square()` が期待するSVG文字列を返すこと
-  - [ ] `HoleInfo` が `conf` から正しく `x, y, w, h, scale` を計算すること
-  - [ ] `RollBook.parse()` に実MIDIファイル（fixture）を通して SVG が生成されることの結合テスト
-  - [ ] スケール外の音（`scale < 0`）が発生するケースのテスト（Phase 2 のバグ修正の回帰テストとして重要）
-- [ ] `tests/test_handler1.py` / `tests/test_webapp.py` を作成
-  - `tornado.testing.AsyncHTTPTestCase` を使い、アップロード→SVG生成→ダウンロードの一連の流れを確認
-- [ ] `tests/test_main.py` を作成（`click.testing.CliRunner` で各サブコマンドの起動確認）
-- [ ] `CI=true uv run pytest --cov=ytstreetorgan --cov-report=term-missing` でカバレッジを可視化し、
+- [x] `tests/test_rollbook.py` を作成
+  - [x] `note2scale()` の単体テスト（正常系・該当なし(-1)系）
+  - [x] `svg_square()` が期待するSVG文字列を返すこと
+  - [x] `HoleInfo` が `conf` から正しく `x, y, w, h, scale` を計算すること
+  - [x] `RollBook.parse()` に実MIDIファイル（fixture）を通して SVG が生成されることの結合テスト
+  - [x] スケール外の音（`scale < 0`）が発生するケースのテスト（Phase 2 のバグ修正の回帰テストとして重要）
+- [x] `tests/test_handler1.py` / `tests/test_webapp.py` を作成
+  - [x] `tornado.testing.AsyncHTTPTestCase` を使い、アップロード→SVG生成→ダウンロードの一連の流れを確認
+- [x] `tests/test_main.py` を作成（`click.testing.CliRunner` で各サブコマンドの起動確認）
+- [x] `CI=true uv run pytest --cov=ytstreetorgan --cov-report=term-missing` でカバレッジを可視化し、
       主要ロジックが 80% 以上になることを確認
 
 ---
