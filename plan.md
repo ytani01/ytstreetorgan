@@ -44,7 +44,7 @@
 
 ---
 
-## Phase 2: バグ・不整合の修正（小さく安全に）
+## Phase 2: バグ・不整合の修正（小さく安全に） [checkpoint: ec8be00]
 
 レビューで見つかった、動作に影響する可能性のある点。
 
@@ -66,7 +66,7 @@
 
 ---
 
-## Phase 3: 重複コードの共通化
+## Phase 3: 重複コードの共通化 [checkpoint: df37b07]
 
 - [x] **「MIDI解析 → SVG生成 → ファイル書き出し」ロジックの重複**
   `__main__.py: RollBookApp.main()` と `handler1.py: Handler1.post()` がほぼ同じ処理
