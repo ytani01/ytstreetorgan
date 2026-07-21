@@ -22,7 +22,7 @@ import json
 
 import pytest
 
-from ytstreetorgan.conf import Conf
+from ytstreetorgan.conf import Conf, validate_config
 
 
 # ---------------------------------------------------------------------
@@ -344,3 +344,161 @@ class TestGet:
         result = conf.get("anything")
 
         assert result == {}
+
+
+# ---------------------------------------------------------------------
+# validate_config() のテスト
+# ---------------------------------------------------------------------
+
+class TestValidateConfig:
+    def test_valid_config(self):
+        sample = {
+            "model": "test_model",
+            "book height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole height": 2.5,
+            "1sec": 50,
+            "note name": ["C", "D"],
+            "note offset": [0, 2],
+            "base note": 60,
+            "bridge width": 1,
+            "bridge interval": 10,
+            "bridge threshold": 50,
+            "memo": "sample"
+        }
+        valid, msg = validate_config(sample)
+        assert valid is True
+        assert msg == ""
+
+    def test_invalid_type(self):
+        valid, msg = validate_config("not a dict")
+        assert valid is False
+        assert "must be a dictionary" in msg
+
+    def test_missing_model(self):
+        sample = {"book height": 100}
+        valid, msg = validate_config(sample)
+        assert valid is False
+        assert "Model name is required" in msg
+
+    def test_missing_numeric_field(self):
+        sample = {
+            "model": "test_model",
+            "margin": 5,
+        }
+        valid, msg = validate_config(sample)
+        assert valid is False
+        assert "Missing required field" in msg
+
+    def test_invalid_numeric_field(self):
+        sample = {
+            "model": "test_model",
+            "book height": "abc",
+            "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
+            "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+            "note name": ["C"], "note offset": [0]
+        }
+        valid, msg = validate_config(sample)
+        assert valid is False
+        assert "must be a valid number" in msg
+
+    def test_length_mismatch(self):
+        sample = {
+            "model": "test_model",
+            "book height": 100, "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
+            "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+            "note name": ["C", "D"], "note offset": [0]
+        }
+        valid, msg = validate_config(sample)
+        assert valid is False
+        assert "Length mismatch" in msg
+
+
+# ---------------------------------------------------------------------
+# save(), update_model(), add_model(), delete_model() のテスト
+# ---------------------------------------------------------------------
+
+class TestConfMutations:
+    @pytest.fixture
+    def sample_conf_file(self, tmp_path):
+        data = [
+            {
+                "model": "m1",
+                "book height": 100, "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
+                "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+                "note name": ["C"], "note offset": [0], "memo": "m1 memo"
+            }
+        ]
+        file_path = tmp_path / "storgan-conf.json"
+        write_json(file_path, data)
+        return file_path
+
+    def test_save_and_backup(self, sample_conf_file):
+        conf = Conf(config_file=str(sample_conf_file))
+        conf.data[0]["memo"] = "updated memo"
+        ok, msg = conf.save()
+
+        assert ok is True
+        # Check main file
+        reloaded = Conf(config_file=str(sample_conf_file))
+        assert reloaded.get("m1")["memo"] == "updated memo"
+
+        # Check backup file
+        bak_file = sample_conf_file.with_name(sample_conf_file.name + ".bak")
+        assert bak_file.exists()
+
+    def test_update_model_success(self, sample_conf_file):
+        conf = Conf(config_file=str(sample_conf_file))
+        updated = dict(conf.get("m1"))
+        updated["memo"] = "new memo"
+        ok, msg = conf.update_model("m1", updated)
+
+        assert ok is True
+        assert conf.get("m1")["memo"] == "new memo"
+
+    def test_update_model_not_found(self, sample_conf_file):
+        conf = Conf(config_file=str(sample_conf_file))
+        updated = dict(conf.get("m1"))
+        ok, msg = conf.update_model("non_existent", updated)
+
+        assert ok is False
+        assert "not found" in msg
+
+    def test_add_model_success(self, sample_conf_file):
+        conf = Conf(config_file=str(sample_conf_file))
+        new_model = {
+            "model": "m2",
+            "book height": 120, "margin": 6, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
+            "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+            "note name": ["D"], "note offset": [2], "memo": "m2 memo"
+        }
+        ok, msg = conf.add_model(new_model)
+
+        assert ok is True
+        assert "m2" in conf.models
+        assert conf.get("m2")["book height"] == 120.0
+
+    def test_add_model_duplicate(self, sample_conf_file):
+        conf = Conf(config_file=str(sample_conf_file))
+        duplicate = dict(conf.get("m1"))
+        ok, msg = conf.add_model(duplicate)
+
+        assert ok is False
+        assert "already exists" in msg
+
+    def test_delete_model_success(self, sample_conf_file):
+        conf = Conf(config_file=str(sample_conf_file))
+        ok, msg = conf.delete_model("m1")
+
+        assert ok is True
+        assert "m1" not in conf.models
+        assert conf.get("m1") == {}
+
+    def test_delete_model_not_found(self, sample_conf_file):
+        conf = Conf(config_file=str(sample_conf_file))
+        ok, msg = conf.delete_model("not_found")
+
+        assert ok is False
+        assert "not found" in msg
+

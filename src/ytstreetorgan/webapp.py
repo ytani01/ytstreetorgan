@@ -10,6 +10,7 @@ from . import __version__
 from .conf import Conf
 from .mylog import exmsg
 from .handler1 import Handler1, Download
+from .config_handler import ConfigHandler
 
 
 class WebServer:
@@ -82,6 +83,7 @@ class WebServer:
                 (r'/', Handler1),
                 (r'%s' % self._urlprefix, Handler1),
                 (r'%s/' % self._urlprefix, Handler1),
+                (r'%s/config.*' % self._urlprefix, ConfigHandler),
                 (r'%s.*' % self._urlprefix_handler1, Handler1),
                 (r'%s/download/.*' % self._urlprefix, Download),
             ],

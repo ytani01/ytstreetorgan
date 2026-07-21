@@ -27,9 +27,12 @@
     </header>
     <main>
       <div class="container">
-        <div class="row text-light bg-primary">
+        <div class="row text-light bg-primary py-2 align-items-center mb-4 rounded shadow-sm">
           <div class="col text-center">
-            <h1>{{ title }}</h1>
+            <h1 class="m-0 d-inline-block">{{ title }}</h1>
+            <a href="{{urlprefix}}/config" class="btn btn-outline-light btn-sm float-right mr-3 mt-1">
+              <i class="fas fa-cog"></i> 機種設定の編集
+            </a>
           </div><!-- col -->
         </div><!-- row -->
         <div class="row">
