@@ -90,11 +90,11 @@
 `'pitch'`, `'hole height'`, `'book height'` など）が `rollbook.py` 側で
 生の文字列リテラルとして複数箇所に散在しており、キー名のtypoがあっても実行時までわからない。
 
-- [ ] `conf.py` に `TypedDict`（または軽量な `dataclass`）でモデル設定のスキーマを定義する
+- [x] `conf.py` に `TypedDict`（または軽量な `dataclass`）でモデル設定のスキーマを定義する
   例: `class ModelConf(TypedDict): model: str; book_height: float; margin: float; ...`
-- [ ] `Conf.get()` の戻り値型を `dict` → `ModelConf` に変更（呼び出し側の辞書アクセスはそのまま動く）
-- [ ] `rollbook.py` 側は型定義を参照することで、mypy/basedpyright によるキー名チェックの恩恵を受ける
-- [ ] 既存の `tests/test_conf.py` は素の `dict` 前提のテストが多いため、型変更後も壊れないことを確認
+- [x] `Conf.get()` の戻り値型を `dict` → `ModelConf` に変更（呼び出し側の辞書アクセスはそのまま動く）
+- [x] `rollbook.py` 側は型定義を参照することで、mypy/basedpyright によるキー名チェックの恩恵を受ける
+- [x] 既存の `tests/test_conf.py` は素の `dict` 前提のテストが多いため、型変更後も壊れないことを確認
 
 ※ JSON の実データ（音階定義）自体は変更しない。あくまで読み込み側の型付けの話。
 
@@ -105,17 +105,17 @@
 現在 `__main__.py` は「アプリケーションクラス（`RollBookApp`, `MidiApp`）」と
 「click コマンド定義」が1ファイルに同居しており、行数も増え続けやすい構造になっている。
 
-- [ ] `RollBookApp` / `MidiApp` を `apps.py`（新規）に切り出す
-- [ ] `__main__.py` は click の `cli` グループとサブコマンド定義（薄いエントリポイント）だけにする
-- [ ] import 構造を整理し、循環importが発生しないことを確認
+- [x] `RollBookApp` / `MidiApp` を `apps.py`（新規）に切り出す
+- [x] `__main__.py` は click の `cli` グループとサブコマンド定義（薄いエントリポイント）だけにする
+- [x] import 構造を整理し、循環importが発生しないことを確認
 
 ---
 
 ## Phase 6: 型ヒント・Lint の底上げ
 
-- [ ] `note2scale()`, `svg_square()`（`rollbook.py`）に型ヒントを追加
-- [ ] `RollBookApp`, `MidiApp`（`__main__.py` もしくは新 `apps.py`）のメソッド戻り値に型ヒントを追加
-- [ ] `uv run ruff check src/`, `uv run mypy src/`, `uv run basedpyright src/` を実行し、
+- [x] `note2scale()`, `svg_square()`（`rollbook.py`）に型ヒントを追加
+- [x] `RollBookApp`, `MidiApp`（`__main__.py` もしくは新 `apps.py`）のメソッド戻り値に型ヒントを追加
+- [x] `uv run ruff check src/`, `uv run mypy src/`, `uv run basedpyright src/` を実行し、
       新規に有効化できる warning がないか確認（`pyproject.toml` の `basedpyright` 設定は
       現状かなり緩め＝ `reportUnknownVariableType` 等を無効化しているため、段階的に絞ることも検討）
 
@@ -134,8 +134,8 @@
 
 ## Definition of Done
 
-- [ ] `rollbook.py` / `webapp.py` / `handler1.py` にテストが存在し、`pytest` が通る
-- [ ] Phase 2 のバグ（死んだ条件分岐、出力先オプション欠如）が修正されている
-- [ ] MIDI→SVG生成ロジックの重複がなくなっている
-- [ ] `ruff` / `mypy` (or `basedpyright`) がエラーなしで通る
-- [ ] CLI・Web UI とも既存の外部動作（引数、URL、レスポンス形式）に変更がない
+- [x] `rollbook.py` / `webapp.py` / `handler1.py` にテストが存在し、`pytest` が通る
+- [x] Phase 2 のバグ（死んだ条件分岐、出力先オプション欠如）が修正されている
+- [x] MIDI→SVG生成ロジックの重複がなくなっている
+- [x] `ruff` / `mypy` (or `basedpyright`) がエラーなしで通る
+- [x] CLI・Web UI とも既存の外部動作（引数、URL、レスポンス形式）に変更がない

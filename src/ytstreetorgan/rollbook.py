@@ -4,7 +4,7 @@
 import json
 from ytmidilib import NoteInfo, Parser
 from loguru import logger
-from .conf import Conf
+from .conf import Conf, ModelConf
 
 
 DEF_LINE_WIDTH = 0.1
@@ -74,20 +74,29 @@ class HoleInfo:
     x, y, w, h: float
         coordinate in mm
     """
-    def __init__(self, note_info: NoteInfo, conf: dict):
+    def __init__(self, note_info: NoteInfo, conf: ModelConf):
         self.note_info = note_info
         self.conf = conf
 
         self.start_sec = self.note_info.abs_time
         self.sec = self.note_info.length()
-        self.scale = note2scale(self.note_info.note,
-                                self.conf['base note'],
-                                self.conf['note offset'])
 
-        self.x = self.start_sec * self.conf['1sec']
-        self.y = self.scale * self.conf['pitch'] + self.conf['margin']
-        self.w = self.sec * self.conf['1sec']
-        self.h = self.conf['hole height']
+        base_note = self.conf.get('base note', 0)
+        note_offset = self.conf.get('note offset', [])
+        note_val = self.note_info.note if self.note_info.note is not None else -1
+        self.scale = note2scale(note_val,
+                                base_note,
+                                note_offset)
+
+        sec_per_sec = self.conf.get('1sec', 0.0)
+        pitch = self.conf.get('pitch', 0.0)
+        margin = self.conf.get('margin', 0.0)
+        hole_height = self.conf.get('hole height', 0.0)
+
+        self.x = self.start_sec * sec_per_sec
+        self.y = self.scale * pitch + margin
+        self.w = self.sec * sec_per_sec
+        self.h = hole_height
 
     def __str__(self):
         """ __str__ """
@@ -143,11 +152,11 @@ class RollBook:
         self._conf_file = conf_file
         logger.debug('model={},conf_file={}', self._model, self._conf_file)
 
-        self._conf = Conf(self._conf_file).get(self._model)
+        self._conf: ModelConf = Conf(self._conf_file).get(self._model)
         logger.debug('conf={}', json.dumps(self._conf))
 
-        self._width = 0
-        self._height = self._conf['book height']
+        self._width = 0.0
+        self._height = float(self._conf.get('book height', 0.0))
         self._holes: list[HoleInfo] = []
         self._svg = ''
 

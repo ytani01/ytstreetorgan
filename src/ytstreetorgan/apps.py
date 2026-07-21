@@ -8,6 +8,7 @@ Separating business logic from click command definitions keeps
 ``__main__.py`` thin and makes these classes independently testable.
 """
 import os
+from typing import Sequence
 from loguru import logger
 
 from ytmidilib import Parser, Player
@@ -19,13 +20,13 @@ class RollBookApp:
     DEF_OUT_DIR = '~/Desktop'
 
     def __init__(
-        self, midi_file, conf_file,
-        model_name,
-        channel=[],
-        out_file=None,
-        version='current',
-        debug=False
-    ):
+        self, midi_file: str, conf_file: str,
+        model_name: str,
+        channel: Sequence[int] = (),
+        out_file: str | None = None,
+        version: str = 'current',
+        debug: bool = False
+    ) -> None:
         """ Constructor """
         self._dbg = debug
         logger.debug('midi_file={}, conf_file={}', midi_file, conf_file)
@@ -37,7 +38,7 @@ class RollBookApp:
         self._midi_file = midi_file
         self._conf_file = conf_file
         self._model_name = model_name
-        self._channel = channel
+        self._channel = list(channel)
         self._version = version
 
         if not out_file:
@@ -50,7 +51,7 @@ class RollBookApp:
 
         self._rollbook = RollBook(self._model_name, self._conf_file)
 
-    def main(self):
+    def main(self) -> None:
         """ main """
         logger.debug('')
 
@@ -64,14 +65,15 @@ class RollBookApp:
 
 class MidiApp:  # pylint: disable=too-many-instance-attributes
     """ MidiApp """
-    def __init__(self, midi_file,  # pylint: disable=too-many-arguments
-                 channel,
-                 parse_only=False,
-                 visual_flag=False,
-                 rate=Player.DEF_RATE,
-                 sec_min=Player.SEC_MIN, sec_max=Player.SEC_MAX,
-                 pos_sec=0,
-                 debug=False) -> None:
+    def __init__(self, midi_file: str,  # pylint: disable=too-many-arguments
+                 channel: Sequence[int] = (),
+                 parse_only: bool = False,
+                 visual_flag: bool = False,
+                 rate: int = Player.DEF_RATE,
+                 sec_min: float = Player.SEC_MIN,
+                 sec_max: float = Player.SEC_MAX,
+                 pos_sec: float = 0.0,
+                 debug: bool = False) -> None:
         """ Constructor """
         self._dbg = debug
         logger.debug('midi_file={}, channel={}', midi_file, channel)
@@ -81,7 +83,7 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
         logger.debug('pos_sec={}', pos_sec)
 
         self._midi_file = midi_file
-        self._channel = channel
+        self._channel = list(channel)
         self._parse_only = parse_only
         self._visual_flag = visual_flag
         self._rate = rate

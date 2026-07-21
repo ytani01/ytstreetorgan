@@ -8,25 +8,25 @@ from pathlib import Path
 from .mylog import exmsg
 
 
-class ModelConf(TypedDict):
-    """
-    Typed schema for a single model's configuration entry in storgan-conf.json.
-
-    Keys correspond exactly to the JSON field names in the config file.
-    """
-    model: str
-    book_height: float   # JSON key: "book height"
-    margin: float
-    pitch: float
-    hole_height: float   # JSON key: "hole height"
-    sec_per_sec: float   # JSON key: "1sec"
-    note_name: list[str]   # JSON key: "note name"
-    note_offset: list[int]   # JSON key: "note offset"
-    base_note: int   # JSON key: "base note"
-    bridge_width: float   # JSON key: "bridge width"
-    bridge_interval: float   # JSON key: "bridge interval"
-    bridge_threshold: float  # JSON key: "bridge threshold"
-    memo: str
+ModelConf = TypedDict(
+    'ModelConf',
+    {
+        'model': str,
+        'book height': float,
+        'margin': float,
+        'pitch': float,
+        'hole height': float,
+        '1sec': float,
+        'note name': list[str],
+        'note offset': list[int],
+        'base note': int,
+        'bridge width': float,
+        'bridge interval': float,
+        'bridge threshold': float,
+        'memo': str,
+    },
+    total=False,
+)
 
 
 class Conf:
@@ -46,7 +46,7 @@ class Conf:
 
         self.config_file = Path(config_file).expanduser()
 
-        self.data: list[dict] = []
+        self.data: list[ModelConf] = []
         self.models: list[str] = []
 
         #
@@ -67,14 +67,14 @@ class Conf:
             logger.error(f'{self.config_file.name}: not found')
             raise FileNotFoundError(self.config_file.name)
 
-    def load(self) -> list:
+    def load(self) -> list[ModelConf]:
         """Load config file."""
         logger.debug(f'config_file=\'{self.config_file}\'')
 
         try:
             json_text = self.config_file.read_text(encoding='utf-8')
             self.data = json.loads(json_text)
-            self.models = [d['model'] for d in self.data]
+            self.models = [d['model'] for d in self.data]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         except UnicodeDecodeError as e:
             logger.error(exmsg(e))
             return []
@@ -90,7 +90,7 @@ class Conf:
 
         return self.data
 
-    def get(self, model_name='') -> dict:
+    def get(self, model_name: str = '') -> ModelConf:
         """Get config data for ``model_name``.
 
         Returns a dict whose keys match the raw JSON field names
