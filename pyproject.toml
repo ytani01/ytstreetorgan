@@ -4,38 +4,49 @@ dynamic = ["version"]
 description = "Street Organ Roll Book Maker"
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [
-    { name = "Yoichi Tanibayashi", email = "yoichi@tanibayashi.jp" }
-]
+authors = [{ name = "Yoichi Tanibayashi", email = "yoichi@tanibayashi.jp" }]
 urls = { Repository = "https://github.com/ytani01/ytstreetorgan/" }
 requires-python = ">=3.13"
 dependencies = [
   "click",
-  "tornado",
-  "pygame-ce",
-  "ytmidilib",
   "loguru>=0.7.3",
+  "pygame-ce",
+  "tornado",
+  "ytmidilib",
 ]
 
 [project.scripts]
 ytstreetorgan = "ytstreetorgan.__main__:cli"
 
+[dependency-groups]
+dev = [
+  "basedpyright>=1.37.3",
+  "flake8>=7.3.0",
+  "mypy>=1.19.1",
+  "pytest>=9.0.2",
+  "pytest-cov>=7.0.0",
+  "ruff>=0.14.14",
+]
+
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatch-vcs", "hatchling"]
 build-backend = "hatchling.build"
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+reportMissingSuperCall = false
+reportPossiblyUnboundVariable = "none"
+reportMissingImports = "none"
+reportOptionalCall = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportDuplicateImport = "warning"
+reportUnreachable = "warning"
+reportDeprecated = "warning"
+useLibraryCodeForTypes = true
 
 [tool.hatch.version]
 source = "vcs"
-
-[dependency-groups]
-dev = [
-    "basedpyright>=1.37.3",
-    "flake8>=7.3.0",
-    "mypy>=1.19.1",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.14.14",
-]
 
 [tool.mypy]
 python_version = "3.13"
@@ -48,19 +59,6 @@ follow_untyped_imports = true
 
 # [tool.pytest.ini_options]
 # addopts = "-v --cov=tmr --cov-report=term-missing --cov-branch"
-
-[tool.basedpyright]
-typeCheckingMode = "standard" 
-reportMissingSuperCall = false
-reportPossiblyUnboundVariable = "none"
-reportMissingImports = "none"
-reportOptionalCall = "none"
-reportUnknownVariableType = "none"
-reportUnknownArgumentType = "none"
-reportDuplicateImport = "warning"
-reportUnreachable = "warning"
-reportDeprecated = "warning"
-useLibraryCodeForTypes = true
 
 [tool.uv.sources]
 ytmidilib = { git = "https://github.com/ytani01/ytmidilib.git" }
