@@ -28,6 +28,9 @@ uv run ytstreetorgan parse FILE.mid -v    # MIDI 解析結果を表示（-v で�
 uv run ytstreetorgan play FILE.mid        # MIDI 再生
 ```
 
+絞り込み、カバレッジ、ruff の設定方針、テストを書くときの注意は
+`docs/Developer.md` にまとめてある。
+
 `ytmidilib` は git 依存（`pyproject.toml` の `[tool.uv.sources]`）。上流を変更したら `uv sync --upgrade-package ytmidilib`。
 
 バージョンは hatch-vcs が git タグから生成する。未インストールのチェックアウトで直接実行すると `__version__` が `0.0.0` になる。
