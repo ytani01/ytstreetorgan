@@ -99,7 +99,6 @@ $(document).ready(function () {
     $('#field-1sec').val(conf['1sec'] !== undefined ? conf['1sec'] : '');
     $('#field-base-note').val(conf['base note'] !== undefined ? conf['base note'] : '');
     $('#field-bridge-width').val(conf['bridge width'] !== undefined ? conf['bridge width'] : '');
-    $('#field-bridge-interval').val(conf['bridge interval'] !== undefined ? conf['bridge interval'] : '');
     $('#field-bridge-threshold').val(conf['bridge threshold'] !== undefined ? conf['bridge threshold'] : '');
     $('#field-memo').val(conf['memo'] || '');
 
@@ -126,7 +125,6 @@ $(document).ready(function () {
       '1sec': parseFloat($('#field-1sec').val()),
       'base note': parseInt($('#field-base-note').val(), 10),
       'bridge width': parseFloat($('#field-bridge-width').val()),
-      'bridge interval': parseFloat($('#field-bridge-interval').val()),
       'bridge threshold': parseFloat($('#field-bridge-threshold').val()),
       'note name': noteNames,
       'note offset': noteOffsets,

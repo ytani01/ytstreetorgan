@@ -69,7 +69,6 @@ class TestConfigHandler(AsyncHTTPTestCase):
             "1sec": 50,
             "base note": 60,
             "bridge width": 1,
-            "bridge interval": 10,
             "bridge threshold": 50,
             "note name": ["C"], "note offset": [0], "memo": "test"
         }

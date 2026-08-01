@@ -23,7 +23,6 @@ ModelConf = TypedDict(
         'note offset': list[int],
         'base note': int,
         'bridge width': float,
-        'bridge interval': float,
         'bridge threshold': float,
         'memo': str,
     },
@@ -47,7 +46,7 @@ def validate_config(conf: object) -> tuple[bool, str]:
 
     required_numeric_fields = [
         'book height', 'margin', 'pitch', 'hole height', '1sec',
-        'base note', 'bridge width', 'bridge interval', 'bridge threshold'
+        'base note', 'bridge width', 'bridge threshold'
     ]
 
     for field in required_numeric_fields:
@@ -227,7 +226,6 @@ class Conf:
         new_conf_cleaned['1sec'] = float(new_conf_cleaned['1sec'])
         new_conf_cleaned['base note'] = int(new_conf_cleaned['base note'])
         new_conf_cleaned['bridge width'] = float(new_conf_cleaned['bridge width'])
-        new_conf_cleaned['bridge interval'] = float(new_conf_cleaned['bridge interval'])
         new_conf_cleaned['bridge threshold'] = float(
             new_conf_cleaned['bridge threshold']
         )
@@ -258,7 +256,6 @@ class Conf:
         new_conf_cleaned['1sec'] = float(new_conf_cleaned['1sec'])
         new_conf_cleaned['base note'] = int(new_conf_cleaned['base note'])
         new_conf_cleaned['bridge width'] = float(new_conf_cleaned['bridge width'])
-        new_conf_cleaned['bridge interval'] = float(new_conf_cleaned['bridge interval'])
         new_conf_cleaned['bridge threshold'] = float(
             new_conf_cleaned['bridge threshold']
         )

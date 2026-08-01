@@ -362,7 +362,6 @@ class TestValidateConfig:
             "note offset": [0, 2],
             "base note": 60,
             "bridge width": 1,
-            "bridge interval": 10,
             "bridge threshold": 50,
             "memo": "sample"
         }
@@ -397,7 +396,6 @@ class TestValidateConfig:
             "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
             "base note": 60,
             "bridge width": 1,
-            "bridge interval": 10,
             "bridge threshold": 50,
             "note name": ["C"], "note offset": [0]
         }
@@ -415,7 +413,6 @@ class TestValidateConfig:
             "1sec": 50,
             "base note": 60,
             "bridge width": 1,
-            "bridge interval": 10,
             "bridge threshold": 50,
             "note name": ["C", "D"], "note offset": [0]
         }
@@ -441,7 +438,6 @@ class TestConfMutations:
                 "1sec": 50,
                 "base note": 60,
                 "bridge width": 1,
-                "bridge interval": 10,
                 "bridge threshold": 50,
                 "note name": ["C"], "note offset": [0], "memo": "m1 memo"
             }
@@ -492,7 +488,6 @@ class TestConfMutations:
             "1sec": 50,
             "base note": 60,
             "bridge width": 1,
-            "bridge interval": 10,
             "bridge threshold": 50,
             "note name": ["D"], "note offset": [2], "memo": "m2 memo"
         }

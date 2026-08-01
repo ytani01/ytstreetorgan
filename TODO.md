@@ -10,29 +10,6 @@ lint 整備の作業中に洗い出した残作業。優先順位は末尾の「
 
 `69838d8` / `6259671` の「WIP: 設定項目の見直し」に直結する項目。
 
-### A-1. `bridge interval` がどこからも読まれていない
-
-- [ ] 必須項目から外すか、本来の用途を復活させるかを決める
-
-`validate_config()` が**必須項目**として要求し、`update_model()` / `add_model()` が
-float 変換し、`conf/*.conf-*` と `~/etc/storgan-conf.json` とテストの全てに存在するが、
-**`rollbook.py` は一度も読んでいない**。
-
-穴の分割に実際に使われているのは以下の 2 つだけ:
-
-- `bridge width` — 分割してできた隙間の幅
-- `bridge threshold` — この長さを超えたら分割する閾値
-
-`bridge interval` は設計変更の名残と思われる。必須項目のまま放置すると、
-設定エディタの利用者が「必須なのに効かない値」を触ることになる。
-
-確認コマンド:
-
-```bash
-grep -rn "bridge interval" src/     # conf.py 以外に出てこない
-grep -oP "conf\.get\('\K[^']+" src/ytstreetorgan/rollbook.py | sort -u
-```
-
 ### A-2. `note name` はサーバー側では未使用
 
 - [ ] 「UI 専用キー」として位置づけを明文化する（廃止はしない想定）
@@ -48,8 +25,7 @@ grep -oP "conf\.get\('\K[^']+" src/ytstreetorgan/rollbook.py | sort -u
 `update_model()`（`src/ytstreetorgan/conf.py:223` 付近）と
 `add_model()`（同 `:254` 付近）に、数値項目を `float` / `int` に変換する
 同一のブロックが 2 箇所ある。設定項目を追加・削除するたびに 2 箇所直す必要がある。
-
-**A-1 に着手する前にこれを片付けておくと安全。**
+（`bridge interval` の削除でも実際に 2 箇所を直すことになった。）
 
 ---
 
@@ -123,17 +99,25 @@ uv run ruff check --isolated --select PTH --statistics src tests
 
 ## 着手順の目安
 
-1. **A-3 → A-1** — WIP 中のテーマそのもの。必須項目なのに未使用という状態は
-   設定エディタの利用者を確実に混乱させる。A-3 の共通化を先にやると A-1 が楽になる。
+1. **A-3（重複の共通化）** — 設定項目をいじるたびに 2 箇所直す状態を先に解消する。
 2. **C（README）** — 手戻りが最も少なく、外から見える部分。
 3. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
    `handler1.py` + `webapp.py` + B-1 の配線変更を 1 セットで。
 
 ---
 
-## 完了済み（`82aaa65`）
+## 完了済み
 
-参考までに、この TODO を作成した作業で片付いたもの:
+### A-1. `bridge interval` を設定項目から削除
+
+`validate_config()` が必須項目として要求していたが `rollbook.py` は一度も
+読んでいなかったため、スキーマ・検証・設定エディタ・設定テンプレート・テストの
+全てから削除した。穴の分割に使われるのは `bridge width` と `bridge threshold` のみ。
+
+既存の設定ファイルにキーが残っていても検証は通る（後方互換あり）。
+`~/etc/storgan-conf.json` の 4 モデルには未使用キーとして残っている。
+
+### `82aaa65`
 
 - テスト 2 件の失敗を解消（`validate_config` の型ガード追加、古い期待値の更新）
 - ruff の設定整備（`select` 拡張、`line-length = 88`、指摘 76 件を解消）

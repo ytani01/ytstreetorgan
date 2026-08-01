@@ -8,7 +8,6 @@
     "1sec": 50.0,
     "base note": 41,
     "bridge width": 0.1,
-    "bridge interval": 10.0,
     "bridge threshold": 50.0,
     "note name": [
       "F",
@@ -137,7 +136,6 @@
     ],
     "base note": 43,
     "bridge width": 1,
-    "bridge interval": 10,
     "bridge threshold": 50,
     "memo": ""
   },
@@ -150,7 +148,6 @@
     "1sec": 50.0,
     "base note": 43,
     "bridge width": 1.0,
-    "bridge interval": 10.0,
     "bridge threshold": 2.7,
     "note name": [
       "G",
@@ -207,7 +204,6 @@
     "1sec": 50.0,
     "base note": 41,
     "bridge width": 0.0,
-    "bridge interval": 10.0,
     "bridge threshold": 50.0,
     "note name": [
       "F",
