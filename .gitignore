@@ -38,6 +38,9 @@ tmp*
 
 .*_cache/
 
+## Playwright (pytest --tracing on / スクリーンショットの出力先)
+test-results/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.pyc

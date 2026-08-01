@@ -50,13 +50,25 @@ uv run pytest --cov=ytstreetorgan --cov-report=term-missing -m ""
 fixture が実サーバーを空きポートで起動する。
 
 ```bash
-uv run pytest -m browser                    # 全部
-uv run pytest -m browser --headed           # ブラウザを表示して実行
-uv run pytest -m browser --slowmo 500       # 各操作を 0.5 秒遅延（目視確認用）
-uv run pytest -m browser --tracing on       # トレースを記録（失敗調査用）
+uv run pytest -m browser                                # 全部（ヘッドレス）
+PWDEBUG=1 uv run pytest -m browser tests/browser/test_config_editor.py::test_save_persists_edited_value
+uv run pytest -m browser --headed --slowmo 1000         # 動きを目で追う
+uv run pytest -m browser --tracing on                   # トレースを記録
 ```
 
-失敗を調べるときは `--headed --slowmo 500` が手っ取り早い。
+**`--headed` だけではブラウザがほぼ見えない。** テスト 1 本が 2〜3 秒で終わるため、
+ウィンドウが一瞬で開いて閉じる。ブラウザは実際に起動しているので、見たい場合は
+下のいずれかを使う。
+
+- **`PWDEBUG=1`（おすすめ）** — Playwright Inspector が開き、**1 ステップずつ停止**する。
+  セレクタの確認や DOM の調査ができる。タイムアウトも無効化されるので、
+  じっくり見るならこれ。テストは 1 本に絞って実行すること。
+- **`--headed --slowmo 1000`** — 各操作の間に 1 秒待つ。通しの動きを眺めたいとき向け。
+- **`--tracing on`** — 実行後に `test-results/` へトレースが残る。
+  `uv run playwright show-trace <trace.zip>` でタイムライン・スクリーンショット・
+  DOM スナップショットを後から確認できる。CI の失敗調査向け。
+
+失敗の原因がセレクタなら `PWDEBUG=1`、タイミングなら `--tracing on` が早い。
 
 ## lint と型チェック
 
