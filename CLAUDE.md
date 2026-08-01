@@ -12,10 +12,11 @@ CLI とブラウザ UI の 2 系統がある。
 `uv` 管理。`uv sync` 後、すべて `uv run` 経由で実行する。
 
 ```bash
-uv run pytest -q                          # 全テスト
+uv run pytest -q                          # 通常テスト（browser マーカーは除外される）
+uv run pytest -m browser -q               # ブラウザテスト（実 Chromium を起動、要 playwright install）
 uv run pytest tests/test_conf.py -q       # ファイル単位
 uv run pytest tests/test_conf.py::TestValidateConfig::test_invalid_type   # 単体テスト
-uv run pytest --cov=ytstreetorgan --cov-report=term-missing               # カバレッジ（pyproject では無効化済み）
+uv run pytest --cov=ytstreetorgan --cov-report=term-missing -m ""         # カバレッジ
 
 uv run ruff check src tests               # lint（--fix で自動修正）
 uv run mypy src                           # 型チェック
@@ -80,6 +81,17 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 - `ConfigHandler` — `/storgan2/config` のモデル設定エディタ。`?api=1` で JSON を返す
 
 `webroot/midi/` と `webroot/svg/` は実行時に書き込まれる作業ディレクトリ（`.gitignore` 済み）。
+
+テンプレート内で静的ファイルを参照するときは、必ず `{{urlprefix}}` を使う。
+URL prefix を直書きすると、`WebServer.URL_PREFIX` を変えたときに 404 になる
+（実際に `storgan.html` が `/storgan` を直書きしていて CSS/JS が 404 していた）。
+
+### ブラウザテスト
+
+`tests/browser/` に Playwright で書いてある。`conftest.py` の `live_server`
+fixture が実サーバーを空きポートで起動する。**`Conf.SEARCH_PATH` と `webroot` を
+一時ディレクトリに差し替えている**点が重要で、これをしないとテストが
+`~/etc/storgan-conf.json`（利用者の実設定）を書き換えてしまう。
 
 ### ロギング
 

@@ -24,6 +24,7 @@ dev = [
   "mypy>=1.19.1",
   "pytest>=9.0.2",
   "pytest-cov>=7.0.0",
+  "pytest-playwright>=0.8.0",
   "ruff>=0.14.14",
 ]
 
@@ -81,8 +82,13 @@ module = "click,loguru,loguru.*,pytest,pytest.*,blessed,blessed.*"
 ignore_missing_imports = true
 follow_untyped_imports = true
 
-# [tool.pytest.ini_options]
-# addopts = "-v --cov=tmr --cov-report=term-missing --cov-branch"
+[tool.pytest.ini_options]
+# ブラウザテストは実ブラウザを起動するため秒単位で遅い。
+# 通常の `pytest` からは除外し、`pytest -m browser` で明示的に実行する。
+addopts = "-m 'not browser'"
+markers = [
+  "browser: 実ブラウザを起動するテスト (pytest -m browser で実行)",
+]
 
 [tool.uv.sources]
 ytmidilib = { git = "https://github.com/ytani01/ytmidilib.git" }
