@@ -59,6 +59,51 @@ uv run ruff check --isolated --select PTH --statistics src tests
 
 ---
 
+## E. URL prefix の扱いを整理する
+
+- [ ] prefix をオプションで指定しても、全体が追従するようにする
+
+CLI には既に `--urlprefix` / `-u` があり、`WebServer` も引数で受け取っている。
+にもかかわらず `storgan.html` が `/storgan` を直書きしていて、既定値
+（`/storgan2`）と食い違ったまま CSS/JS が 404 していた（`f6808cb` で修正済み）。
+同種の穴が残っていないか、prefix を既定値以外にして通しで確認したい。
+
+現状の直書き箇所:
+
+- `tests/test_webapp_async.py`（5 箇所）と `tests/test_config_handler.py`（7 箇所）が
+  `/storgan2` をリテラルで書いている。prefix を変えると落ちる。
+  ブラウザテスト側は `live_server` fixture から URL を組み立てているので影響なし。
+
+検討事項:
+
+- `WebServer.URL_PREFIX_HANDLER1`（`/handler1`）は `urlprefix` に連結されるが、
+  こちらはオプションになっていない。揃えるかどうか。
+- テンプレートは必ず `{{urlprefix}}` を使う規約を、lint やテストで縛れないか。
+
+## F. ブラウザテストを整備する
+
+- [ ] 代表的な 5 本から、実用的なカバレッジまで広げる
+
+土台は `tests/browser/` に用意済み（`conftest.py` の `live_server` fixture、
+`pytest -m browser` で実行）。現状は 5 本のみ。
+
+未着手の領域:
+
+- 設定エディタ: 機種の追加（`btn-add-model` とモーダル）、削除、
+  「既存からコピー」の挙動
+- 入力値の検証: 必須項目を空にした場合、数値欄に不正な値を入れた場合に
+  どうなるか（サーバー側の 400 がユーザーにどう見えるか）
+- エラー表示: 保存失敗時の `showAlert` の出方
+- アップロード: サイズ上限超え、MIDI でないファイル
+- CI で回すなら Chromium バイナリの取得（数百 MB）をどうするか
+
+注意: `pytest-playwright` の fixture はメインスレッドにイベントループを残すため、
+tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
+`tests/conftest.py` の `pytest_collection_modifyitems` で browser マーカーを
+末尾に回して回避している（`d19ff52`）。テストを足すときはこの制約に注意。
+
+---
+
 ## D. 雑多
 
 - [ ] `webroot/svg/` の古い成果物を削除（9 件中 7 件が `127b94d` より前の生成物で、
@@ -72,7 +117,10 @@ uv run ruff check --isolated --select PTH --statistics src tests
 ## 着手順の目安
 
 1. **A-2（`note name` の位置づけ）** — 小さい。ドキュメント上の整理のみ。
-2. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
+2. **E（URL prefix）** — 既に 1 件バグが出ている領域。テストの直書きを
+   潰しておくと、F で prefix を変えた構成も試せるようになる。
+3. **F（ブラウザテスト）** — 土台はあるので、書けば書いた分だけ増える。
+4. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
    `handler1.py` + `webapp.py` + B-1 の配線変更を 1 セットで。
 
 ---
