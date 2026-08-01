@@ -64,8 +64,6 @@ uv run ruff check --isolated --select PTH --statistics src tests
 - [ ] `webroot/svg/` の古い成果物を削除（9 件中 7 件が `127b94d` より前の生成物で、
       `stroke-width` も book height も現行と異なる）。gitignore 済みなので実害はないが、
       出力を目視比較するときに紛らわしい。
-- [ ] `archives/` が `.gitignore` されている件の意図確認（過去の計画書 4 件）。
-      意図的なら対応不要。
 - [ ] Claude Code のプラグイン `github` / `frontend-design` が 60 起動で 0 回のまま有効。
       `/doctor` で「変更しない」を選択済みなので、気が向いたら `/plugin` から。
 
@@ -80,6 +78,10 @@ uv run ruff check --isolated --select PTH --statistics src tests
 ---
 
 ## 完了済み
+
+### `archives/` を追跡対象に
+
+過去の計画書 4 件。最新仕様の参考にはならないが、記録として残す。
 
 ### C. README.md を現状に合わせて書き直し
 
