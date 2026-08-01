@@ -2,8 +2,10 @@
 # (c) 2026 Yoichi Tanibayashi
 #
 import json
-from ytmidilib import NoteInfo, Parser
+import math
 from loguru import logger
+from typing import TypedDict
+from ytmidilib import NoteInfo, Parser
 from .conf import Conf, ModelConf
 
 
@@ -67,6 +69,66 @@ def svg_square(
     return svg
 
 
+class DivisionResult(TypedDict):
+    n: int
+    unit_len: float
+    segments: list[tuple[float, float]]
+
+
+def divide_length_by_max_len(
+    total_len: float, unit_len_max: float | None, gap: float | None = 1.0
+) -> DivisionResult:
+    """長さ total_len を 最大 unit_len_max間隔 で分割。間隔は gap。
+    最少の分割数 n で分割する。
+
+    Args:
+        total_len (float): 全長[mm]
+        unit_len_max (float|None): 1要素あたりの最大長さ[mm]
+        gap (float|None): 要素間の間隔[mm], default = 1.0mm
+
+    Returns:
+        DivisionResult: 分割結果 (n, unit_len, segments)
+    """
+    def_result: DivisionResult = {
+        "n": 1,
+        "unit_len": total_len,
+        "segments": [(0, total_len)]
+    }
+
+    if gap is None or unit_len_max is None:
+        return def_result
+
+    if unit_len_max <= 0 or gap < 0:
+        logger.error('{} <= 0', unit_len_max)
+        return def_result
+
+    if total_len <= 0:
+        logger.error('{} <=0', total_len)
+        return def_result
+
+    # x(n) <= b を満たす最小の正の整数 n
+    n = math.ceil((total_len + gap) / (gap + unit_len_max))
+
+    # 1要素あたりの長さを算出
+    total_gap = (n - 1) * gap
+    unit_len = (total_len - total_gap) / n
+
+    # 各要素の座標範囲を計算
+    segments = []
+    current_pos = 0.0
+    for _ in range(n):
+        end_pos = current_pos + unit_len
+        segments.append((round(current_pos, 4), round(end_pos, 4)))
+        current_pos = end_pos + gap
+
+    logger.debug("{},{},{}", n, round(unit_len, 4), segments)
+    return {
+        "n": n,
+        "unit_len": round(unit_len, 4),
+        "segments": segments,
+    }
+
+
 class HoleInfo:
     """ロールブックの穴情報を管理するデータエンティティクラス。
 
@@ -103,12 +165,14 @@ class HoleInfo:
         sec_per_sec = self.conf.get('1sec', 0.0)
         pitch = self.conf.get('pitch', 0.0)
         margin = self.conf.get('margin', 0.0)
-        hole_height = self.conf.get('hole height', 0.0)
-
+        
         self.x = self.start_sec * sec_per_sec
         self.y = self.scale * pitch + margin
         self.w = self.sec * sec_per_sec
-        self.h = hole_height
+        self.h = self.conf.get('hole height', 0.0)
+
+        self.bridge_width = self.conf.get('bridge width')
+        self.bridge_threshold = self.conf.get('bridge threshold')
 
     def __str__(self) -> str:
         """オブジェクトの文字列表現を取得する。
@@ -137,11 +201,19 @@ class HoleInfo:
         Returns:
             str: 生成されたSVGパス要素の文字列。
         """
-        svg = svg_square(
-            self.x, self.y, self.w, self.h, color, line_width,
-            stroke_dasharray=stroke_dasharray
-        )
+        # ホールの長さが bridge_threshold より長い場合は、分割
+        di = divide_length_by_max_len(self.w, self.bridge_threshold, self.bridge_width)
 
+        svg = ''
+        for (x1, x2) in di['segments']:
+            logger.debug("({}, {})", x1, x2)
+            
+            svg += svg_square(
+                self.x + x1, self.y, x2 - x1, self.h, color, line_width,
+                stroke_dasharray=stroke_dasharray
+            )
+
+        logger.debug('svg={}', svg)
         return svg
 
 
@@ -246,6 +318,7 @@ class RollBook:
             logger.debug('hi={}', hi)
 
             if hi.scale >= 0:
+                # ロールブックを伸ばす
                 self._width = max(hi.x + hi.w, self._width)
 
             self._holes.append(hi)
