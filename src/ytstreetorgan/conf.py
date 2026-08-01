@@ -3,8 +3,9 @@
 #
 import json
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from loguru import logger
 
@@ -29,6 +30,34 @@ ModelConf = TypedDict(
     total=False,
 )
 
+# 必須の数値項目と、その値に適用する変換。
+# validate_config() の検証と coerce_numeric_fields() の型変換の両方が
+# この定義を使うので、設定項目を増減させるときはここだけ直せばよい。
+# 挿入順がそのまま検証順（＝エラーメッセージに出る項目の順）になる。
+NUMERIC_FIELDS: dict[str, Callable[[Any], Any]] = {
+    'book height': float,
+    'margin': float,
+    'pitch': float,
+    'hole height': float,
+    '1sec': float,
+    'base note': int,
+    'bridge width': float,
+    'bridge threshold': float,
+}
+
+
+def coerce_numeric_fields(conf: dict) -> dict:
+    """Return a copy of ``conf`` with numeric fields converted to their type.
+
+    ``validate_config()` must have passed first: this assumes every key in
+    :data:`NUMERIC_FIELDS` is present and convertible.
+    """
+    cleaned = dict(conf)
+    for field, cast in NUMERIC_FIELDS.items():
+        cleaned[field] = cast(cleaned[field])
+    cleaned['note offset'] = [int(x) for x in cleaned['note offset']]
+    return cleaned
+
 
 def validate_config(conf: object) -> tuple[bool, str]:
     """Validate a ModelConf dictionary structure and values.
@@ -44,17 +73,14 @@ def validate_config(conf: object) -> tuple[bool, str]:
     if not model_name or not isinstance(model_name, str) or not model_name.strip():
         return False, "Model name is required and must be a non-empty string"
 
-    required_numeric_fields = [
-        'book height', 'margin', 'pitch', 'hole height', '1sec',
-        'base note', 'bridge width', 'bridge threshold'
-    ]
-
-    for field in required_numeric_fields:
+    for field, cast in NUMERIC_FIELDS.items():
         val = conf.get(field)
         if val is None:
             return False, f"Missing required field: '{field}'"
         try:
-            float(val)
+            # 変換そのものを検証に使う。float() で検証して int() で変換すると
+            # "60.5" のような値が検証を通ったあとで例外になる。
+            cast(val)
         except (ValueError, TypeError):
             return False, f"Field '{field}' must be a valid number"
 
@@ -217,23 +243,7 @@ class Conf:
             logger.error(msg)
             return False, msg
 
-        # Ensure types for numeric fields
-        new_conf_cleaned = dict(new_conf)
-        new_conf_cleaned['book height'] = float(new_conf_cleaned['book height'])
-        new_conf_cleaned['margin'] = float(new_conf_cleaned['margin'])
-        new_conf_cleaned['pitch'] = float(new_conf_cleaned['pitch'])
-        new_conf_cleaned['hole height'] = float(new_conf_cleaned['hole height'])
-        new_conf_cleaned['1sec'] = float(new_conf_cleaned['1sec'])
-        new_conf_cleaned['base note'] = int(new_conf_cleaned['base note'])
-        new_conf_cleaned['bridge width'] = float(new_conf_cleaned['bridge width'])
-        new_conf_cleaned['bridge threshold'] = float(
-            new_conf_cleaned['bridge threshold']
-        )
-        new_conf_cleaned['note offset'] = [
-            int(x) for x in new_conf_cleaned['note offset']
-        ]
-
-        self.data[target_idx] = new_conf_cleaned  # type: ignore
+        self.data[target_idx] = coerce_numeric_fields(new_conf)  # type: ignore
         return self.save()
 
     def add_model(self, new_conf: dict) -> tuple[bool, str]:
@@ -248,22 +258,7 @@ class Conf:
             logger.error(msg)
             return False, msg
 
-        new_conf_cleaned = dict(new_conf)
-        new_conf_cleaned['book height'] = float(new_conf_cleaned['book height'])
-        new_conf_cleaned['margin'] = float(new_conf_cleaned['margin'])
-        new_conf_cleaned['pitch'] = float(new_conf_cleaned['pitch'])
-        new_conf_cleaned['hole height'] = float(new_conf_cleaned['hole height'])
-        new_conf_cleaned['1sec'] = float(new_conf_cleaned['1sec'])
-        new_conf_cleaned['base note'] = int(new_conf_cleaned['base note'])
-        new_conf_cleaned['bridge width'] = float(new_conf_cleaned['bridge width'])
-        new_conf_cleaned['bridge threshold'] = float(
-            new_conf_cleaned['bridge threshold']
-        )
-        new_conf_cleaned['note offset'] = [
-            int(x) for x in new_conf_cleaned['note offset']
-        ]
-
-        self.data.append(new_conf_cleaned)  # type: ignore
+        self.data.append(coerce_numeric_fields(new_conf))  # type: ignore
         return self.save()
 
     def delete_model(self, model_name: str) -> tuple[bool, str]:

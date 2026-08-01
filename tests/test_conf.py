@@ -22,7 +22,12 @@ import json
 
 import pytest
 
-from ytstreetorgan.conf import Conf, validate_config
+from ytstreetorgan.conf import (
+    NUMERIC_FIELDS,
+    Conf,
+    coerce_numeric_fields,
+    validate_config,
+)
 
 # ---------------------------------------------------------------------
 # フィクスチャ / ヘルパー
@@ -403,6 +408,22 @@ class TestValidateConfig:
         assert valid is False
         assert "must be a valid number" in msg
 
+    def test_int_field_rejects_non_integer_string(self):
+        # 'base note' は int で変換される。float() で検証していた頃は
+        # "60.5" が検証を通り、あとの int() で ValueError になっていた。
+        sample = {
+            "model": "test_model",
+            "book height": 100,
+            "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
+            "base note": "60.5",
+            "bridge width": 1,
+            "bridge threshold": 50,
+            "note name": ["C"], "note offset": [0]
+        }
+        valid, msg = validate_config(sample)
+        assert valid is False
+        assert "'base note'" in msg
+
     def test_length_mismatch(self):
         sample = {
             "model": "test_model",
@@ -520,3 +541,42 @@ class TestConfMutations:
         assert ok is False
         assert "not found" in msg
 
+
+
+# ============================================================
+# coerce_numeric_fields() のテスト
+# ============================================================
+class TestCoerceNumericFields:
+    SAMPLE = {
+        "model": "test_model",
+        "book height": "100", "margin": "5", "pitch": "3.5",
+        "hole height": "2.5", "1sec": "50",
+        "base note": "60",
+        "bridge width": "1", "bridge threshold": "50",
+        "note name": ["C", "D"], "note offset": ["0", "2"],
+        "memo": "keep me",
+    }
+
+    def test_casts_to_declared_types(self):
+        out = coerce_numeric_fields(self.SAMPLE)
+
+        for field, cast in NUMERIC_FIELDS.items():
+            assert type(out[field]) is cast, field
+        assert out["note offset"] == [0, 2]
+
+    def test_does_not_mutate_input(self):
+        original = dict(self.SAMPLE)
+        coerce_numeric_fields(self.SAMPLE)
+        assert self.SAMPLE == original
+
+    def test_passes_through_unknown_keys(self):
+        out = coerce_numeric_fields({**self.SAMPLE, "bridge interval": 10})
+        # 未知のキー（旧設定の名残など）は素通りさせる
+        assert out["memo"] == "keep me"
+        assert out["bridge interval"] == 10
+        assert out["note name"] == ["C", "D"]
+
+    def test_covers_every_validated_numeric_field(self):
+        # validate_config() が必須にする数値項目と、変換対象が一致すること
+        out = coerce_numeric_fields(self.SAMPLE)
+        assert set(NUMERIC_FIELDS) <= set(out)
