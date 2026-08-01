@@ -59,23 +59,6 @@ uv run ruff check --isolated --select PTH --statistics src tests
 
 ---
 
-## C. `README.md` が実態と乖離
-
-- [ ] 現行の手順に書き直す（または現状を正とする最小限の修正）
-
-冒頭に **DEPRECATED** と書かれたまま、以下が食い違っている。
-
-| README の記述 | 実際 |
-|---|---|
-| `git clone .../StreetOrgan.git` + `install.sh` | `uv sync` |
-| `http://hostname:10081/storgan/` | `/storgan2/` |
-| `Storgan -h` | `ytstreetorgan -h` |
-| `![](docs/StreetOrgan-Book1.jpg)` | 画像ファイルが存在しない |
-
-`CLAUDE.md` には「参照しないこと」と注記済みだが、README 自体は未修正。
-
----
-
 ## D. 雑多
 
 - [ ] `webroot/svg/` の古い成果物を削除（9 件中 7 件が `127b94d` より前の生成物で、
@@ -90,14 +73,19 @@ uv run ruff check --isolated --select PTH --statistics src tests
 
 ## 着手順の目安
 
-1. **C（README）** — 手戻りが最も少なく、外から見える部分。
-2. **A-2（`note name` の位置づけ）** — 小さい。ドキュメント上の整理のみ。
-3. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
+1. **A-2（`note name` の位置づけ）** — 小さい。ドキュメント上の整理のみ。
+2. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
    `handler1.py` + `webapp.py` + B-1 の配線変更を 1 セットで。
 
 ---
 
 ## 完了済み
+
+### C. README.md を現状に合わせて書き直し
+
+インストール/ダウンロード手順を全削除し、機能の説明を中心にした。
+旧リポジトリの clone 手順、廃止された URL・コマンド名、存在しない
+画像への参照がすべて消えた。使い方は `--help` への誘導のみ。
 
 ### A-3. 数値変換の重複を解消
 

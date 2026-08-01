@@ -1,41 +1,38 @@
-# **DEPRICATED** Street Organ Roll Book Maker
+# Street Organ Roll Book Maker
 
 【未完成】
 
-MIDIデータを解析して、
-手回しオルガン用のロール・ブックを自動作成します。
+MIDIデータを解析して、手回しオルガン用のロール・ブックを自動作成します。
 
 
-## 1. Install
+## 1. 機能
 
-```bash
-$ cd ~
-$ python3 -m env1
-$ cd env1
-$ . ./bin/activate
-(env1)$ git clone git@github.com:ytani01/StreetOrgan.git
-(env1)$ ./StreetOrgan/install.sh
-```
+* **ロール・ブック生成** — MIDIファイルから、穴あけ用のSVGを出力する。
+  長さの単位はmmで、そのまま原寸で印刷・カットできる。
+* **Webインターフェース** — ブラウザからMIDIファイルをアップロードし、
+  生成結果をプレビューしてSVGをダウンロードする。
+* **オルガン設定の編集** — 音階数や寸法の異なる機種を「モデル」として登録し、
+  ブラウザ上で編集できる。34音階/20音階の設定を同梱。
+* **MIDIの解析・再生** — ロール・ブックにする前に、
+  ノートの一覧表示や試聴ができる。
 
-## 2. start server
+オルガンの音階に無いノートは、捨てずに破線で描画される。
+どの音が鳴らないかを目視で確認してから、MIDI側を調整できる。
 
-```bash
-$ boot-storgan.sh
-```
-
-## 3. connect from browser
-
-1. URL: http://hostname:10081/storgan/
-1. select a MIDI file
-1. download SVG file
+穴が長くなりすぎる場合は、自動的に分割してブリッジ（紙のつなぎ)を残す。
+ロール・ブックが切れてしまうのを防ぐため。
 
 
-## 9. command line usage
+## 2. 使い方
+
+コマンドラインとWebインターフェースの2通り。
 
 ```bash
-$ Storgan -h
-$ Storgan SUB_COMMAND -h
+$ ytstreetorgan --help
+$ ytstreetorgan SUB_COMMAND --help
 ```
+
+Webインターフェースは `webapp` サブコマンドで起動する。
 
 
 ## A. 手回しオルガン用ロール・ブック
@@ -46,8 +43,6 @@ $ Storgan SUB_COMMAND -h
 * 34音階、低音部で、一部半音がない
 * D#がない
 * 1秒 = 約5cm
-
-![](docs/StreetOrgan-Book1.jpg)
 
 
 ## B. Reference
