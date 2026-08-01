@@ -2,6 +2,7 @@
 tests/test_mylog.py - mylog.py の動作確認テスト
 """
 import sys
+
 from loguru import logger
 
 

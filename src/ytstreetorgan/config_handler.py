@@ -2,11 +2,12 @@
 # (c) 2026 Yoichi Tanibayashi
 #
 import json
-import tornado.web
+
 from loguru import logger
+
 from . import __author__, __copyright_year__
-from .handler1 import StorganBaseHandler
 from .conf import Conf
+from .handler1 import StorganBaseHandler
 from .rollbook import RollBook
 
 
@@ -24,12 +25,14 @@ class ConfigHandler(StorganBaseHandler):
     def get(self):
         """
         GET method.
-        Renders the configuration editor HTML page or returns JSON data if API is requested.
+        Renders the configuration editor HTML page, or returns JSON data
+        if the API is requested.
         """
         logger.debug('request uri={}', self.request.uri)
 
         # Check if API request for JSON data
-        if self.get_argument('api', '0') == '1' or self.request.path.endswith('/api/data'):
+        if (self.get_argument('api', '0') == '1'
+                or self.request.path.endswith('/api/data')):
             conf = Conf(self._conf_file)
             selected_model = self.get_argument('model', '')
             model_data = conf.get(selected_model) if selected_model else {}
@@ -77,7 +80,10 @@ class ConfigHandler(StorganBaseHandler):
         except Exception as ex:
             logger.error(f"Failed to parse request data: {ex}")
             self.set_status(400)
-            self.write(json.dumps({'status': 'error', 'message': 'Invalid JSON request format'}))
+            self.write(json.dumps({
+                'status': 'error',
+                'message': 'Invalid JSON request format'
+            }))
             return
 
         action = req_data.get('action', 'save')

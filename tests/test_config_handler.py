@@ -1,8 +1,8 @@
 import json
-import pytest
+
 from tornado.testing import AsyncHTTPTestCase
+
 from ytstreetorgan.webapp import WebServer
-from ytstreetorgan.conf import Conf
 
 
 class TestConfigHandler(AsyncHTTPTestCase):
@@ -62,8 +62,15 @@ class TestConfigHandler(AsyncHTTPTestCase):
         # Add new model
         new_conf = {
             "model": "test_async_model",
-            "book height": 100, "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
-            "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+            "book height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole height": 2.5,
+            "1sec": 50,
+            "base note": 60,
+            "bridge width": 1,
+            "bridge interval": 10,
+            "bridge threshold": 50,
             "note name": ["C"], "note offset": [0], "memo": "test"
         }
         add_payload = json.dumps({'action': 'add', 'config': new_conf})

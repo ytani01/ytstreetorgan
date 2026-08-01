@@ -3,11 +3,12 @@
 #
 import json
 import shutil
-from typing import TypedDict
-from loguru import logger
 from pathlib import Path
-from .mylog import exmsg
+from typing import TypedDict
 
+from loguru import logger
+
+from .mylog import exmsg
 
 ModelConf = TypedDict(
     'ModelConf',
@@ -30,8 +31,15 @@ ModelConf = TypedDict(
 )
 
 
-def validate_config(conf: dict) -> tuple[bool, str]:
-    """Validate a ModelConf dictionary structure and values."""
+def validate_config(conf: object) -> tuple[bool, str]:
+    """Validate a ModelConf dictionary structure and values.
+
+    ``conf`` is untrusted input: it comes straight from the JSON body of a
+    ``ConfigHandler`` POST, so it may be any JSON type, not just a dict.
+    """
+
+    if not isinstance(conf, dict):
+        return False, "Configuration must be a dictionary"
 
     model_name = conf.get('model')
     if not model_name or not isinstance(model_name, str) or not model_name.strip():
@@ -61,13 +69,18 @@ def validate_config(conf: dict) -> tuple[bool, str]:
         return False, "'note offset' must be a list of integers"
 
     if len(note_names) != len(note_offsets):
-        return False, f"Length mismatch: 'note name' ({len(note_names)}) and 'note offset' ({len(note_offsets)}) must have equal length"
+        return False, (
+            f"Length mismatch: 'note name' ({len(note_names)}) and"
+            f" 'note offset' ({len(note_offsets)}) must have equal length"
+        )
 
     for idx, offset in enumerate(note_offsets):
         try:
             int(offset)
         except (ValueError, TypeError):
-            return False, f"Item at index {idx} in 'note offset' must be an integer"
+            return False, (
+                f"Item at index {idx} in 'note offset' must be an integer"
+            )
 
     return True, ""
 
@@ -117,7 +130,10 @@ class Conf:
         try:
             json_text = self.config_file.read_text(encoding='utf-8')
             self.data = json.loads(json_text)
-            self.models = [d['model'] for d in self.data]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+            self.models = [
+                d['model']  # pyright: ignore[reportTypedDictNotRequiredAccess]
+                for d in self.data
+            ]
         except UnicodeDecodeError as e:
             logger.error(exmsg(e))
             return []
@@ -173,7 +189,10 @@ class Conf:
                 f.write('\n')
 
             tmp_file.replace(self.config_file)
-            self.models = [d['model'] for d in self.data if isinstance(d, dict) and 'model' in d]
+            self.models = [
+                d['model'] for d in self.data
+                if isinstance(d, dict) and 'model' in d
+            ]
             logger.info(f"Saved configuration to {self.config_file}")
             return True, "Configuration saved successfully"
 
@@ -209,8 +228,12 @@ class Conf:
         new_conf_cleaned['base note'] = int(new_conf_cleaned['base note'])
         new_conf_cleaned['bridge width'] = float(new_conf_cleaned['bridge width'])
         new_conf_cleaned['bridge interval'] = float(new_conf_cleaned['bridge interval'])
-        new_conf_cleaned['bridge threshold'] = float(new_conf_cleaned['bridge threshold'])
-        new_conf_cleaned['note offset'] = [int(x) for x in new_conf_cleaned['note offset']]
+        new_conf_cleaned['bridge threshold'] = float(
+            new_conf_cleaned['bridge threshold']
+        )
+        new_conf_cleaned['note offset'] = [
+            int(x) for x in new_conf_cleaned['note offset']
+        ]
 
         self.data[target_idx] = new_conf_cleaned  # type: ignore
         return self.save()
@@ -236,8 +259,12 @@ class Conf:
         new_conf_cleaned['base note'] = int(new_conf_cleaned['base note'])
         new_conf_cleaned['bridge width'] = float(new_conf_cleaned['bridge width'])
         new_conf_cleaned['bridge interval'] = float(new_conf_cleaned['bridge interval'])
-        new_conf_cleaned['bridge threshold'] = float(new_conf_cleaned['bridge threshold'])
-        new_conf_cleaned['note offset'] = [int(x) for x in new_conf_cleaned['note offset']]
+        new_conf_cleaned['bridge threshold'] = float(
+            new_conf_cleaned['bridge threshold']
+        )
+        new_conf_cleaned['note offset'] = [
+            int(x) for x in new_conf_cleaned['note offset']
+        ]
 
         self.data.append(new_conf_cleaned)  # type: ignore
         return self.save()

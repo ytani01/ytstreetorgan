@@ -24,7 +24,6 @@ import pytest
 
 from ytstreetorgan.conf import Conf, validate_config
 
-
 # ---------------------------------------------------------------------
 # フィクスチャ / ヘルパー
 # ---------------------------------------------------------------------
@@ -396,7 +395,10 @@ class TestValidateConfig:
             "model": "test_model",
             "book height": "abc",
             "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
-            "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+            "base note": 60,
+            "bridge width": 1,
+            "bridge interval": 10,
+            "bridge threshold": 50,
             "note name": ["C"], "note offset": [0]
         }
         valid, msg = validate_config(sample)
@@ -406,8 +408,15 @@ class TestValidateConfig:
     def test_length_mismatch(self):
         sample = {
             "model": "test_model",
-            "book height": 100, "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
-            "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+            "book height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole height": 2.5,
+            "1sec": 50,
+            "base note": 60,
+            "bridge width": 1,
+            "bridge interval": 10,
+            "bridge threshold": 50,
             "note name": ["C", "D"], "note offset": [0]
         }
         valid, msg = validate_config(sample)
@@ -425,8 +434,15 @@ class TestConfMutations:
         data = [
             {
                 "model": "m1",
-                "book height": 100, "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
-                "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+                "book height": 100,
+                "margin": 5,
+                "pitch": 3.5,
+                "hole height": 2.5,
+                "1sec": 50,
+                "base note": 60,
+                "bridge width": 1,
+                "bridge interval": 10,
+                "bridge threshold": 50,
                 "note name": ["C"], "note offset": [0], "memo": "m1 memo"
             }
         ]
@@ -469,8 +485,15 @@ class TestConfMutations:
         conf = Conf(config_file=str(sample_conf_file))
         new_model = {
             "model": "m2",
-            "book height": 120, "margin": 6, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
-            "base note": 60, "bridge width": 1, "bridge interval": 10, "bridge threshold": 50,
+            "book height": 120,
+            "margin": 6,
+            "pitch": 3.5,
+            "hole height": 2.5,
+            "1sec": 50,
+            "base note": 60,
+            "bridge width": 1,
+            "bridge interval": 10,
+            "bridge threshold": 50,
             "note name": ["D"], "note offset": [2], "memo": "m2 memo"
         }
         ok, msg = conf.add_model(new_model)

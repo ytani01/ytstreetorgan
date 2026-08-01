@@ -7,11 +7,12 @@ Application classes for ytstreetorgan CLI commands.
 Separating business logic from click command definitions keeps
 ``__main__.py`` thin and makes these classes independently testable.
 """
-import os
-from typing import Sequence
-from loguru import logger
+from collections.abc import Sequence
+from pathlib import Path
 
+from loguru import logger
 from ytmidilib import Parser, Player
+
 from .rollbook import RollBook
 
 
@@ -41,12 +42,13 @@ class RollBookApp:
         self._channel = list(channel)
         self._version = version
 
-        if not out_file:
-            out_file = '%s.svg' % (self._midi_file)
-
-        out_file = os.path.basename(out_file)
-        out_file = '%s/%s' % (self.DEF_OUT_DIR, out_file)
-        self._out_file = os.path.expanduser(out_file)
+        if out_file:
+            # 明示指定されたパスはそのまま使う（相対パスは cwd 基準）
+            self._out_file = str(Path(out_file).expanduser())
+        else:
+            # 未指定なら DEF_OUT_DIR に <MIDIファイル名>.svg で出す
+            name = Path(f'{self._midi_file}.svg').name
+            self._out_file = str((Path(self.DEF_OUT_DIR) / name).expanduser())
         logger.debug('[fix] out_file={}', self._out_file)
 
         self._rollbook = RollBook(self._model_name, self._conf_file)
@@ -103,7 +105,7 @@ class MidiApp:  # pylint: disable=too-many-instance-attributes
         logger.debug('parsed_data=')
         if self._dbg or self._parse_only:
             for i, data in enumerate(parsed_data['note_info']):
-                print('(%4d) %s' % (i, data), flush=True)
+                print(f'({i:4d}) {data}', flush=True)
 
         print('channel_set=', parsed_data['channel_set'], flush=True)
 

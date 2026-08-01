@@ -1,8 +1,11 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 from click.testing import CliRunner
+
 from ytstreetorgan.__main__ import cli
-from ytstreetorgan.apps import RollBookApp, MidiApp
+from ytstreetorgan.apps import MidiApp, RollBookApp
+
 
 @pytest.fixture
 def runner():
@@ -63,7 +66,9 @@ def test_rollbook_app_class(mock_rollbook, tmp_path):
     mock_instance = mock_rollbook.return_value
 
     # parse_to_file writes the file, so simulate it
-    def fake_parse_to_file(midi_file, out_file, channel=[]):
+    def fake_parse_to_file(midi_file, out_file, channel=None):
+        if channel is None:
+            channel = []
         with open(out_file, 'w') as f:
             f.write('<svg></svg>')
         return '<svg></svg>'

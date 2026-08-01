@@ -1,6 +1,7 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from ytstreetorgan.rollbook import RollBook, HoleInfo, note2scale, svg_square
+from unittest.mock import MagicMock, patch
+
+from ytstreetorgan.rollbook import HoleInfo, RollBook, note2scale, svg_square
+
 
 def test_note2scale():
     assert note2scale(60, 60, [0, 2, 4]) == 0
@@ -10,18 +11,18 @@ def test_note2scale():
 def test_svg_square():
     svg = svg_square(10, 20, 30, 40, '#123456')
     assert 'stroke:#123456' in svg
-    assert 'd="M -10.00 -20.00 h -30.00 v -40.00 h 30.00 Z"' in svg
+    assert 'd="M -10.00,-20.00 h -30.00 v -40.00 h 30.00 Z"' in svg
 
 @patch('ytstreetorgan.rollbook.Parser')
 def test_rollbook_parse(mock_parser):
     mock_instance = mock_parser.return_value
-    
+
     # Mock the return value of Parser.parse
     mock_note1 = MagicMock()
     mock_note1.abs_time = 1.0
     mock_note1.length.return_value = 2.0
     mock_note1.note = 60
-    
+
     mock_note2 = MagicMock()
     mock_note2.abs_time = 2.0
     mock_note2.length.return_value = 1.0
@@ -31,7 +32,7 @@ def test_rollbook_parse(mock_parser):
         'channel_set': {1},
         'note_info': [mock_note1, mock_note2]
     }
-    
+
     rb = RollBook()
     # Mock conf slightly if needed, but defaults might work
     rb._conf = {
@@ -43,7 +44,7 @@ def test_rollbook_parse(mock_parser):
         'hole height': 3,
         'book height': 100
     }
-    
+
     svg = rb.parse('dummy.mid')
     assert '<svg ' in svg
     assert 'viewBox=' in svg
@@ -55,7 +56,7 @@ def test_holeinfo_str():
     mock_note.abs_time = 1.0
     mock_note.length.return_value = 2.0
     mock_note.note = 60
-    
+
     conf = {
         'base note': 60,
         'note offset': [0, 2, 4],
@@ -69,6 +70,8 @@ def test_holeinfo_str():
     assert 'note:060' in s
 
 import os
+
+
 def test_rollbook_parse_real_midi():
     # Verify that parse works with a real MIDI file (fixture)
     midi_file = 'webroot/midi/d-kaeru.mid'

@@ -2,11 +2,13 @@
 # (c) 2026 Yoichi Tanibayashi
 #
 import os
+
 import tornado.web
 from loguru import logger
+
 from . import __author__, __copyright_year__
-from .rollbook import RollBook
 from .conf import Conf
+from .rollbook import RollBook
 from .utils import get_size_unit
 
 
@@ -75,7 +77,7 @@ class Download(StorganBaseHandler):
         fname = uri.split('/')[-1]
         logger.debug('fname={}', fname)
 
-        path_name = '%s/svg/%s' % (self._webroot, fname)
+        path_name = f'{self._webroot}/svg/{fname}'
         logger.debug('path_name={}', path_name)
 
         self.set_header('Content-Type', 'application/octet-stream')
@@ -83,7 +85,7 @@ class Download(StorganBaseHandler):
                         'attachment; filename=' + fname)
 
         buf_size = 4096
-        with open(path_name, 'r') as f:
+        with open(path_name) as f:
             while True:
                 data = f.read(buf_size)
                 if not data:
@@ -150,9 +152,9 @@ class Handler1(StorganBaseHandler):
 
         file1 = self.request.files['file1'][0]
         file1_fname = file1['filename']
-        file1_path = '%s/midi/%s' % (self._webroot, file1_fname)
-        svg1_fname = '%s.svg' % (file1_fname)
-        svg1_path = '%s/svg/%s' % (self._webroot, svg1_fname)
+        file1_path = f'{self._webroot}/midi/{file1_fname}'
+        svg1_fname = f'{file1_fname}.svg'
+        svg1_path = f'{self._webroot}/svg/{svg1_fname}'
 
         self._model = self.get_argument('model')
         logger.debug('model=\'{}\'', self._model)
@@ -166,7 +168,7 @@ class Handler1(StorganBaseHandler):
         result = self.get_filesize(file1_path)
         assert result is not None
         f_size, unit = result
-        msg = '%s (%.1f %s)' % (file1['filename'], f_size, unit)
+        msg = '{} ({:.1f} {})'.format(file1['filename'], f_size, unit)
 
         svg_data = rollbook.parse_to_file(file1_path, svg1_path)
         logger.debug('svg_data={}', svg_data)

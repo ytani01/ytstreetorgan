@@ -9,15 +9,14 @@ that delegate to the application classes in :mod:`apps`.
 """
 import click
 from loguru import logger
-
 from ytmidilib import Player
+
 from . import __version__
+from .apps import MidiApp, RollBookApp
+from .click_utils import click_common_opts
+from .mylog import loggerInit
 from .rollbook import RollBook
 from .webapp import WebServer
-from .mylog import loggerInit
-from .click_utils import click_common_opts
-from .apps import RollBookApp, MidiApp
-
 
 """
 # click コマンド群
@@ -55,8 +54,7 @@ def cli(ctx, debug):
               help='work directory')
 @click.option('--size_limit', '-l', 'size_limit', type=int,
               default=WebServer.DEF_SIZE_LIMIT, show_default=True,
-              help='upload size limit, default=%s' % (
-                  WebServer.DEF_SIZE_LIMIT))
+              help=f'upload size limit, default={WebServer.DEF_SIZE_LIMIT}')
 @click_common_opts(__version__)
 def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
     """"Web application."""
@@ -159,17 +157,17 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
 @click.option(
     '--rate', '-r', 'rate', type=int,
     default=Player.DEF_RATE, show_default=True,
-    help='sampling rate, default=%s Hz' % Player.DEF_RATE
+    help=f'sampling rate, default={Player.DEF_RATE} Hz'
 )
 @click.option(
     '--sec_min', '--min', 'sec_min', type=float,
     default=Player.SEC_MIN, show_default=True,
-    help='min sound length, default=%s' % (Player.SEC_MIN)
+    help=f'min sound length, default={Player.SEC_MIN}'
 )
 @click.option(
     '--sec_max', '--max', 'sec_max',
     type=float, default=Player.SEC_MAX, show_default=True,
-    help='max sound length, default=%s' % (Player.SEC_MAX)
+    help=f'max sound length, default={Player.SEC_MAX}'
 )
 @click_common_opts(__version__)
 def play(  # pylint: disable=too-many-arguments

@@ -21,7 +21,6 @@ ytstreetorgan = "ytstreetorgan.__main__:cli"
 [dependency-groups]
 dev = [
   "basedpyright>=1.37.3",
-  "flake8>=7.3.0",
   "mypy>=1.19.1",
   "pytest>=9.0.2",
   "pytest-cov>=7.0.0",
@@ -47,6 +46,31 @@ useLibraryCodeForTypes = true
 
 [tool.hatch.version]
 source = "vcs"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+# デフォルト (E4,E7,E9,F) は未使用 import 程度しか拾わないので広げている。
+select = ["E4", "E5", "E7", "E9", "F", "I", "UP", "B", "W", "PTH"]
+
+[tool.ruff.lint.per-file-ignores]
+# テストはフィクスチャの定義後に import を置くことがある
+"tests/*" = ["E402"]
+
+# --- os.path -> pathlib 移行の残作業 ---
+# PTH を有効にしたうえで、未移行のファイルだけをここで除外している。
+# 1 ファイル移行し終わったら、その行を消す。全部消えたら移行完了。
+# 移行済みファイルに os.path が再び入ったら、その時点で ruff が落ちる。
+# 数字は設定時点の指摘件数 (`ruff check --select PTH --statistics` で確認)。
+"tests/test_webapp_async.py" = ["PTH"]      # 12
+"tests/test_webapp.py" = ["PTH"]            # 1
+"tests/test_rollbook.py" = ["PTH"]          # 1
+"tests/test_main.py" = ["PTH"]              # 1
+"src/ytstreetorgan/handler1.py" = ["PTH"]   # 5
+"src/ytstreetorgan/webapp.py" = ["PTH"]     # 3
+"src/ytstreetorgan/conf.py" = ["PTH"]       # 2 (ほぼ pathlib 化済み)
+"src/ytstreetorgan/rollbook.py" = ["PTH"]   # 1
 
 [tool.mypy]
 python_version = "3.13"

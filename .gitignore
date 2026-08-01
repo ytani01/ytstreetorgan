@@ -26,6 +26,8 @@ archives/
 
 #
 *.lock
+# uv.lock は再現可能なビルドのためコミットする
+!uv.lock
 
 #
 *:Zone.Identifier
@@ -36,9 +38,6 @@ archives/
 .coverage
 
 .*_cache/
-
-## uv
-uv.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

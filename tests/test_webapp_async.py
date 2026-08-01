@@ -1,6 +1,9 @@
-from tornado.testing import AsyncHTTPTestCase
-from ytstreetorgan.webapp import WebServer
 import os
+
+from tornado.testing import AsyncHTTPTestCase
+
+from ytstreetorgan.webapp import WebServer
+
 
 class TestWebAppAsync(AsyncHTTPTestCase):
     def get_app(self):
@@ -27,7 +30,8 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         super().tearDown()
 
     def test_homepage_redirect(self):
-        # The homepage should respond 200 for missing trailing slash (due to regex matching)
+        # The homepage should respond 200 for missing trailing slash
+        # (due to regex matching)
         response = self.fetch('/storgan2')
         self.assertEqual(response.code, 200)
 
@@ -42,7 +46,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         # Simulate an upload of a small real midi file
         with open(os.path.join(self.webroot, 'midi', 'd-kaeru.mid'), 'rb') as f:
             midi_data = f.read()
-            
+
         boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
         body = (
             f'--{boundary}\r\n'
@@ -51,7 +55,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
             f'--{boundary}\r\n'
             'Content-Disposition: form-data; name="file1"; filename="dummy.mid"\r\n'
             'Content-Type: audio/midi\r\n\r\n'
-        ).encode('utf-8') + midi_data + f'\r\n--{boundary}--\r\n'.encode('utf-8')
+        ).encode() + midi_data + f'\r\n--{boundary}--\r\n'.encode()
         headers = {
             'Content-Type': f'multipart/form-data; boundary={boundary}'
         }
@@ -67,7 +71,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         test_file = os.path.join(svg_dir, 'dummy.mid.svg')
         with open(test_file, 'w') as f:
             f.write('<svg>dummy</svg>')
-        
+
         response = self.fetch('/storgan2/download/dummy.mid.svg')
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, b'<svg>dummy</svg>')

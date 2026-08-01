@@ -3,11 +3,12 @@
 #
 import json
 import math
-from loguru import logger
 from typing import TypedDict
-from ytmidilib import NoteInfo, Parser
-from .conf import Conf, ModelConf
 
+from loguru import logger
+from ytmidilib import NoteInfo, Parser
+
+from .conf import Conf, ModelConf
 
 DEF_LINE_WIDTH = 0.2
 
@@ -48,14 +49,15 @@ def svg_square(
         h (float): 高さ（mm単位）。
         color (str): 線色（例: '#FF0000'）。
         line_width (float, optional): 線の太さ（mm単位）。デフォルトは DEF_LINE_WIDTH。
-        stroke_dasharray (str, optional): 破線のスタイル（例: 'none', '3 1'）。デフォルトは 'none'。
+        stroke_dasharray (str, optional): 破線のスタイル（例: 'none', '3 1'）。
+            デフォルトは 'none'。
         hairline (bool, optional): ヘアライン指定。デフォルト 'True'
 
     Returns:
         str: 生成されたSVGパス要素の文字列。
     """
     logger.debug('w={}', w)
-    
+
     style_str:str = 'fill:none;'
     style_str += f'stroke:{color};'
     style_str += f'stroke-width:{line_width};'
@@ -171,7 +173,7 @@ class HoleInfo:
         sec_per_sec = self.conf.get('1sec', 0.0)
         pitch = self.conf.get('pitch', 0.0)
         margin = self.conf.get('margin', 0.0)
-        
+
         self.x = self.start_sec * sec_per_sec
         self.y = self.scale * pitch + margin
         self.w = self.sec * sec_per_sec
@@ -186,13 +188,13 @@ class HoleInfo:
         Returns:
             str: ノート情報や座標データを含むフォーマット済み文字列。
         """
-        str_data = 'note:%03d start_sec:%07.2f sec:%05.2f' % (
-            self.note_info.note, self.start_sec, self.sec
+        str_data = (
+            f'note:{self.note_info.note:03d}'
+            f' start_sec:{self.start_sec:07.2f}'
+            f' sec:{self.sec:05.2f}'
         )
-        str_data += ' scale:%02d' % (self.scale)
-        str_data += ' (%.2f, %.2f)-(%.2f, %.2f)' % (
-            self.x, self.y, self.w, self.h
-        )
+        str_data += f' scale:{self.scale:02d}'
+        str_data += f' ({self.x:.2f}, {self.y:.2f})-({self.w:.2f}, {self.h:.2f})'
         return str_data
 
     def svg(self, color: str = '#FF0000', line_width: float = DEF_LINE_WIDTH,
@@ -201,7 +203,8 @@ class HoleInfo:
 
         Args:
             color (str, optional): 線色。デフォルトは '#FF0000'。
-            line_width (float, optional): 線の太さ（mm単位）。デフォルトは DEF_LINE_WIDTH。
+            line_width (float, optional): 線の太さ（mm単位）。
+                デフォルトは DEF_LINE_WIDTH。
             stroke_dasharray (str, optional): 破線のスタイル。デフォルトは 'none'。
 
         Returns:
@@ -213,7 +216,7 @@ class HoleInfo:
         svg = ''
         for (x1, x2) in di['segments']:
             logger.debug("({}, {})", x1, x2)
-            
+
             svg += svg_square(
                 self.x + x1, self.y, x2 - x1, self.h, color, line_width,
                 stroke_dasharray=stroke_dasharray
@@ -303,17 +306,19 @@ class RollBook:
         svg += '</svg>\n'
         return svg
 
-    def parse(self, midi_file: str, channel: list = []) -> str:
+    def parse(self, midi_file: str, channel: list | None = None) -> str:
         """MIDIファイルを解析して穴情報を生成し、SVGデータを作成する。
 
         Args:
             midi_file (str): 解析対象のMIDIファイルパス。
-            channel (list, optional): 対象とするMIDIチャンネルのリスト
-                （空リストの場合は全チャンネル）。デフォルトは []。
+            channel (list | None, optional): 対象とするMIDIチャンネルのリスト
+                （None または空リストの場合は全チャンネル）。デフォルトは None。
 
         Returns:
             str: 生成されたSVG形式のテキスト文字列。
         """
+        if channel is None:
+            channel = []
         logger.debug('midi_file={}', midi_file)
 
         midi = self._midi_parser.parse(midi_file, channel)
@@ -335,20 +340,22 @@ class RollBook:
         return svg
 
     def parse_to_file(
-            self, midi_file: str, out_file: str, channel: list = []
+            self, midi_file: str, out_file: str, channel: list | None = None
     ) -> str:
         """MIDIファイルを解析し、指定された出力ファイルへSVGデータを保存する。
 
         Args:
             midi_file (str): 解析対象のMIDIファイルパス。
             out_file (str): 出力先のSVGファイルパス。
-            channel (list, optional): 対象とするMIDIチャンネルのリスト
-                （空リストの場合は全チャンネル）。
-                デフォルトは []。
+            channel (list | None, optional): 対象とするMIDIチャンネルのリスト
+                （None または空リストの場合は全チャンネル）。
+                デフォルトは None。
 
         Returns:
             str: 生成されたSVG形式のテキスト文字列。
         """
+        if channel is None:
+            channel = []
         svg = self.parse(midi_file, channel)
         with open(out_file, mode='w') as f:
             f.write(svg)

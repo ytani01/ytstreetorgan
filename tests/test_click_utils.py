@@ -1,6 +1,8 @@
 import click
 from click.testing import CliRunner
+
 from ytstreetorgan.click_utils import click_common_opts
+
 
 def test_click_common_opts():
     @click.command()
@@ -9,7 +11,7 @@ def test_click_common_opts():
         click.echo(f"debug={debug}")
 
     runner = CliRunner()
-    
+
     # Test debug flag
     result = runner.invoke(cli, ['-d'])
     assert result.exit_code == 0

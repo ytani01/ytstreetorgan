@@ -2,15 +2,17 @@
 # (c) 2026 Yoichi Tanibayashi
 #
 import os
-import tornado.ioloop
+
 import tornado.httpserver
+import tornado.ioloop
 import tornado.web
 from loguru import logger
+
 from . import __version__
 from .conf import Conf
-from .mylog import exmsg
-from .handler1 import Handler1, Download
 from .config_handler import ConfigHandler
+from .handler1 import Download, Handler1
+from .mylog import exmsg
 
 
 class WebServer:
@@ -81,11 +83,11 @@ class WebServer:
         self._app = tornado.web.Application(
             [
                 (r'/', Handler1),
-                (r'%s' % self._urlprefix, Handler1),
-                (r'%s/' % self._urlprefix, Handler1),
-                (r'%s/config.*' % self._urlprefix, ConfigHandler),
-                (r'%s.*' % self._urlprefix_handler1, Handler1),
-                (r'%s/download/.*' % self._urlprefix, Download),
+                (rf'{self._urlprefix}', Handler1),
+                (rf'{self._urlprefix}/', Handler1),
+                (rf'{self._urlprefix}/config.*', ConfigHandler),
+                (rf'{self._urlprefix_handler1}.*', Handler1),
+                (rf'{self._urlprefix}/download/.*', Download),
             ],
             static_path=os.path.join(self._webroot, "static"),
             static_url_prefix=self._urlprefix + '/static/',
