@@ -107,8 +107,6 @@ loguru を `mylog.py` 経由で使う。各 CLI コマンドの先頭で `logger
 
 ## 注意
 
-- `README.md` は **DEPRECATED**。旧 `StreetOrgan` リポジトリの install.sh 手順や
-  `/storgan/` という URL が書かれているが、いずれも現状と異なる。参照しないこと。
 - `RollBookApp` は `-o` 未指定のとき `~/Desktop/<MIDIファイル名>.svg` に出力する
   （`apps.py` の `DEF_OUT_DIR`）。`-o` を指定した場合はそのパスをそのまま使う。
 - `archives/` は過去の計画書を記録として残しているだけで、**現行仕様ではない**。
