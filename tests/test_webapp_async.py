@@ -4,6 +4,8 @@ from tornado.testing import AsyncHTTPTestCase
 
 from ytstreetorgan.webapp import WebServer
 
+from .conftest import TEST_URL_PREFIX
+
 
 class TestWebAppAsync(AsyncHTTPTestCase):
     def get_app(self):
@@ -12,7 +14,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         self.webroot = './webroot'
         self.server = WebServer(
             port=10081,
-            urlprefix='/storgan2',
+            urlprefix=TEST_URL_PREFIX,
             webroot=self.webroot,
             workdir=self.workdir,
             size_limit=1024*1024
@@ -32,12 +34,12 @@ class TestWebAppAsync(AsyncHTTPTestCase):
     def test_homepage_redirect(self):
         # The homepage should respond 200 for missing trailing slash
         # (due to regex matching)
-        response = self.fetch('/storgan2')
+        response = self.fetch(TEST_URL_PREFIX)
         self.assertEqual(response.code, 200)
 
     def test_homepage_content(self):
         # Fetch the actual page
-        response = self.fetch('/storgan2/')
+        response = self.fetch(f'{TEST_URL_PREFIX}/')
         self.assertEqual(response.code, 200)
         # Should contain the default message
         self.assertIn(b"Please select a MIDI file", response.body)
@@ -59,7 +61,9 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         headers = {
             'Content-Type': f'multipart/form-data; boundary={boundary}'
         }
-        response = self.fetch('/storgan2/', method='POST', headers=headers, body=body)
+        response = self.fetch(
+            f'{TEST_URL_PREFIX}/', method='POST', headers=headers, body=body
+        )
         self.assertEqual(response.code, 200)
         # It should render the SVG data variable injected into HTML
         self.assertIn(b"<svg ", response.body)
@@ -72,6 +76,6 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         with open(test_file, 'w') as f:
             f.write('<svg>dummy</svg>')
 
-        response = self.fetch('/storgan2/download/dummy.mid.svg')
+        response = self.fetch(f'{TEST_URL_PREFIX}/download/dummy.mid.svg')
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, b'<svg>dummy</svg>')

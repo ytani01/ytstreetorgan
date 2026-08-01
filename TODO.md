@@ -59,27 +59,6 @@ uv run ruff check --isolated --select PTH --statistics src tests
 
 ---
 
-## E. URL prefix の扱いを整理する
-
-- [ ] prefix をオプションで指定しても、全体が追従するようにする
-
-CLI には既に `--urlprefix` / `-u` があり、`WebServer` も引数で受け取っている。
-にもかかわらず `storgan.html` が `/storgan` を直書きしていて、既定値
-（`/storgan2`）と食い違ったまま CSS/JS が 404 していた（`f6808cb` で修正済み）。
-同種の穴が残っていないか、prefix を既定値以外にして通しで確認したい。
-
-現状の直書き箇所:
-
-- `tests/test_webapp_async.py`（5 箇所）と `tests/test_config_handler.py`（7 箇所）が
-  `/storgan2` をリテラルで書いている。prefix を変えると落ちる。
-  ブラウザテスト側は `live_server` fixture から URL を組み立てているので影響なし。
-
-検討事項:
-
-- `WebServer.URL_PREFIX_HANDLER1`（`/handler1`）は `urlprefix` に連結されるが、
-  こちらはオプションになっていない。揃えるかどうか。
-- テンプレートは必ず `{{urlprefix}}` を使う規約を、lint やテストで縛れないか。
-
 ## F. ブラウザテストを整備する
 
 - [ ] 代表的な 5 本から、実用的なカバレッジまで広げる
@@ -109,6 +88,11 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 - [ ] `webroot/svg/` の古い成果物を削除（9 件中 7 件が `127b94d` より前の生成物で、
       `stroke-width` も book height も現行と異なる）。gitignore 済みなので実害はないが、
       出力を目視比較するときに紛らわしい。
+- [ ] `WebServer.URL_PREFIX_HANDLER1`（`/handler1`）を削除するか決める。
+      `/{prefix}/handler1.*` というルートを作るが、テンプレートからも JS からも
+      参照されておらず、アプリ設定 `url_prefix_handler1` には `_urlprefix` の方が
+      渡っている（`_urlprefix_handler1` を使う行はコメントアウト済み）。
+      アクセスしても `/{prefix}/` にリダイレクトするだけの死んだ経路。
 - [ ] Claude Code のプラグイン `github` / `frontend-design` が 60 起動で 0 回のまま有効。
       `/doctor` で「変更しない」を選択済みなので、気が向いたら `/plugin` から。
 
@@ -117,15 +101,24 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 ## 着手順の目安
 
 1. **A-2（`note name` の位置づけ）** — 小さい。ドキュメント上の整理のみ。
-2. **E（URL prefix）** — 既に 1 件バグが出ている領域。テストの直書きを
-   潰しておくと、F で prefix を変えた構成も試せるようになる。
-3. **F（ブラウザテスト）** — 土台はあるので、書けば書いた分だけ増える。
-4. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
+2. **F（ブラウザテスト）** — 土台はあるので、書けば書いた分だけ増える。
+3. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
    `handler1.py` + `webapp.py` + B-1 の配線変更を 1 セットで。
 
 ---
 
 ## 完了済み
+
+### E. URL prefix の扱いを整理
+
+テストの `/storgan2` 直書き 12 箇所を排除し、テスト全体を既定値以外の
+prefix（`/storgan-test`）で動かすようにした。テンプレートや JS が prefix を
+直書きすると `test_static_assets_load` が落ちる（実際に壊して検証済み）。
+
+**併せて発覚した問題を修正**: `test_config_handler` の add/delete テストが
+`~/etc/storgan-conf.json`（利用者の実設定）を書き換えていた。
+`tests/conftest.py` の autouse fixture で `Conf.SEARCH_PATH` を一時ディレクトリに
+差し替え、全テストから実設定を隔離した。
 
 ### `archives/` を追跡対象に
 

@@ -4,6 +4,8 @@ from tornado.testing import AsyncHTTPTestCase
 
 from ytstreetorgan.webapp import WebServer
 
+from .conftest import TEST_URL_PREFIX
+
 
 class TestConfigHandler(AsyncHTTPTestCase):
     def get_app(self):
@@ -11,7 +13,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
         self.webroot = './webroot'
         self.server = WebServer(
             port=10081,
-            urlprefix='/storgan2',
+            urlprefix=TEST_URL_PREFIX,
             webroot=self.webroot,
             workdir=self.workdir,
             size_limit=1024 * 1024
@@ -19,7 +21,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
         return self.server._app
 
     def test_get_api_data(self):
-        response = self.fetch('/storgan2/config/api/data')
+        response = self.fetch(f'{TEST_URL_PREFIX}/config/api/data')
         assert response.code == 200
 
         data = json.loads(response.body.decode('utf-8'))
@@ -30,7 +32,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
     def test_post_api_save_invalid_json(self):
         headers = {'Content-Type': 'application/json'}
         response = self.fetch(
-            '/storgan2/config/save',
+            f'{TEST_URL_PREFIX}/config/save',
             method='POST',
             headers=headers,
             body='invalid json'
@@ -40,7 +42,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
         assert data['status'] == 'error'
 
     def test_get_config_page(self):
-        response = self.fetch('/storgan2/config')
+        response = self.fetch(f'{TEST_URL_PREFIX}/config')
         assert response.code == 200
         assert b"Organ Model Config Editor" in response.body
 
@@ -48,7 +50,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({'action': 'invalid_action'})
         response = self.fetch(
-            '/storgan2/config/save',
+            f'{TEST_URL_PREFIX}/config/save',
             method='POST',
             headers=headers,
             body=payload
@@ -74,7 +76,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
         }
         add_payload = json.dumps({'action': 'add', 'config': new_conf})
         response = self.fetch(
-            '/storgan2/config/save',
+            f'{TEST_URL_PREFIX}/config/save',
             method='POST',
             headers=headers,
             body=add_payload
@@ -87,7 +89,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
         # Delete the model
         del_payload = json.dumps({'action': 'delete', 'model_name': 'test_async_model'})
         response = self.fetch(
-            '/storgan2/config/save',
+            f'{TEST_URL_PREFIX}/config/save',
             method='POST',
             headers=headers,
             body=del_payload

@@ -12,6 +12,7 @@ import asyncio
 import shutil
 import socket
 import threading
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -20,8 +21,14 @@ import tornado.ioloop
 from ytstreetorgan.conf import Conf
 from ytstreetorgan.webapp import WebServer
 
+from ..conftest import TEST_URL_PREFIX
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-URL_PREFIX = '/storgan2'
+
+# あえて既定値 (WebServer.URL_PREFIX = '/storgan2') 以外を使う。
+# テンプレートや JS が prefix を直書きしていると、ここで 404 になって
+# test_static_assets_load が落ちる。実際にその不具合があった。
+URL_PREFIX = TEST_URL_PREFIX
 
 
 def _free_port() -> int:
@@ -38,7 +45,7 @@ def sample_midi() -> Path:
 
 
 @pytest.fixture(scope='session')
-def live_server(tmp_path_factory) -> str:
+def live_server(tmp_path_factory) -> Iterator[str]:
     """WebServer を別スレッドで起動し、ベース URL を返す。"""
     tmp = tmp_path_factory.mktemp('storgan')
 

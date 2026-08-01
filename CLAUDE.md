@@ -82,16 +82,19 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 
 `webroot/midi/` と `webroot/svg/` は実行時に書き込まれる作業ディレクトリ（`.gitignore` 済み）。
 
-テンプレート内で静的ファイルを参照するときは、必ず `{{urlprefix}}` を使う。
-URL prefix を直書きすると、`WebServer.URL_PREFIX` を変えたときに 404 になる
-（実際に `storgan.html` が `/storgan` を直書きしていて CSS/JS が 404 していた）。
+テンプレート内で URL を組み立てるときは、必ず `{{urlprefix}}` を使う（JS からは
+`window.URL_PREFIX`）。直書きすると prefix を変えたときに 404 になる。
+テストは既定値以外の prefix で走らせているので、直書きすると
+`tests/browser/test_rollbook_page.py::test_static_assets_load` が落ちる。
 
 ### ブラウザテスト
 
 `tests/browser/` に Playwright で書いてある。`conftest.py` の `live_server`
-fixture が実サーバーを空きポートで起動する。**`Conf.SEARCH_PATH` と `webroot` を
-一時ディレクトリに差し替えている**点が重要で、これをしないとテストが
-`~/etc/storgan-conf.json`（利用者の実設定）を書き換えてしまう。
+fixture が実サーバーを空きポートで起動する。
+
+**`tests/conftest.py` の `isolate_user_config` は消さないこと。** `WebServer` と
+`ConfigHandler` は `Conf()` を引数なしで生成するため、これが無いとテストが
+`~/etc/storgan-conf.json`（利用者の実設定）を書き換える。実際に書き換えていた。
 
 ### ロギング
 

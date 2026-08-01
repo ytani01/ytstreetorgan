@@ -1,8 +1,34 @@
 """
 tests/conftest.py - 共通フィクスチャ
 """
+import shutil
+from pathlib import Path
+
 import pytest
 from loguru import logger
+
+from ytstreetorgan.conf import Conf
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# WebServer / ConfigHandler は Conf() を引数なしで生成するため、
+# 何もしないと Conf.SEARCH_PATH 経由で ~/etc/storgan-conf.json
+# （利用者の実設定）を読み書きしてしまう。
+# 実際 test_config_handler の add/delete テストが実ファイルを書き換えていた。
+TEST_URL_PREFIX = '/storgan-test'
+
+
+@pytest.fixture(scope='session', autouse=True)
+def isolate_user_config(tmp_path_factory):
+    """全テストで、利用者の実設定を触らないようにする。"""
+    conf_dir = tmp_path_factory.mktemp('conf')
+    shutil.copy(REPO_ROOT / 'conf' / 'storgan.conf-dist',
+                conf_dir / Conf.CONF_FNAME)
+
+    original = Conf.SEARCH_PATH
+    Conf.SEARCH_PATH = [conf_dir]
+    yield conf_dir
+    Conf.SEARCH_PATH = original
 
 
 @pytest.fixture(autouse=True)
