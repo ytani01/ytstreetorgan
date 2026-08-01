@@ -88,8 +88,6 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 - [ ] `webroot/svg/` の古い成果物を削除（9 件中 7 件が `127b94d` より前の生成物で、
       `stroke-width` も book height も現行と異なる）。gitignore 済みなので実害はないが、
       出力を目視比較するときに紛らわしい。
-- [ ] Claude Code のプラグイン `github` / `frontend-design` が 60 起動で 0 回のまま有効。
-      `/doctor` で「変更しない」を選択済みなので、気が向いたら `/plugin` から。
 
 ---
 
@@ -103,6 +101,14 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 ---
 
 ## 完了済み
+
+### Claude Code のプラグインをこのプロジェクトで無効化
+
+`github` / `frontend-design` は 60 起動で 0 回だった。他プロジェクトでは使うため、
+ユーザースコープ（`~/.claude/settings.json`）は有効のまま、このプロジェクトの
+`.claude/settings.local.json` で `false` にした（設定の優先順位は
+ユーザー < プロジェクト < ローカル）。`pyright-lsp` は Python なので有効のまま。
+※ `settings.local.json` は gitignore されているため、リポジトリには残らない。
 
 ### `URL_PREFIX_HANDLER1` を削除
 
