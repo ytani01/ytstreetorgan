@@ -23,7 +23,6 @@ class WebServer:
 
     DEF_WEBROOT = './webroot'
     URL_PREFIX = '/storgan2'
-    URL_PREFIX_HANDLER1 = '/handler1'
 
     DEF_WORKDIR = '/tmp'
 
@@ -65,7 +64,6 @@ class WebServer:
 
         self._port = port
         self._urlprefix = urlprefix
-        self._urlprefix_handler1 = self._urlprefix + self.URL_PREFIX_HANDLER1
         self._webroot = webroot
         self._workdir = workdir
         self._size_limit = size_limit
@@ -86,7 +84,6 @@ class WebServer:
                 (rf'{self._urlprefix}', Handler1),
                 (rf'{self._urlprefix}/', Handler1),
                 (rf'{self._urlprefix}/config.*', ConfigHandler),
-                (rf'{self._urlprefix_handler1}.*', Handler1),
                 (rf'{self._urlprefix}/download/.*', Download),
             ],
             static_path=os.path.join(self._webroot, "static"),
@@ -94,9 +91,6 @@ class WebServer:
             template_path=os.path.join(self._webroot, "templates"),
             autoreload=True,
             # xsrf_cookies=False,
-
-            # url_prefix_handler1=self._urlprefix_handler1,
-            url_prefix_handler1=self._urlprefix,
 
             webroot=self._webroot,
             workdir=self._workdir,

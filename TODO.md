@@ -88,11 +88,6 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 - [ ] `webroot/svg/` の古い成果物を削除（9 件中 7 件が `127b94d` より前の生成物で、
       `stroke-width` も book height も現行と異なる）。gitignore 済みなので実害はないが、
       出力を目視比較するときに紛らわしい。
-- [ ] `WebServer.URL_PREFIX_HANDLER1`（`/handler1`）を削除するか決める。
-      `/{prefix}/handler1.*` というルートを作るが、テンプレートからも JS からも
-      参照されておらず、アプリ設定 `url_prefix_handler1` には `_urlprefix` の方が
-      渡っている（`_urlprefix_handler1` を使う行はコメントアウト済み）。
-      アクセスしても `/{prefix}/` にリダイレクトするだけの死んだ経路。
 - [ ] Claude Code のプラグイン `github` / `frontend-design` が 60 起動で 0 回のまま有効。
       `/doctor` で「変更しない」を選択済みなので、気が向いたら `/plugin` から。
 
@@ -108,6 +103,13 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 ---
 
 ## 完了済み
+
+### `URL_PREFIX_HANDLER1` を削除
+
+`/{prefix}/handler1.*` のルートは、テンプレートからも JS からも参照されない
+死んだ経路だった。冗長だった `url_prefix_handler1` 設定も外し、`handler1.py` の
+`_url_path` は `_urlprefix` から組み立てるようにした。
+末尾スラッシュなしのリダイレクト（`/px` → 301 → `/px/`）は従来どおり。
 
 ### E. URL prefix の扱いを整理
 

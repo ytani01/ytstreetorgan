@@ -34,7 +34,9 @@ class StorganBaseHandler(tornado.web.RequestHandler):
         logger.debug('size_limit={}', self._size_limit)
 
         # [!! 重要 !!] 末尾の「/」
-        self._url_path = app.settings.get('url_prefix_handler1') + '/'
+        # Handler1.get() がリクエスト URI とこれを突き合わせ、
+        # 末尾スラッシュなしのアクセスをここへリダイレクトする。
+        self._url_path = self._urlprefix + '/'
 
         self._version = app.settings.get('version')
 
