@@ -54,6 +54,8 @@ def svg_square(
     Returns:
         str: 生成されたSVGパス要素の文字列。
     """
+    logger.debug('w={}', w)
+    
     style_str:str = 'fill:none;'
     style_str += f'stroke:{color};'
     style_str += f'stroke-width:{line_width};'
@@ -64,7 +66,7 @@ def svg_square(
 
     d_str:str = f'M {-x:.2f},{-y:.2f} h {-w:.2f} v {-h:.2f} h {w:.2f} Z'
 
-    svg:str = f'<path style="{style_str}" d="{d_str}" />'
+    svg:str = f'<path style="{style_str}" d="{d_str}" />\n'
 
     return svg
 
@@ -89,22 +91,25 @@ def divide_length_by_max_len(
     Returns:
         DivisionResult: 分割結果 (n, unit_len, segments)
     """
-    def_result: DivisionResult = {
+    logger.debug(
+        'total_len={}, unit_len_max={}, gap={}',
+        total_len, unit_len_max, gap
+    )
+
+    DEFAULT_RESULT: DivisionResult = {
         "n": 1,
         "unit_len": total_len,
         "segments": [(0, total_len)]
     }
 
-    if gap is None or unit_len_max is None:
-        return def_result
-
-    if unit_len_max <= 0 or gap < 0:
-        logger.error('{} <= 0', unit_len_max)
-        return def_result
-
     if total_len <= 0:
         logger.error('{} <=0', total_len)
-        return def_result
+        return DEFAULT_RESULT
+    if unit_len_max is None or unit_len_max <= 0:
+        logger.error('{} <= 0', unit_len_max)
+        return DEFAULT_RESULT
+    if gap is None or gap <= 0.0:
+        return DEFAULT_RESULT
 
     # x(n) <= b を満たす最小の正の整数 n
     n = math.ceil((total_len + gap) / (gap + unit_len_max))
@@ -121,7 +126,7 @@ def divide_length_by_max_len(
         segments.append((round(current_pos, 4), round(end_pos, 4)))
         current_pos = end_pos + gap
 
-    logger.debug("{},{},{}", n, round(unit_len, 4), segments)
+        logger.debug("n={}, unit_len={}, segment={}", n, round(unit_len, 4), segments)
     return {
         "n": n,
         "unit_len": round(unit_len, 4),
@@ -130,7 +135,8 @@ def divide_length_by_max_len(
 
 
 class HoleInfo:
-    """ロールブックの穴情報を管理するデータエンティティクラス。
+    """音符ごとの穴の情報。
+    ホールの長さが bridge_threshold より長い場合は、分割する
 
     Attributes:
         note_info (NoteInfo): MIDIノート情報。

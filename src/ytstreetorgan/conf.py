@@ -32,8 +32,6 @@ ModelConf = TypedDict(
 
 def validate_config(conf: dict) -> tuple[bool, str]:
     """Validate a ModelConf dictionary structure and values."""
-    if not isinstance(conf, dict):
-        return False, "Config data must be a dictionary"
 
     model_name = conf.get('model')
     if not model_name or not isinstance(model_name, str) or not model_name.strip():
