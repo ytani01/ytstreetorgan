@@ -1,4 +1,3 @@
-import os
 from unittest.mock import patch
 
 import pytest
@@ -21,7 +20,7 @@ def test_webserver_init_and_main(mock_app, mock_httpserver, mock_ioloop, tmp_pat
         size_limit=1024
     )
 
-    assert os.path.exists(str(workdir))
+    assert workdir.exists()
 
     mock_app.assert_called_once()
     mock_httpserver.assert_called_once()
@@ -37,7 +36,7 @@ def test_webserver_makedirs_exception(mock_logger, tmp_path):
     file_path = tmp_path / "file"
     file_path.write_text("")
 
-    # workdir が通常ファイルなので os.makedirs が FileExistsError を投げる。
+    # workdir が通常ファイルなので Path.mkdir が FileExistsError を投げる。
     # Exception で受けると、その前段の Conf() が投げる FileNotFoundError
     # （設定ファイル未配置の環境）でもテストが通ってしまうため種類を絞る。
     with pytest.raises(FileExistsError):

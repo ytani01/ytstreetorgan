@@ -3,6 +3,7 @@
 #
 import json
 import math
+from pathlib import Path
 from typing import TypedDict
 
 from loguru import logger
@@ -306,11 +307,11 @@ class RollBook:
         svg += '</svg>\n'
         return svg
 
-    def parse(self, midi_file: str, channel: list | None = None) -> str:
+    def parse(self, midi_file: str | Path, channel: list | None = None) -> str:
         """MIDIファイルを解析して穴情報を生成し、SVGデータを作成する。
 
         Args:
-            midi_file (str): 解析対象のMIDIファイルパス。
+            midi_file (str | Path): 解析対象のMIDIファイルパス。
             channel (list | None, optional): 対象とするMIDIチャンネルのリスト
                 （None または空リストの場合は全チャンネル）。デフォルトは None。
 
@@ -321,7 +322,8 @@ class RollBook:
             channel = []
         logger.debug('midi_file={}', midi_file)
 
-        midi = self._midi_parser.parse(midi_file, channel)
+        # ytmidilib は外部パッケージなので str に落として渡す
+        midi = self._midi_parser.parse(str(midi_file), channel)
         logger.debug('midi[channel_set]={}', midi['channel_set'])
 
         for ni in midi['note_info']:
@@ -340,13 +342,14 @@ class RollBook:
         return svg
 
     def parse_to_file(
-            self, midi_file: str, out_file: str, channel: list | None = None
+            self, midi_file: str | Path, out_file: str | Path,
+            channel: list | None = None
     ) -> str:
         """MIDIファイルを解析し、指定された出力ファイルへSVGデータを保存する。
 
         Args:
-            midi_file (str): 解析対象のMIDIファイルパス。
-            out_file (str): 出力先のSVGファイルパス。
+            midi_file (str | Path): 解析対象のMIDIファイルパス。
+            out_file (str | Path): 出力先のSVGファイルパス。
             channel (list | None, optional): 対象とするMIDIチャンネルのリスト
                 （None または空リストの場合は全チャンネル）。
                 デフォルトは None。
@@ -357,7 +360,6 @@ class RollBook:
         if channel is None:
             channel = []
         svg = self.parse(midi_file, channel)
-        with open(out_file, mode='w') as f:
-            f.write(svg)
+        Path(out_file).write_text(svg, encoding='utf-8')
         logger.debug('svg written to {}', out_file)
         return svg

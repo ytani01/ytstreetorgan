@@ -20,45 +20,6 @@ lint 整備の作業中に洗い出した残作業。優先順位は末尾の「
 
 ---
 
-## B. `os.path` → `pathlib` 移行（26 件 / 8 ファイル）
-
-チェックリストは `pyproject.toml` の `[tool.ruff.lint.per-file-ignores]` に仕込み済み。
-**1 ファイル移行したら、その行を消す。全部消えたら移行完了。**
-移行済みファイルに `os.path` が再び入ると、その時点で `ruff` が落ちる。
-
-残数の確認:
-
-```bash
-uv run ruff check --isolated --select PTH --statistics src tests
-```
-
-| ファイル | 件数 | 備考 |
-|---|---|---|
-| `tests/test_webapp_async.py` | 12 | テスト内で完結。影響範囲は閉じている |
-| `src/ytstreetorgan/handler1.py` | 5 | ← B-1 と同時にやる |
-| `src/ytstreetorgan/webapp.py` | 3 | ← B-1 と同時にやる |
-| `src/ytstreetorgan/conf.py` | 2 | 下記の注意あり |
-| `tests/test_webapp.py` | 1 | |
-| `tests/test_rollbook.py` | 1 | |
-| `tests/test_main.py` | 1 | |
-| `src/ytstreetorgan/rollbook.py` | 1 | `parse_to_file()` の `open()` のみ |
-
-**`conf.py` の注意**: 2 件のうち片方は `SEARCH_PATH` の `Path('.')` を `Path()` に
-しろという `PTH201`。あそこは明示的なほうが読みやすいので、行ごと消さずに
-`"src/ytstreetorgan/conf.py" = ["PTH201"]` と**そのルールだけ残す**のを推奨。
-
-### B-1. `webroot` / `workdir` が `str` で配線されている
-
-- [ ] `WebServer` → `app.settings` → 各ハンドラの経路を `Path` に揃える
-
-`WebServer.__init__` から `app.settings` 経由で各ハンドラに `str` として渡っている。
-`handler1.py` と `webapp.py` の pathlib 移行は、この配線を `Path` に変える作業と
-セットにしないと、`str` と `Path` が混在して逆に読みにくくなる。
-
-**移行タスクの中で最も設計判断が要る部分。**
-
----
-
 ## F. ブラウザテストを整備する
 
 - [ ] 代表的な 5 本から、実用的なカバレッジまで広げる
@@ -87,12 +48,23 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 
 1. **A-2（`note name` の位置づけ）** — 小さい。ドキュメント上の整理のみ。
 2. **F（ブラウザテスト）** — 土台はあるので、書けば書いた分だけ増える。
-3. **B（pathlib）** — 動作は今のままで正しいので急ぎではない。やるなら
-   `handler1.py` + `webapp.py` + B-1 の配線変更を 1 セットで。
 
 ---
 
 ## 完了済み
+
+### B. `os.path` → `pathlib` 移行
+
+26 件すべて解消。`per-file-ignores` の移行チェックリストは空になった。
+
+B-1（`webroot` / `workdir` の `str` 配線）も同時に解消。`WebServer` が
+`Path` に正規化し、`app.settings` にも `Path` のまま渡すようにしたので、
+各ハンドラは `self._webroot / 'svg' / fname` と書ける。
+
+`Conf.SEARCH_PATH` の `Path('.')` だけは `PTH201` を除外して残した
+（探索対象がカレントであることを明示するほうが読みやすいため）。
+
+検証: SVG 出力が HEAD とバイト一致（195,330 bytes）。CLI・Web とも通しで動作確認。
 
 ### `webroot/svg/` の古い成果物を削除
 

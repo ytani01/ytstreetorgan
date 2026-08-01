@@ -1,7 +1,7 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-import os
+from pathlib import Path
 
 import tornado.httpserver
 import tornado.ioloop
@@ -46,9 +46,11 @@ class WebServer:
 
         urlprefix: str
 
-        webroot: str
+        webroot: str | Path
+            静的ファイルとテンプレートの置き場。内部では Path に正規化し、
+            app.settings にも Path のまま渡す（各ハンドラも Path で受ける）。
 
-        workdir: str
+        workdir: str | Path
 
         size_limit: int
             max upload size
@@ -64,8 +66,8 @@ class WebServer:
 
         self._port = port
         self._urlprefix = urlprefix
-        self._webroot = webroot
-        self._workdir = workdir
+        self._webroot = Path(webroot)
+        self._workdir = Path(workdir)
         self._size_limit = size_limit
         self._version = version
 
@@ -73,7 +75,7 @@ class WebServer:
         logger.info('_models={}', self._models)
 
         try:
-            os.makedirs(self._workdir, exist_ok=True)
+            self._workdir.mkdir(parents=True, exist_ok=True)
         except Exception as ex:
             logger.error(exmsg(ex))
             raise ex
@@ -86,9 +88,9 @@ class WebServer:
                 (rf'{self._urlprefix}/config.*', ConfigHandler),
                 (rf'{self._urlprefix}/download/.*', Download),
             ],
-            static_path=os.path.join(self._webroot, "static"),
+            static_path=self._webroot / 'static',
             static_url_prefix=self._urlprefix + '/static/',
-            template_path=os.path.join(self._webroot, "templates"),
+            template_path=self._webroot / 'templates',
             autoreload=True,
             # xsrf_cookies=False,
 

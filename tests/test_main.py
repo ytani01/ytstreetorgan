@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -69,8 +70,7 @@ def test_rollbook_app_class(mock_rollbook, tmp_path):
     def fake_parse_to_file(midi_file, out_file, channel=None):
         if channel is None:
             channel = []
-        with open(out_file, 'w') as f:
-            f.write('<svg></svg>')
+        Path(out_file).write_text('<svg></svg>')
         return '<svg></svg>'
 
     mock_instance.parse_to_file.side_effect = fake_parse_to_file

@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from ytstreetorgan.rollbook import HoleInfo, RollBook, note2scale, svg_square
@@ -69,13 +70,11 @@ def test_holeinfo_str():
     s = str(hi)
     assert 'note:060' in s
 
-import os
-
 
 def test_rollbook_parse_real_midi():
     # Verify that parse works with a real MIDI file (fixture)
-    midi_file = 'webroot/midi/d-kaeru.mid'
-    if os.path.exists(midi_file):
+    midi_file = Path('webroot/midi/d-kaeru.mid')
+    if midi_file.exists():
         rb = RollBook()
         svg = rb.parse(midi_file)
         assert '<svg ' in svg

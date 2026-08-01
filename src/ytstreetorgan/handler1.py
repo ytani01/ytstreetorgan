@@ -1,7 +1,7 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-import os
+from pathlib import Path
 
 import tornado.web
 from loguru import logger
@@ -24,10 +24,11 @@ class StorganBaseHandler(tornado.web.RequestHandler):
         self._urlprefix = app.settings.get('urlprefix')
         logger.debug('urlprefix={}', self._urlprefix)
 
-        self._webroot = app.settings.get('webroot')
+        # WebServer が Path に正規化して渡している
+        self._webroot: Path = app.settings['webroot']
         logger.debug('webroot={}', self._webroot)
 
-        self._workdir = app.settings.get('workdir')
+        self._workdir: Path = app.settings['workdir']
         logger.debug('workdir={}', self._workdir)
 
         self._size_limit = app.settings.get('size_limit')
@@ -42,17 +43,16 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
         super().__init__(app, req)
 
-    def get_filesize(self, file_path: str) -> tuple[float, str] | None:
+    def get_filesize(self, file_path: Path) -> tuple[float, str] | None:
         """
         Parameters
         ----------
-        file_path: str
+        file_path: Path
         """
-        if not os.path.exists(file_path):
+        if not file_path.exists():
             return None
 
-        f_size = os.path.getsize(file_path)
-        return get_size_unit(f_size)
+        return get_size_unit(file_path.stat().st_size)
 
 
 class Download(StorganBaseHandler):
@@ -79,7 +79,7 @@ class Download(StorganBaseHandler):
         fname = uri.split('/')[-1]
         logger.debug('fname={}', fname)
 
-        path_name = f'{self._webroot}/svg/{fname}'
+        path_name = self._webroot / 'svg' / fname
         logger.debug('path_name={}', path_name)
 
         self.set_header('Content-Type', 'application/octet-stream')
@@ -87,7 +87,7 @@ class Download(StorganBaseHandler):
                         'attachment; filename=' + fname)
 
         buf_size = 4096
-        with open(path_name) as f:
+        with path_name.open() as f:
             while True:
                 data = f.read(buf_size)
                 if not data:
@@ -154,18 +154,17 @@ class Handler1(StorganBaseHandler):
 
         file1 = self.request.files['file1'][0]
         file1_fname = file1['filename']
-        file1_path = f'{self._webroot}/midi/{file1_fname}'
+        file1_path = self._webroot / 'midi' / file1_fname
         svg1_fname = f'{file1_fname}.svg'
-        svg1_path = f'{self._webroot}/svg/{svg1_fname}'
+        svg1_path = self._webroot / 'svg' / svg1_fname
 
         self._model = self.get_argument('model')
         logger.debug('model=\'{}\'', self._model)
 
         rollbook = RollBook(self._model, self._conf_file)
 
-        if not os.path.exists(file1_path):
-            with open(file1_path, mode='wb') as f:
-                f.write(file1['body'])
+        if not file1_path.exists():
+            file1_path.write_bytes(file1['body'])
 
         result = self.get_filesize(file1_path)
         assert result is not None

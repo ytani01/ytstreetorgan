@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from ytstreetorgan.handler1 import Download, Handler1
@@ -14,8 +15,8 @@ def test_handler1_size_unit():
     app = MagicMock()
     app.settings = {
         'urlprefix': '/',
-        'webroot': '/tmp',
-        'workdir': '/tmp',
+        'webroot': Path('/tmp'),
+        'workdir': Path('/tmp'),
         'size_limit': 1024,
         'url_prefix_handler1': '/handler1',
         'version': '1.0.0'
@@ -25,14 +26,14 @@ def test_handler1_size_unit():
         handler = Handler1(app, req)
         handler.application = app
         handler.request = req
-        assert handler.get_filesize('/nonexistent') is None
+        assert handler.get_filesize(Path('/nonexistent')) is None
 
 def test_handler1_get_filesize(tmp_path):
     app = MagicMock()
     app.settings = {
         'urlprefix': '/',
-        'webroot': '/tmp',
-        'workdir': '/tmp',
+        'webroot': Path('/tmp'),
+        'workdir': Path('/tmp'),
         'size_limit': 1024,
         'url_prefix_handler1': '/handler1',
         'version': '1.0.0'
@@ -45,12 +46,12 @@ def test_handler1_get_filesize(tmp_path):
         handler.request = req
 
         # Test non-existent file
-        assert handler.get_filesize(str(tmp_path / "non_existent")) is None
+        assert handler.get_filesize(tmp_path / "non_existent") is None
 
         # Test existing file
         file_path = tmp_path / "test.txt"
         file_path.write_text("hello")
-        size, unit = handler.get_filesize(str(file_path))
+        size, unit = handler.get_filesize(file_path)
         assert size == 5
         assert unit == 'B'
 
@@ -58,8 +59,8 @@ def test_download_init():
     app = MagicMock()
     app.settings = {
         'urlprefix': '/',
-        'webroot': '/tmp',
-        'workdir': '/tmp',
+        'webroot': Path('/tmp'),
+        'workdir': Path('/tmp'),
         'size_limit': 1024,
         'url_prefix_handler1': '/handler1',
         'version': '1.0.0'

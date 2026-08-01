@@ -80,6 +80,9 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 - `Download` — `webroot/svg/` からのダウンロード
 - `ConfigHandler` — `/storgan2/config` のモデル設定エディタ。`?api=1` で JSON を返す
 
+`webroot` / `workdir` は `WebServer` が `Path` に正規化し、`app.settings` にも
+`Path` のまま渡す。各ハンドラは `self._webroot / 'svg' / fname` のように組み立てる。
+
 `webroot/midi/` と `webroot/svg/` は実行時に書き込まれる作業ディレクトリ（`.gitignore` 済み）。
 
 テンプレート内で URL を組み立てるときは、必ず `{{urlprefix}}` を使う（JS からは

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from tornado.testing import AsyncHTTPTestCase
 
@@ -10,8 +10,8 @@ from .conftest import TEST_URL_PREFIX
 class TestWebAppAsync(AsyncHTTPTestCase):
     def get_app(self):
         # Create web server instance and extract the tornado Application
-        self.workdir = '/tmp/storgan_test_workdir'
-        self.webroot = './webroot'
+        self.workdir = Path('/tmp/storgan_test_workdir')
+        self.webroot = Path('./webroot')
         self.server = WebServer(
             port=10081,
             urlprefix=TEST_URL_PREFIX,
@@ -23,12 +23,9 @@ class TestWebAppAsync(AsyncHTTPTestCase):
 
     def tearDown(self):
         # Cleanup dummy files
-        dummy_midi = os.path.join(self.webroot, 'midi', 'dummy.mid')
-        dummy_svg = os.path.join(self.webroot, 'svg', 'dummy.mid.svg')
-        if os.path.exists(dummy_midi):
-            os.remove(dummy_midi)
-        if os.path.exists(dummy_svg):
-            os.remove(dummy_svg)
+        for dummy in (self.webroot / 'midi' / 'dummy.mid',
+                      self.webroot / 'svg' / 'dummy.mid.svg'):
+            dummy.unlink(missing_ok=True)
         super().tearDown()
 
     def test_homepage_redirect(self):
@@ -46,8 +43,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
 
     def test_post_upload(self):
         # Simulate an upload of a small real midi file
-        with open(os.path.join(self.webroot, 'midi', 'd-kaeru.mid'), 'rb') as f:
-            midi_data = f.read()
+        midi_data = (self.webroot / 'midi' / 'd-kaeru.mid').read_bytes()
 
         boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
         body = (
@@ -70,11 +66,9 @@ class TestWebAppAsync(AsyncHTTPTestCase):
 
     def test_download(self):
         # Create a dummy svg file to download
-        svg_dir = os.path.join(self.webroot, 'svg')
-        os.makedirs(svg_dir, exist_ok=True)
-        test_file = os.path.join(svg_dir, 'dummy.mid.svg')
-        with open(test_file, 'w') as f:
-            f.write('<svg>dummy</svg>')
+        svg_dir = self.webroot / 'svg'
+        svg_dir.mkdir(parents=True, exist_ok=True)
+        (svg_dir / 'dummy.mid.svg').write_text('<svg>dummy</svg>')
 
         response = self.fetch(f'{TEST_URL_PREFIX}/download/dummy.mid.svg')
         self.assertEqual(response.code, 200)

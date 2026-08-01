@@ -209,7 +209,7 @@ class Conf:
 
             # Atomic save via temporary file
             tmp_file = self.config_file.with_name(self.config_file.name + '.tmp')
-            with open(tmp_file, 'w', encoding='utf-8') as f:
+            with tmp_file.open('w', encoding='utf-8') as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
                 f.write('\n')
 
