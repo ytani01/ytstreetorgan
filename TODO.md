@@ -83,14 +83,6 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 
 ---
 
-## D. 雑多
-
-- [ ] `webroot/svg/` の古い成果物を削除（9 件中 7 件が `127b94d` より前の生成物で、
-      `stroke-width` も book height も現行と異なる）。gitignore 済みなので実害はないが、
-      出力を目視比較するときに紛らわしい。
-
----
-
 ## 着手順の目安
 
 1. **A-2（`note name` の位置づけ）** — 小さい。ドキュメント上の整理のみ。
@@ -101,6 +93,12 @@ tornado の `AsyncHTTPTestCase` より先に実行すると後者が落ちる。
 ---
 
 ## 完了済み
+
+### `webroot/svg/` の古い成果物を削除
+
+`127b94d`（hairline 対応）より前に生成された 7 件を削除した。`stroke-width` も
+book height も現行と異なり、出力を目視比較するときに紛らわしかった。
+元 MIDI は `webroot/midi/` に残っているのでいつでも再生成できる。
 
 ### Claude Code のプラグインをこのプロジェクトで無効化
 
