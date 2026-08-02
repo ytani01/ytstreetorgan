@@ -82,3 +82,27 @@ def test_rollbook_parse_real_midi():
         # There should be some notes parsed
         assert len(rb._holes) > 0
         assert rb._width > 0
+
+
+def test_rollbook_dimension_properties():
+    """Web のビューアは寸法をこのプロパティ経由で受け取る。
+
+    SVG 文字列からは取り出せないので、値が SVG の viewBox と一致すること。
+    """
+    midi_file = Path('webroot/midi/d-kaeru.mid')
+    if not midi_file.exists():
+        return
+
+    rb = RollBook()
+
+    # parse() する前は全長が決まらない
+    assert rb.width == 0.0
+    assert rb.height > 0
+    assert rb.hole_count == 0
+
+    svg = rb.parse(midi_file)
+
+    assert rb.width > 0
+    assert rb.hole_count == len(rb._holes)
+    assert rb.mm_per_sec > 0
+    assert f'width="{rb.width:.2f}mm" height="{rb.height:.2f}mm"' in svg

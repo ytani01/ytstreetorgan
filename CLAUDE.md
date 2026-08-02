@@ -93,6 +93,45 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 テストは既定値以外の prefix で走らせているので、直書きすると
 `tests/browser/test_rollbook_page.py::test_static_assets_load` が落ちる。
 
+静的ファイル（CSS / JS / favicon）は `{{ static_url('css/my.css') }}` を使う。
+prefix が付くうえに `?v=<hash>` が付くので、更新したときに古いキャッシュを
+掴まれない。
+
+**テンプレートも静的ファイルのハッシュも `autoreload=True` では更新されない。**
+`compiled_template_cache` と `static_hash_cache` が効いたままなので（無効化するのは
+`debug=True`）、テンプレートや CSS / JS を直したら**サーバーを再起動**すること。
+再起動せずに「直したのに変わらない」と悩んだ実績が二度ある。
+
+### フロントエンド
+
+Pico.css v2.1.1 を `webroot/static/css/pico.min.css` に**同梱**している。
+CDN は 1 本も読まない（ローカルで動かす道具なので、ネットに繋がっていなくても
+レイアウトが崩れないこと）。jQuery / Bootstrap / Font Awesome への依存も無く、
+アイコンはインライン SVG、フォントはシステムフォント。
+
+`webroot/static/css/my.css` の**トークンは `:root:root` で定義している**。
+Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書いているため、
+素の `:root` では後から読み込んでも負ける。実際に負けて Pico 既定の水色のままに
+なっていた。同じ理由で、**Pico はボタン要素の中で `--pico-color` を上書きする**
+ので、自前のコントロールの色は `--hole` のような独自トークンから直接指定する。
+
+モーダルは `<dialog>` +`showModal()`（Pico が素で面倒を見る）。
+
+### ロールブックのビューア
+
+`storgan.js` の後半。**transform で拡縮していない。SVG の描画サイズ
+（`.svgbox > svg` の `height: calc(var(--book-h) * var(--z))`）そのものを変える。**
+こうするとブラウザ標準のスクロールがそのまま効き、スクロールバーが全体の中の
+現在位置を示す。SVG が mm 単位で出力されているので倍率 1.0 が原寸になる。
+汎用の panzoom ライブラリは transform ベースで、縦横比 33:1 のロールブックでは
+スクロールバーが消えて現在位置を見失うので使わない。
+
+- **初期表示は右端**（`viewBox` が負で、曲の先頭が x=0 側 = 右端にあるため）。
+  既定の倍率は「高さ合わせ」。「全体」だと 7% になって何も読めない
+- ブックの寸法は `RollBook` の `width` / `height` / `hole_count` / `mm_per_sec`
+  から取る。**SVG 文字列からは取り出せない**ので `Handler1._render()` が
+  `book` として別に渡し、テンプレートが `window.BOOK_DATA` に出している
+
 ### ブラウザテスト
 
 `tests/browser/` に Playwright で書いてある。`conftest.py` の `live_server`

@@ -2,7 +2,10 @@
 tmp*
 
 ## ytstreetorgan
+# 生成したロールブック (webroot/svg/) を無視するための *.svg。
+# UI のアイコンは成果物ではないので追跡する。
 *.svg
+!webroot/static/favicon.svg
 *.midi
 *.mid
 *.MID

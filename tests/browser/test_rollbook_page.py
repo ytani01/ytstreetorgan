@@ -20,7 +20,8 @@ def test_upload_midi_renders_svg_preview(
     page.set_input_files('input[name="file1"]', str(sample_midi))
 
     # 生成された SVG がページに埋め込まれる
-    expect(page.locator('svg')).to_be_visible()
+    # （ロゴなどの装飾 SVG と区別するため、置き場を明示して選ぶ）
+    expect(page.locator('#svgbox svg')).to_be_visible()
 
     # ダウンロードリンクが元のファイル名 + .svg を指している
     link = page.locator(f'a[href*="/download/{sample_midi.name}.svg"]')
@@ -32,6 +33,49 @@ def test_upload_midi_renders_svg_preview(
     res = page.request.get(urljoin(page.url, href))
     assert res.ok
     assert res.text().startswith('<svg')
+
+
+def test_viewer_starts_at_the_beginning_of_the_song(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """初期表示は右端。
+
+    viewBox が負で、曲の先頭が x=0 側 = ブックの右端にあるため。
+    """
+    page.goto(f'{live_server}/')
+    page.set_input_files('input[name="file1"]', str(sample_midi))
+
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    # 既定は「高さ合わせ」なので横にはみ出しており、その右端にいる
+    page.wait_for_function(
+        '() => { const b = document.getElementById("svgbox");'
+        ' return b.scrollWidth > b.clientWidth'
+        ' && b.scrollLeft >= b.scrollWidth - b.clientWidth - 2; }'
+    )
+
+
+def test_viewer_zoom_controls(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """倍率のボタンが SVG の描画サイズを変える。"""
+    page.goto(f'{live_server}/')
+    page.set_input_files('input[name="file1"]', str(sample_midi))
+
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    # 原寸 = 100%。そこから縮小すると 1/1.4 倍
+    page.click('#fit-actual')
+    expect(page.locator('#zoomval')).to_have_text('100%')
+    page.click('#zoom-out')
+    expect(page.locator('#zoomval')).to_have_text('71%')
+
+    # 「全体」は横スクロールが消えるところまで縮む
+    page.click('#fit-all')
+    page.wait_for_function(
+        '() => { const b = document.getElementById("svgbox");'
+        ' return b.scrollWidth <= b.clientWidth + 2; }'
+    )
 
 
 def test_static_assets_load(live_server: str, page: Page) -> None:

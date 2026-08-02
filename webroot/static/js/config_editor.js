@@ -1,295 +1,370 @@
 //
 // (c) 2026 Yoichi Tanibayashi
-// Config Editor JavaScript
+// 機種設定エディタ
 //
+// jQuery / Bootstrap には依存しない（CDN を読まずに動くこと）。
+// モーダルは Pico がそのまま面倒を見てくれる <dialog> を使う。
+//
+"use strict";
 
-$(document).ready(function () {
+document.addEventListener("DOMContentLoaded", function () {
   let confData = window.INITIAL_CONF_DATA || [];
-  let currentModel = '';
+  let currentModel = "";
 
-  function showAlert(message, type = 'success') {
-    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
-    const html = `
-      <div class="alert alert-${type} alert-dismissible fade show shadow-sm" role="alert">
-        <i class="fas ${icon} mr-2"></i>${message}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-    `;
-    $('#alert-container').html(html);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const $ = id => document.getElementById(id);
+
+  const alertBox = $("alert-container");
+  const modelSelect = $("model-select");
+  const copySelect = $("copy-from-model");
+  const noteBody = $("note-table-body");
+  const noteBadge = $("note-count-badge");
+  const saveBtn = $("btn-save-config");
+  const dialog = $("addModelModal");
+  const newNameInput = $("new-model-name");
+  const addError = $("add-model-error");
+
+  // 入力欄の id と、設定ファイル上のキーの対応。
+  // キーは生の JSON フィールド名（空白や数字始まりを含む）。
+  const FIELDS = {
+    "field-model": "model",
+    "field-book-height": "book height",
+    "field-margin": "margin",
+    "field-pitch": "pitch",
+    "field-hole-height": "hole height",
+    "field-1sec": "1sec",
+    "field-base-note": "base note",
+    "field-bridge-width": "bridge width",
+    "field-bridge-threshold": "bridge threshold",
+    "field-memo": "memo",
+  };
+
+  const NUMERIC = {
+    "book height": parseFloat,
+    "margin": parseFloat,
+    "pitch": parseFloat,
+    "hole height": parseFloat,
+    "1sec": parseFloat,
+    "base note": v => parseInt(v, 10),
+    "bridge width": parseFloat,
+    "bridge threshold": parseFloat,
+  };
+
+  /* ---- 通知 ------------------------------------------------------------ */
+
+  function showAlert(message, type = "success") {
+    const cls = {
+      success: "alert--ok",
+      danger: "alert--error",
+      warning: "alert--warn",
+    }[type] || "alert--warn";
+
+    const div = document.createElement("div");
+    div.className = `alert ${cls}`;
+    div.setAttribute("role", type === "success" ? "status" : "alert");
+    div.textContent = message;
+    alertBox.replaceChildren(div);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  /* ---- 描画 ------------------------------------------------------------ */
 
   function getModelConfig(modelName) {
     return confData.find(d => d.model === modelName) || null;
   }
 
-  function renderModelSelect(selectModel) {
-    const $select = $('#model-select');
-    $select.empty();
-    confData.forEach(d => {
-      const selected = d.model === selectModel ? 'selected' : '';
-      $select.append(`<option value="${d.model}" ${selected}>${d.model}</option>`);
-    });
+  function fillSelect(select, selected) {
+    select.replaceChildren(...confData.map(d => {
+      const opt = document.createElement("option");
+      opt.value = d.model;
+      opt.textContent = d.model;
+      opt.selected = d.model === selected;
+      return opt;
+    }));
+  }
 
-    const $copySelect = $('#copy-from-model');
-    $copySelect.empty();
-    confData.forEach(d => {
-      $copySelect.append(`<option value="${d.model}">${d.model}</option>`);
-    });
+  function renderModelSelect(selectModel) {
+    fillSelect(modelSelect, selectModel);
+    fillSelect(copySelect, selectModel);
+  }
+
+  function makeInput(cls, type, value, label) {
+    const input = document.createElement("input");
+    input.type = type;
+    input.className = cls;
+    input.value = value;
+    input.required = true;
+    input.setAttribute("aria-label", label);
+    return input;
+  }
+
+  function appendNoteRow(idx, name = "", offset = 0) {
+    const tr = document.createElement("tr");
+    tr.className = "note-row";
+
+    const tdNum = document.createElement("td");
+    tdNum.className = "track-num";
+    tdNum.textContent = String(idx);
+
+    const tdName = document.createElement("td");
+    tdName.append(
+      makeInput("note-name-input", "text", name, `トラック ${idx} の音名`)
+    );
+
+    const tdOffset = document.createElement("td");
+    tdOffset.append(
+      makeInput(
+        "note-offset-input", "number", offset, `トラック ${idx} のオフセット`
+      )
+    );
+
+    const tdDel = document.createElement("td");
+    tdDel.style.textAlign = "center";
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn-row btn-delete-row";
+    del.textContent = "✕";
+    del.title = "この行を削除";
+    del.setAttribute("aria-label", `トラック ${idx} を削除`);
+    tdDel.append(del);
+
+    tr.append(tdNum, tdName, tdOffset, tdDel);
+    noteBody.append(tr);
+  }
+
+  function noteRows() {
+    return noteBody.querySelectorAll("tr.note-row");
   }
 
   function renderNoteTable(noteNames, noteOffsets) {
-    const $tbody = $('#note-table-body');
-    $tbody.empty();
+    noteBody.replaceChildren();
 
     const count = Math.max(noteNames.length, noteOffsets.length);
     for (let i = 0; i < count; i++) {
-      const name = noteNames[i] !== undefined ? noteNames[i] : '';
+      const name = noteNames[i] !== undefined ? noteNames[i] : "";
       const offset = noteOffsets[i] !== undefined ? noteOffsets[i] : 0;
       appendNoteRow(i + 1, name, offset);
     }
     updateTrackBadge();
   }
 
-  function appendNoteRow(idx, name = '', offset = 0) {
-    const $tbody = $('#note-table-body');
-    const rowHtml = `
-      <tr class="note-row">
-        <td class="align-middle font-weight-bold text-muted track-num">${idx}</td>
-        <td>
-          <input type="text" class="form-control form-control-sm note-name-input" value="${name}" placeholder="例: C" required>
-        </td>
-        <td>
-          <input type="number" class="form-control form-control-sm note-offset-input" value="${offset}" required>
-        </td>
-        <td class="text-center align-middle">
-          <button type="button" class="btn btn-outline-danger btn-sm btn-delete-row" title="この行を削除">
-            <i class="fas fa-times"></i>
-          </button>
-        </td>
-      </tr>
-    `;
-    $tbody.append(rowHtml);
-  }
-
   function updateTrackNumbers() {
-    $('#note-table-body tr.note-row').each(function (index) {
-      $(this).find('.track-num').text(index + 1);
+    noteRows().forEach((tr, index) => {
+      tr.querySelector(".track-num").textContent = String(index + 1);
     });
     updateTrackBadge();
   }
 
   function updateTrackBadge() {
-    const count = $('#note-table-body tr.note-row').length;
-    $('#note-count-badge').text(`${count} トラック`);
+    noteBadge.textContent = `${noteRows().length} トラック`;
   }
 
   function loadModelIntoForm(modelName) {
     const conf = getModelConfig(modelName);
-    if (!conf) return;
+    if (!conf) {
+      return;
+    }
 
     currentModel = modelName;
-    $('#field-model').val(conf['model'] || '');
-    $('#field-book-height').val(conf['book height'] !== undefined ? conf['book height'] : '');
-    $('#field-margin').val(conf['margin'] !== undefined ? conf['margin'] : '');
-    $('#field-pitch').val(conf['pitch'] !== undefined ? conf['pitch'] : '');
-    $('#field-hole-height').val(conf['hole height'] !== undefined ? conf['hole height'] : '');
-    $('#field-1sec').val(conf['1sec'] !== undefined ? conf['1sec'] : '');
-    $('#field-base-note').val(conf['base note'] !== undefined ? conf['base note'] : '');
-    $('#field-bridge-width').val(conf['bridge width'] !== undefined ? conf['bridge width'] : '');
-    $('#field-bridge-threshold').val(conf['bridge threshold'] !== undefined ? conf['bridge threshold'] : '');
-    $('#field-memo').val(conf['memo'] || '');
+    for (const [id, key] of Object.entries(FIELDS)) {
+      const val = conf[key];
+      $(id).value = val !== undefined && val !== null ? val : "";
+    }
 
-    renderNoteTable(conf['note name'] || [], conf['note offset'] || []);
+    renderNoteTable(conf["note name"] || [], conf["note offset"] || []);
   }
 
   function gatherFormData() {
     const noteNames = [];
     const noteOffsets = [];
 
-    $('#note-table-body tr.note-row').each(function () {
-      const name = $(this).find('.note-name-input').val().trim();
-      const offset = parseInt($(this).find('.note-offset-input').val(), 10) || 0;
-      noteNames.push(name);
-      noteOffsets.push(offset);
+    noteRows().forEach(tr => {
+      noteNames.push(tr.querySelector(".note-name-input").value.trim());
+      noteOffsets.push(
+        parseInt(tr.querySelector(".note-offset-input").value, 10) || 0
+      );
     });
 
-    return {
-      'model': $('#field-model').val().trim(),
-      'book height': parseFloat($('#field-book-height').val()),
-      'margin': parseFloat($('#field-margin').val()),
-      'pitch': parseFloat($('#field-pitch').val()),
-      'hole height': parseFloat($('#field-hole-height').val()),
-      '1sec': parseFloat($('#field-1sec').val()),
-      'base note': parseInt($('#field-base-note').val(), 10),
-      'bridge width': parseFloat($('#field-bridge-width').val()),
-      'bridge threshold': parseFloat($('#field-bridge-threshold').val()),
-      'note name': noteNames,
-      'note offset': noteOffsets,
-      'memo': $('#field-memo').val().trim()
-    };
+    const data = {};
+    for (const [id, key] of Object.entries(FIELDS)) {
+      const raw = $(id).value;
+      data[key] = NUMERIC[key] ? NUMERIC[key](raw) : raw.trim();
+    }
+    data["note name"] = noteNames;
+    data["note offset"] = noteOffsets;
+    return data;
   }
 
-  // --- Event Handlers ---
+  /* ---- サーバーとのやり取り -------------------------------------------- */
 
-  $('#model-select').on('change', function () {
-    const selected = $(this).val();
-    loadModelIntoForm(selected);
+  function postConfig(payload) {
+    return fetch(`${window.URL_PREFIX}/config/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(res => res.json());
+  }
+
+  function setBusy(btn, busy, label) {
+    if (busy) {
+      btn.setAttribute("aria-busy", "true");
+    } else {
+      btn.removeAttribute("aria-busy");
+    }
+    btn.disabled = busy;
+    btn.textContent = label;
+  }
+
+  /* ---- イベント -------------------------------------------------------- */
+
+  modelSelect.addEventListener("change", () => {
+    loadModelIntoForm(modelSelect.value);
   });
 
-  $('#btn-add-note').on('click', function () {
-    const nextIdx = $('#note-table-body tr.note-row').length + 1;
-    appendNoteRow(nextIdx, '', 0);
+  $("btn-add-note").addEventListener("click", () => {
+    appendNoteRow(noteRows().length + 1, "", 0);
     updateTrackBadge();
   });
 
-  $(document).on('click', '.btn-delete-row', function () {
-    $(this).closest('tr').remove();
+  noteBody.addEventListener("click", e => {
+    const btn = e.target.closest(".btn-delete-row");
+    if (!btn) {
+      return;
+    }
+    btn.closest("tr").remove();
     updateTrackNumbers();
   });
 
-  $('#btn-save-config').on('click', function () {
+  saveBtn.addEventListener("click", () => {
     const formData = gatherFormData();
 
     if (!formData.model) {
-      showAlert('機種名は必須です。', 'danger');
+      showAlert("機種名は必須です。", "danger");
       return;
     }
 
-    const payload = {
-      action: 'save',
+    setBusy(saveBtn, true, "保存中...");
+
+    postConfig({
+      action: "save",
       model_name: currentModel,
-      config: formData
-    };
-
-    $('#btn-save-config').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>保存中...');
-
-    fetch(`${window.URL_PREFIX}/config/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
-      .then(data => {
-        $('#btn-save-config').prop('disabled', false).html('<i class="fas fa-save mr-2"></i> 変更を保存');
-        if (data.status === 'ok') {
-          confData = data.data;
-          const updatedModelName = formData.model;
-          renderModelSelect(updatedModelName);
-          loadModelIntoForm(updatedModelName);
-          showAlert(`機種「${updatedModelName}」の設定を正常に保存しました。`, 'success');
-        } else {
-          showAlert(`保存エラー: ${data.message}`, 'danger');
-        }
-      })
-      .catch(err => {
-        $('#btn-save-config').prop('disabled', false).html('<i class="fas fa-save mr-2"></i> 変更を保存');
-        showAlert(`通信エラーが発生しました: ${err}`, 'danger');
-      });
+      config: formData,
+    }).then(data => {
+      setBusy(saveBtn, false, "変更を保存");
+      if (data.status === "ok") {
+        confData = data.data;
+        const updatedModelName = formData.model;
+        renderModelSelect(updatedModelName);
+        loadModelIntoForm(updatedModelName);
+        showAlert(
+          `機種「${updatedModelName}」の設定を正常に保存しました。`, "success"
+        );
+      } else {
+        showAlert(`保存エラー: ${data.message}`, "danger");
+      }
+    }).catch(err => {
+      setBusy(saveBtn, false, "変更を保存");
+      showAlert(`通信エラーが発生しました: ${err}`, "danger");
+    });
   });
 
-  $('#btn-add-model').on('click', function () {
-    $('#new-model-name').val('');
-    $('#addModelModal').modal('show');
+  /* ---- 機種の追加 / 削除 ------------------------------------------------ */
+
+  function showDialogError(message) {
+    addError.textContent = message;
+    addError.hidden = false;
+  }
+
+  function closeDialog() {
+    dialog.close();
+  }
+
+  $("btn-add-model").addEventListener("click", () => {
+    newNameInput.value = "";
+    addError.hidden = true;
+    dialog.showModal();
+    newNameInput.focus();
   });
 
-  $('#btn-confirm-add-model').on('click', function () {
-    const newName = $('#new-model-name').val().trim();
-    const copyFrom = $('#copy-from-model').val();
+  for (const id of ["btn-cancel-add-model", "btn-close-add-model"]) {
+    $(id).addEventListener("click", closeDialog);
+  }
+
+  $("btn-confirm-add-model").addEventListener("click", () => {
+    const newName = newNameInput.value.trim();
+    const copyFrom = copySelect.value;
 
     if (!newName) {
-      alert('新規機種名を入力してください。');
+      showDialogError("機種名を入力してください。");
       return;
     }
-
     if (confData.some(d => d.model === newName)) {
-      alert(`機種名「${newName}」は既に存在しています。`);
+      showDialogError(`機種名「${newName}」は既に存在しています。`);
       return;
     }
 
     const templateConf = getModelConfig(copyFrom);
-    if (!templateConf) return;
-
-    const newConf = JSON.parse(JSON.stringify(templateConf));
-    newConf.model = newName;
-
-    const payload = {
-      action: 'add',
-      model_name: newName,
-      config: newConf
-    };
-
-    fetch(`${window.URL_PREFIX}/config/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
-      .then(data => {
-        $('#addModelModal').modal('hide');
-        if (data.status === 'ok') {
-          confData = data.data;
-          renderModelSelect(newName);
-          loadModelIntoForm(newName);
-          showAlert(`新規機種「${newName}」を追加しました。`, 'success');
-        } else {
-          showAlert(`追加エラー: ${data.message}`, 'danger');
-        }
-      })
-      .catch(err => {
-        $('#addModelModal').modal('hide');
-        showAlert(`通信エラーが発生しました: ${err}`, 'danger');
-      });
-  });
-
-  $('#btn-delete-model').on('click', function () {
-    if (!currentModel) return;
-
-    if (confData.length <= 1) {
-      showAlert('機種が1つしかないため、削除できません。', 'warning');
+    if (!templateConf) {
+      showDialogError("コピー元の機種が見つかりません。");
       return;
     }
 
+    const newConf = structuredClone(templateConf);
+    newConf.model = newName;
+
+    postConfig({
+      action: "add",
+      model_name: newName,
+      config: newConf,
+    }).then(data => {
+      closeDialog();
+      if (data.status === "ok") {
+        confData = data.data;
+        renderModelSelect(newName);
+        loadModelIntoForm(newName);
+        showAlert(`新規機種「${newName}」を追加しました。`, "success");
+      } else {
+        showAlert(`追加エラー: ${data.message}`, "danger");
+      }
+    }).catch(err => {
+      closeDialog();
+      showAlert(`通信エラーが発生しました: ${err}`, "danger");
+    });
+  });
+
+  $("btn-delete-model").addEventListener("click", () => {
+    if (!currentModel) {
+      return;
+    }
+    if (confData.length <= 1) {
+      showAlert("機種が1つしかないため、削除できません。", "warning");
+      return;
+    }
     if (!confirm(`本当に機種「${currentModel}」を削除しますか？`)) {
       return;
     }
 
-    const payload = {
-      action: 'delete',
-      model_name: currentModel
-    };
+    const deleted = currentModel;
 
-    fetch(`${window.URL_PREFIX}/config/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'ok') {
-          confData = data.data;
-          const nextModel = confData[0].model;
-          renderModelSelect(nextModel);
-          loadModelIntoForm(nextModel);
-          showAlert(`機種「${currentModel}」を削除しました。`, 'success');
-        } else {
-          showAlert(`削除エラー: ${data.message}`, 'danger');
-        }
-      })
-      .catch(err => {
-        showAlert(`通信エラーが発生しました: ${err}`, 'danger');
-      });
+    postConfig({
+      action: "delete",
+      model_name: currentModel,
+    }).then(data => {
+      if (data.status === "ok") {
+        confData = data.data;
+        const nextModel = confData[0].model;
+        renderModelSelect(nextModel);
+        loadModelIntoForm(nextModel);
+        showAlert(`機種「${deleted}」を削除しました。`, "success");
+      } else {
+        showAlert(`削除エラー: ${data.message}`, "danger");
+      }
+    }).catch(err => {
+      showAlert(`通信エラーが発生しました: ${err}`, "danger");
+    });
   });
 
-  // Initial setup
+  /* ---- 初期表示 -------------------------------------------------------- */
+
   if (confData.length > 0) {
     const initialModel = confData[0].model;
     renderModelSelect(initialModel);

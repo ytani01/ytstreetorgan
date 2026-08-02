@@ -1,271 +1,228 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="ja">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }}</title>
 
-    <link rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
-      integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
-      crossorigin="anonymous">
-    <link rel="stylesheet"
-      href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
-    <link rel="stylesheet" href="{{urlprefix}}/static/css/my.css">
+    <!-- 外部 CDN は使わない。ローカルで動かす道具なので、ネットに繋がって
+         いなくてもレイアウトが崩れないこと。 -->
+    <!-- static_url() は urlprefix と ?v=<hash> を付ける。手で組み立てると
+         prefix を変えたときに 404 になり、更新してもキャッシュが残る。 -->
+    <link rel="icon" href="{{ static_url('favicon.svg') }}">
+    <link rel="stylesheet" href="{{ static_url('css/pico.min.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/my.css') }}">
 
-    <style>
-      .card-header-custom {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-      }
-      .table-note-editor input {
-        font-family: monospace;
-      }
-      .sticky-actions {
-        position: sticky;
-        bottom: 20px;
-        z-index: 1000;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(5px);
-      }
-    </style>
-
-    <script type="text/javascript">
+    <script>
       window.INITIAL_CONF_DATA = {% raw conf_data %};
       window.URL_PREFIX = "{{ urlprefix }}";
     </script>
   </head>
-  <body style="background-color: #f8f9fa;">
-    <header>
+  <body>
+    <header class="appbar">
+      <div class="appbar__inner">
+        <a href="{{urlprefix}}/" class="brand">
+          <svg width="30" height="20" viewBox="0 0 30 20" aria-hidden="true">
+            <rect x=".5" y=".5" width="29" height="19" rx="1.5"
+              fill="none" stroke="var(--cut)"/>
+            <g fill="var(--hole)">
+              <rect x="4" y="4" width="7" height="2" rx="1"/>
+              <rect x="14" y="4" width="4" height="2" rx="1"/>
+              <rect x="7" y="9" width="11" height="2" rx="1"/>
+              <rect x="21" y="9" width="4" height="2" rx="1"/>
+              <rect x="4" y="14" width="4" height="2" rx="1"/>
+              <rect x="12" y="14" width="8" height="2" rx="1"/>
+            </g>
+          </svg>
+          <span class="brand__name">Roll Book Maker</span>
+          <span class="brand__sub">storgan</span>
+        </a>
+        <nav>
+          <a href="{{urlprefix}}/">ロールブック作成</a>
+          <a href="{{urlprefix}}/config" aria-current="page">機種設定</a>
+        </nav>
+      </div>
     </header>
-    <main class="py-4">
-      <div class="container">
-        <!-- Main Title & Navigation -->
-        <div class="row align-items-center mb-4">
-          <div class="col-md-8">
-            <h2 class="text-primary font-weight-bold mb-0">
-              <i class="fas fa-sliders-h mr-2"></i>{{ title }}
-            </h2>
-            <p class="text-muted mb-0">オルガン機種ごとの各パラメータや音階オフセット設定の編集</p>
-          </div>
-          <div class="col-md-4 text-md-right mt-3 mt-md-0">
-            <a href="{{urlprefix}}/" class="btn btn-outline-secondary">
-              <i class="fas fa-arrow-left mr-1"></i> メイン画面に戻る
-            </a>
-          </div>
-        </div>
 
-        <!-- Alert Notification Area -->
+    <main>
+      <section class="wrap">
+        <h1 class="page-title">機種設定</h1>
+        <p class="page-lead">
+          オルガンの機種ごとの寸法と、トラックに対応する音階を編集します。
+        </p>
+
         <div id="alert-container"></div>
 
-        <!-- Model Selection & Actions Toolbar -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-md-6 mb-3 mb-md-0">
-                <label for="model-select" class="font-weight-bold mr-2 mb-0">編集対象の機種:</label>
-                <select id="model-select" class="custom-select custom-select-lg d-inline-block w-auto">
-                  {% for m in models %}
-                  <option value="{{ m }}">{{ m }}</option>
-                  {% end %}
-                </select>
-              </div>
-              <div class="col-md-6 text-md-right">
-                <button type="button" class="btn btn-success mr-2" id="btn-add-model">
-                  <i class="fas fa-plus mr-1"></i> 新規機種を追加
-                </button>
-                <button type="button" class="btn btn-outline-danger" id="btn-delete-model">
-                  <i class="fas fa-trash-alt mr-1"></i> 選択中の機種を削除
-                </button>
-              </div>
-            </div>
-          </div>
+        <div class="toolrow">
+          <label for="model-select">編集中</label>
+          <select id="model-select">
+            {% for m in models %}
+            <option value="{{ m }}">{{ m }}</option>
+            {% end %}
+          </select>
+          <span class="spacer"></span>
+          <button type="button" class="secondary outline" id="btn-add-model">
+            ＋ 機種を追加
+          </button>
+          <button type="button" class="secondary outline btn-danger"
+            id="btn-delete-model">
+            機種を削除
+          </button>
         </div>
 
-        <!-- Config Form -->
         <form id="config-form" onsubmit="return false;">
-          <div class="row">
-            <!-- Left Column: Primary Config -->
-            <div class="col-lg-6">
-              <!-- Physical Parameters Card -->
-              <div class="card shadow-sm mb-4">
-                <div class="card-header card-header-custom font-weight-bold">
-                  <i class="fas fa-ruler-combined mr-2"></i>基本寸法・動作設定
+          <div class="cfg-grid">
+            <div>
+              <section class="panel">
+                <h2>基本寸法</h2>
+                <div class="panel__body">
+                  <div class="field">
+                    <label for="field-model">機種名<small>model</small></label>
+                    <input type="text" id="field-model" name="model" required>
+                    <span class="field__unit"></span>
+                  </div>
+                  <div class="field">
+                    <label for="field-book-height">ブック高さ<small>book height</small></label>
+                    <input type="number" step="0.1" id="field-book-height"
+                      name="book height" required>
+                    <span class="field__unit">mm</span>
+                  </div>
+                  <div class="field">
+                    <label for="field-margin">マージン<small>margin</small></label>
+                    <input type="number" step="0.01" id="field-margin"
+                      name="margin" required>
+                    <span class="field__unit">mm</span>
+                  </div>
+                  <div class="field">
+                    <label for="field-pitch">ピッチ<small>pitch</small></label>
+                    <input type="number" step="0.01" id="field-pitch"
+                      name="pitch" required>
+                    <span class="field__unit">mm</span>
+                  </div>
+                  <div class="field">
+                    <label for="field-hole-height">穴の高さ<small>hole height</small></label>
+                    <input type="number" step="0.1" id="field-hole-height"
+                      name="hole height" required>
+                    <span class="field__unit">mm</span>
+                  </div>
+                  <div class="field">
+                    <label for="field-1sec">1 秒あたりの長さ<small>1sec</small></label>
+                    <input type="number" step="0.1" id="field-1sec"
+                      name="1sec" required>
+                    <span class="field__unit">mm</span>
+                  </div>
+                  <div class="field">
+                    <label for="field-base-note">基準ノート番号<small>base note</small></label>
+                    <input type="number" id="field-base-note"
+                      name="base note" required>
+                    <span class="field__unit"></span>
+                  </div>
+                  <p class="field__hint">41 = F2、43 = G2、60 = C4</p>
                 </div>
-                <div class="card-body">
-                  <div class="form-group row">
-                    <label class="col-sm-5 col-form-label font-weight-bold">機種名 (model)</label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control" id="field-model" name="model" required>
-                    </div>
-                  </div>
-                  <div class="form-group row">
-                    <label class="col-sm-5 col-form-label">ブック高さ [mm] (book height)</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.1" class="form-control" id="field-book-height" name="book height" required>
-                    </div>
-                  </div>
-                  <div class="form-group row">
-                    <label class="col-sm-5 col-form-label">マージン [mm] (margin)</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.01" class="form-control" id="field-margin" name="margin" required>
-                    </div>
-                  </div>
-                  <div class="form-group row">
-                    <label class="col-sm-5 col-form-label">ピッチ [mm] (pitch)</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.01" class="form-control" id="field-pitch" name="pitch" required>
-                    </div>
-                  </div>
-                  <div class="form-group row">
-                    <label class="col-sm-5 col-form-label">穴の高さ [mm] (hole height)</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.1" class="form-control" id="field-hole-height" name="hole height" required>
-                    </div>
-                  </div>
-                  <div class="form-group row">
-                    <label class="col-sm-5 col-form-label">1秒長 [mm/s] (1sec)</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.1" class="form-control" id="field-1sec" name="1sec" required>
-                    </div>
-                  </div>
-                  <div class="form-group row mb-0">
-                    <label class="col-sm-5 col-form-label">基準ノート番号 (base note)</label>
-                    <div class="col-sm-7">
-                      <input type="number" class="form-control" id="field-base-note" name="base note" required>
-                      <small class="form-text text-muted">例: 41 (F2), 43 (G2), 60 (C4)</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </section>
 
-              <!-- Bridge Settings Card -->
-              <div class="card shadow-sm mb-4">
-                <div class="card-header card-header-custom font-weight-bold">
-                  <i class="fas fa-archway mr-2"></i>ブリッジ (Bridge) 設定
-                </div>
-                <div class="card-body">
-                  <div class="form-group row">
-                    <label class="col-sm-5 col-form-label">ブリッジ幅 [mm] (bridge width)</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.1" class="form-control" id="field-bridge-width" name="bridge width" required>
-                    </div>
+              <section class="panel">
+                <h2>ブリッジ</h2>
+                <div class="panel__body">
+                  <p class="field__hint" style="margin-top:0;">
+                    長い穴は途中で切らずに、隙間（ブリッジ）を挟んで分割します。
+                    紙が切れてしまわないための措置です。
+                  </p>
+                  <div class="field">
+                    <label for="field-bridge-width">ブリッジ幅<small>bridge width</small></label>
+                    <input type="number" step="0.1" id="field-bridge-width"
+                      name="bridge width" required>
+                    <span class="field__unit">mm</span>
                   </div>
-                  <div class="form-group row mb-0">
-                    <label class="col-sm-5 col-form-label">閾値 [mm] (bridge threshold)</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.1" class="form-control" id="field-bridge-threshold" name="bridge threshold" required>
-                    </div>
+                  <div class="field">
+                    <label for="field-bridge-threshold">分割する長さ<small>bridge threshold</small></label>
+                    <input type="number" step="0.1" id="field-bridge-threshold"
+                      name="bridge threshold" required>
+                    <span class="field__unit">mm</span>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <!-- Memo Card -->
-              <div class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white font-weight-bold">
-                  <i class="fas fa-sticky-note mr-2"></i>メモ (Memo)
+              <section class="panel">
+                <h2>メモ</h2>
+                <div class="panel__body">
+                  <textarea id="field-memo" name="memo" rows="3"
+                    placeholder="この機種についての覚え書き"></textarea>
                 </div>
-                <div class="card-body">
-                  <textarea class="form-control" id="field-memo" name="memo" rows="3" placeholder="機種に関するメモや補足"></textarea>
-                </div>
-              </div>
+              </section>
             </div>
 
-            <!-- Right Column: Note Mapping Editor -->
-            <div class="col-lg-6">
-              <div class="card shadow-sm mb-4">
-                <div class="card-header card-header-custom font-weight-bold d-flex justify-content-between align-items-center">
-                  <span><i class="fas fa-music mr-2"></i>音階・トラックマッピング</span>
-                  <span class="badge badge-light p-2" id="note-count-badge">0 トラック</span>
-                </div>
-                <div class="card-body p-2" style="max-height: 720px; overflow-y: auto;">
-                  <table class="table table-sm table-striped table-hover table-note-editor mb-0">
-                    <thead class="thead-dark sticky-top">
+            <div>
+              <section class="panel">
+                <h2>
+                  音階マッピング
+                  <span class="count" id="note-count-badge">0 トラック</span>
+                </h2>
+                <div class="notes-scroll">
+                  <table class="notes">
+                    <thead>
                       <tr>
-                        <th style="width: 10%;">#</th>
-                        <th style="width: 40%;">Note Name (音階)</th>
-                        <th style="width: 35%;">Offset (半音)</th>
-                        <th style="width: 15%; text-align: center;">操作</th>
+                        <th>#</th>
+                        <th>音名</th>
+                        <th>オフセット</th>
+                        <th style="width:2.5rem;"></th>
                       </tr>
                     </thead>
                     <tbody id="note-table-body">
-                      <!-- Dynamic Rows -->
+                      <!-- config_editor.js が生成する -->
                     </tbody>
                   </table>
                 </div>
-                <div class="card-footer bg-light text-right">
-                  <button type="button" class="btn btn-sm btn-info" id="btn-add-note">
-                    <i class="fas fa-plus mr-1"></i> ノート（トラック）を行追加
+                <div class="panel__body" style="border-top:1px solid var(--rule);">
+                  <button type="button" class="secondary outline" id="btn-add-note"
+                    style="width:auto; margin:0; padding:.35rem .8rem; font-size:.84rem;">
+                    ＋ トラックを追加
                   </button>
                 </div>
-              </div>
+              </section>
             </div>
           </div>
 
-          <!-- Floating Save Action Bar -->
-          <div class="card shadow border-primary sticky-actions mb-4">
-            <div class="card-body py-3 d-flex justify-content-between align-items-center">
-              <div>
-                <span class="text-muted"><i class="fas fa-info-circle mr-1"></i>設定を変更した後は「変更を保存」ボタンを押してください。</span>
-              </div>
-              <div>
-                <button type="button" class="btn btn-primary btn-lg px-5 shadow-sm" id="btn-save-config">
-                  <i class="fas fa-save mr-2"></i> 変更を保存
-                </button>
-              </div>
-            </div>
+          <div class="savebar">
+            <span class="savebar__msg">
+              設定を変更したら「変更を保存」を押してください。
+            </span>
+            <button type="button" id="btn-save-config">変更を保存</button>
           </div>
         </form>
-      </div>
+      </section>
     </main>
 
-    <!-- Add Model Modal -->
-    <div class="modal fade" id="addModelModal" tabindex="-1" role="dialog" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header bg-success text-white">
-            <h5 class="modal-title"><i class="fas fa-plus-circle mr-2"></i>新規機種の追加</h5>
-            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="new-model-name" class="font-weight-bold">新規機種ID / 名前 (model)</label>
-              <input type="text" class="form-control" id="new-model-name" placeholder="例: 26notes">
-            </div>
-            <div class="form-group mb-0">
-              <label for="copy-from-model" class="font-weight-bold">設定のテンプレート（既存機種からコピー）</label>
-              <select id="copy-from-model" class="custom-select">
-                <!-- Dynamically filled -->
-              </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">キャンセル</button>
-            <button type="button" class="btn btn-success" id="btn-confirm-add-model">追加作成</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 機種の追加。Pico は <dialog> をそのまま使う（JS ライブラリ不要） -->
+    <dialog id="addModelModal">
+      <article>
+        <header>
+          <button type="button" aria-label="閉じる" rel="prev"
+            id="btn-cancel-add-model"></button>
+          <h3 style="margin:0;">新規機種の追加</h3>
+        </header>
+        <label for="new-model-name">機種名</label>
+        <input type="text" id="new-model-name" placeholder="例: 26notes">
+        <label for="copy-from-model">設定のテンプレート（既存機種からコピー）</label>
+        <select id="copy-from-model"></select>
+        <p class="dialog-error" id="add-model-error" hidden></p>
+        <footer>
+          <button type="button" class="secondary" id="btn-close-add-model">
+            キャンセル
+          </button>
+          <button type="button" id="btn-confirm-add-model">追加</button>
+        </footer>
+      </article>
+    </dialog>
 
-    <!-- Footer -->
-    <footer>
-      <div class="container">
-        <div class="row text-white bg-info py-2 rounded mb-4">
-          <div class="col-6">
-            Version {{ version }}
-          </div>
-          <div class="col-6 text-right">
-            &copy; {{ copyright_year }} <strong>{{ author }}</strong>
-          </div>
-        </div>
+    <footer class="appfoot">
+      <div>
+        <span>{{ title }}</span>
+        <span class="spacer">v{{ version }}</span>
+        <span>&copy; {{ copyright_year }} {{ author }}</span>
       </div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" crossorigin="anonymous"></script>
-    <script src="{{urlprefix}}/static/js/config_editor.js"></script>
+    <script src="{{ static_url('js/config_editor.js') }}"></script>
   </body>
 </html>

@@ -110,7 +110,10 @@ class Handler1(StorganBaseHandler):
         self._conf_file = RollBook.DEF_CONF_FILE
         self._model_name = RollBook.DEF_MODEL_NAME
 
-        self._models = Conf(self._conf_file).models
+        # 画面上で「選んだ機種の寸法」を出すため、名前だけでなく設定本体も渡す
+        conf = Conf(self._conf_file)
+        self._conf_data = conf.data
+        self._models = conf.models
         self._model = ''
 
         super().__init__(app, req)
@@ -119,11 +122,11 @@ class Handler1(StorganBaseHandler):
             "conf_file={}, model_name={}", self._conf_file, self._model_name
         )
 
-    def get(
-        self, svg_data='', svg_filename='', msg='Please select a MIDI file'
-    ):
+    DEF_MSG = 'Please select a MIDI file'
+
+    def get(self):
         """
-        GET method and rendering
+        GET method
         """
         logger.debug('request={}', self.request)
 
@@ -131,6 +134,25 @@ class Handler1(StorganBaseHandler):
             self.redirect(self._url_path, permanent=True)
             return
 
+        self._render()
+
+    def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None):
+        """テンプレートを描画する。
+
+        ``svg_data`` が空なら「ファイル選択」、そうでなければ「生成結果」の
+        画面になる。
+
+        SVG は文字列のままテンプレートに埋め込む（別リクエストにすると
+        ビューアの初期表示までに 2 往復かかるため）。ただし**寸法は SVG から
+        は取り出せない**ので、``book`` に入れて別に渡す。ビューアはこれで
+        初期倍率とスクロール位置を決める。
+
+        Parameters
+        ----------
+        book: dict | None
+            ``RollBook`` の寸法（width / height / holes / mm_per_sec）。
+            ファイル選択の画面では None。
+        """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
         self.render(self.HTML_FILE,
@@ -142,8 +164,10 @@ class Handler1(StorganBaseHandler):
                     size_limit=size_limit,
                     size_unit=size_unit,
                     models=self._models,
+                    models_data=self._conf_data,
                     svg_data=svg_data,
                     svg_filename=svg_filename,
+                    book=book or {},
                     msg=msg)
 
     async def post(self):
@@ -172,6 +196,16 @@ class Handler1(StorganBaseHandler):
         msg = '{} ({:.1f} {})'.format(file1['filename'], f_size, unit)
 
         svg_data = rollbook.parse_to_file(file1_path, svg1_path)
-        logger.debug('svg_data={}', svg_data)
+        logger.debug('len(svg_data)={}', len(svg_data))
 
-        self.get(svg_data=svg_data, svg_filename=svg1_fname, msg=msg)
+        self._render(
+            svg_data=svg_data,
+            svg_filename=svg1_fname,
+            msg=msg,
+            book={
+                'width': round(rollbook.width, 2),
+                'height': round(rollbook.height, 2),
+                'holes': rollbook.hole_count,
+                'mm_per_sec': rollbook.mm_per_sec,
+            },
+        )

@@ -265,6 +265,31 @@ class RollBook:
 
         self._midi_parser = Parser()
 
+    # ブックの寸法。SVG 文字列を作らないと分からない値なので、
+    # Web のビューアが初期倍率とスクロール位置を決めるのに使う。
+    @property
+    def width(self) -> float:
+        """ブックの全長 [mm]。``parse()`` を呼ぶまでは 0.0。"""
+        return self._width
+
+    @property
+    def height(self) -> float:
+        """ブックの高さ [mm]（設定の ``'book height'``）。"""
+        return self._height
+
+    @property
+    def hole_count(self) -> int:
+        """穴の数。音階に無くて破線で描かれるものも含む。"""
+        return len(self._holes)
+
+    @property
+    def mm_per_sec(self) -> float:
+        """秒 → mm の変換係数（設定の ``'1sec'``）。
+
+        ビューアがスクロール位置を演奏時間に直すのに使う。
+        """
+        return float(self._conf.get('1sec', 0.0))
+
     def svg(
         self, color: str = '#0000FF', hole_color: str = '#FF0000',
         line_width: float = DEF_LINE_WIDTH, stroke_dasharray: str = 'none'

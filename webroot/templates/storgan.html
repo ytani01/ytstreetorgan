@@ -1,108 +1,170 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="ja">
   <head>
-    <meta name="viewport"
-      content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }}</title>
 
-    <link
-      rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
-      integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
-      crossorigin="anonymous">
-    <link rel="stylesheet"
-      href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
-    <link rel="stylesheet" href="{{urlprefix}}/static/css/my.css">
+    <!-- 外部 CDN は使わない。ローカルで動かす道具なので、ネットに繋がって
+         いなくてもレイアウトが崩れないこと。 -->
+    <!-- static_url() は urlprefix と ?v=<hash> を付ける。手で組み立てると
+         prefix を変えたときに 404 になり、更新してもキャッシュが残る。 -->
+    <link rel="icon" href="{{ static_url('favicon.svg') }}">
+    <link rel="stylesheet" href="{{ static_url('css/pico.min.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/my.css') }}">
 
-    <script
-      type="text/javascript"
-      src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js">
-    </script>
-    <script type="text/javascript" src="{{urlprefix}}/static/js/my.js">
+    <script>
+      window.URL_PREFIX = "{{ urlprefix }}";
+      window.MODELS_DATA = {% raw json_encode(models_data) %};
+      // ビューアが初期倍率とスクロール位置を決めるのに使う。
+      // SVG 文字列からは寸法が取り出せないのでサーバーから渡している。
+      window.BOOK_DATA = {% raw json_encode(book) %};
     </script>
   </head>
-  <body style="background-color: white;">
-    <header>
+  <body>
+    <header class="appbar">
+      <div class="appbar__inner">
+        <a href="{{urlprefix}}/" class="brand">
+          <svg width="30" height="20" viewBox="0 0 30 20" aria-hidden="true">
+            <rect x=".5" y=".5" width="29" height="19" rx="1.5"
+              fill="none" stroke="var(--cut)"/>
+            <g fill="var(--hole)">
+              <rect x="4" y="4" width="7" height="2" rx="1"/>
+              <rect x="14" y="4" width="4" height="2" rx="1"/>
+              <rect x="7" y="9" width="11" height="2" rx="1"/>
+              <rect x="21" y="9" width="4" height="2" rx="1"/>
+              <rect x="4" y="14" width="4" height="2" rx="1"/>
+              <rect x="12" y="14" width="8" height="2" rx="1"/>
+            </g>
+          </svg>
+          <span class="brand__name">Roll Book Maker</span>
+          <span class="brand__sub">storgan</span>
+        </a>
+        <nav>
+          <a href="{{urlprefix}}/" aria-current="page">ロールブック作成</a>
+          <a href="{{urlprefix}}/config">機種設定</a>
+        </nav>
+      </div>
     </header>
+
     <main>
-      <div class="container">
-        <div class="row text-light bg-primary py-2 align-items-center mb-4 rounded shadow-sm">
-          <div class="col text-center">
-            <h1 class="m-0 d-inline-block">{{ title }}</h1>
-            <a href="{{urlprefix}}/config" class="btn btn-outline-light btn-sm float-right mr-3 mt-1">
-              <i class="fas fa-cog"></i> 機種設定の編集
-            </a>
-          </div><!-- col -->
-        </div><!-- row -->
-        <div class="row">
-          {% if svg_data == '' %}
-          <div class="col text-center">
-            <form enctype="multipart/form-data"
-              action="{{urlprefix}}/"
-              method="post">
-              {% if len(models) > 0 %}
-              <div>
-                機種
-                <select name="model">
-                  {% for model in models %}
-                  <option value="{{model}}">{{model}}</option>
-                  {% end %}
-                </select>
-              </div>
+      {% if svg_data == '' %}
+      <!-- ==================== ファイル選択 ==================== -->
+      <section class="wrap wrap--narrow">
+        <h1 class="page-title">ロールブックを作る</h1>
+        <p class="page-lead">MIDI ファイルを選ぶと、穴あけ用の SVG を生成します。</p>
+
+        <article>
+          <form id="upload-form" enctype="multipart/form-data"
+            action="{{urlprefix}}/" method="post">
+            {% if len(models) > 0 %}
+            <label for="model">機種</label>
+            <select id="model" name="model">
+              {% for model in models %}
+              <option value="{{model}}">{{model}}</option>
               {% end %}
-              <div class="container-fluid">
-                <div class="col">
-                  <h4 class="text-center">{{ msg }}</h4>
-                  <input type="file" name="file1"
-                    value=""
-                    onchange="this.form.submit();"
-                    onclick="(el) => {el.target.value ='';};" />
-                  <br />
-                  ({{ size_limit }} {{ size_unit }}以下)
-                </div>
-              </div>
-            </form>
+            </select>
+
+            <!-- 選んだ機種の寸法を先に見せる。生成してから気づくのを避けるため -->
+            <dl class="specs" id="specs"></dl>
+
+            <hr>
+            {% end %}
+
+            <label class="drop" for="file1">
+              <svg class="drop__icon" width="34" height="34" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" aria-hidden="true">
+                <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/>
+                <path d="M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/>
+              </svg>
+              <div class="drop__main">MIDI ファイルをドロップ、またはクリックして選択</div>
+              <p class="drop__sub">
+                .mid / .midi — <span class="num">{{ size_limit }}</span>
+                {{ size_unit }} まで
+              </p>
+              <input type="file" id="file1" name="file1" accept=".mid,.midi"
+                onchange="this.form.submit();">
+            </label>
+          </form>
+          <p class="drop__status">{{ msg }}</p>
+        </article>
+      </section>
+
+      {% else %}
+      <!-- ==================== 生成結果 ==================== -->
+      <section class="wrap">
+        <div class="result-head">
+          <span class="badge-ok">生成しました</span>
+          <span class="result-file">{{ svg_filename }}</span>
+          <span class="page-lead" style="margin:0;">{{ msg }}</span>
+        </div>
+
+        <div class="viewer-card">
+          <div class="toolbar">
+            <div class="zoomgrp">
+              <button type="button" class="zoombtn" id="zoom-out" aria-label="縮小">−</button>
+              <input type="range" id="zoom" min="0" max="100" value="0"
+                aria-label="表示倍率">
+              <button type="button" class="zoombtn" id="zoom-in" aria-label="拡大">＋</button>
+              <span class="zoomval" id="zoomval">—</span>
+            </div>
+            <div class="toolbar__sep"></div>
+            <button type="button" class="secondary outline" id="fit-height">高さ合わせ</button>
+            <button type="button" class="secondary outline" id="fit-all">全体</button>
+            <button type="button" class="secondary outline" id="fit-actual"
+              title="画面上で実際の紙と同じ大きさ（96dpi 換算）">原寸</button>
+            <button type="button" class="secondary outline" id="to-start">先頭へ</button>
+            <div class="readout">
+              <span>位置 <b id="pos-mm">0</b> / {{ '%.0f' % book['width'] }} mm</span>
+              <span>時間 <b id="pos-t">0:00</b> / <span id="dur-t">0:00</span></span>
+            </div>
           </div>
-        </div> <!-- col -->
-        {% else %}
-        <div class="col p-0">
-          {% autoescape None %}
-          <a href="./">[ ファイル選択に戻る ]</a>
-          <strong>{{ msg }}</strong>
-          <p>
-            <a href="{{urlprefix}}/download/{{ svg_filename }}"
-              target="_blank">
-              {{ svg_data }}
-            </a>
-          </p>
-        </div> <!-- col -->
-        {% end %}
-      </div> <!-- row -->
-      <div class="row">
-      </div><!-- row -->
-           </div> <!-- container -->
-    </main>
-    <footer>
-      <div class="container">
-        <div class="row text-white bg-info">
-          <div class="col-6">
-            Version {{ version }}
+
+          <div class="svgbox" id="svgbox">
+            {% raw svg_data %}
           </div>
-          <div class="col-6 text-right">
-            &copy; {{ copyright_year }} <strong>{{ author }}</strong>
+
+          <!-- 全長 4m に対してスクロールバーだけでは足りないので帯を出す -->
+          <div class="minimap" id="minimap" title="クリックでその位置へ移動">
+            <span class="minimap__edge minimap__edge--l">END</span>
+            <span class="minimap__edge minimap__edge--r">START ▶</span>
+            <div class="minimap__window" id="mmwin"></div>
+          </div>
+
+          <div class="viewer-foot">
+            <span>全長 <b>{{ '%.2f' % book['width'] }}</b> mm</span>
+            <span>ブック高さ <b>{{ '%.2f' % book['height'] }}</b> mm</span>
+            <span>穴 <b>{{ book['holes'] }}</b> 個</span>
+            <span>演奏は右から左へ（1 秒 = {{ '%.0f' % book['mm_per_sec'] }} mm）</span>
+            <span class="spacer">
+              <a href="{{urlprefix}}/download/{{ svg_filename }}" target="_blank">
+                SVG をダウンロード
+              </a>
+            </span>
           </div>
         </div>
+
+        <div class="legend">
+          <span><i style="border-color: var(--hole);"></i>音階にある音（穴）</span>
+          <span><i style="border-color: currentColor; border-top-style: dashed;"></i>オルガンの音階に無い音 — 破線で描き、穴は開けません</span>
+        </div>
+
+        <p style="margin-top:.9rem;">
+          <a href="{{urlprefix}}/">← 別のファイルを選ぶ</a>
+        </p>
+      </section>
+      {% end %}
+    </main>
+
+    <footer class="appfoot">
+      <div>
+        <span>{{ title }}</span>
+        <span class="spacer">v{{ version }}</span>
+        <span>&copy; {{ copyright_year }} {{ author }}</span>
       </div>
     </footer>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
-      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
-      crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
-      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
-      crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
-      integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
-      crossorigin="anonymous"></script>
+
+    <script src="{{ static_url('js/storgan.js') }}"></script>
   </body>
 </html>

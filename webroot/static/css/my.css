@@ -1,0 +1,375 @@
+/*
+ * (c) 2026 Yoichi Tanibayashi
+ *
+ * Pico.css の上に載せるアプリ固有のスタイル。
+ * 外部 CDN は使わない（ローカルで動かす道具なので、ネットに繋がって
+ * いなくてもレイアウトが崩れないこと）。Web フォントも読み込まない。
+ */
+
+/* ---- トークン ---------------------------------------------------------- */
+/* 配色は生成される SVG そのものから採る:
+   ブック外枠 = 青 (#0000FF)、穴 = 赤 (#FF0000)。
+   それを画面用に彩度を落として使う。                                     */
+:root {
+  --cut:            #2947c8;   /* カットライン青 = 主要アクション */
+  --cut-bg:         #2947c8;
+  --cut-hover:      #1c37a5;
+  --cut-hover-bg:   #1c37a5;
+  --cut-focus:      rgba(41, 71, 200, 0.25);
+  --cut-underline:  rgba(41, 71, 200, 0.4);
+  --cut-weak:       #e7ebfb;
+  --hole:           #c8392f;   /* 穴の赤 = 破壊的操作・穴の表現 */
+  --hole-weak:      #fbeceb;
+  --ok:             #1b7a4b;
+  --rule:           #dcdfe8;
+  --fg:             #131722;   /* Pico はボタンの中で --pico-color を白に
+                                  上書きする。ボタンとして作った自前の
+                                  コントロールの文字色にはこちらを使う */
+  --mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cut: #8fa4ff; --cut-bg: #3a56d6;
+    --cut-hover: #b3c1ff; --cut-hover-bg: #2947c8;
+    --cut-focus: rgba(143, 164, 255, 0.3);
+    --cut-underline: rgba(143, 164, 255, 0.4);
+    --cut-weak: #1e2540;
+    --hole: #f08078; --hole-weak: #33201e;
+    --ok: #58c48c;
+    --rule: #2b3140;
+    --fg: #dfe3ee;
+  }
+}
+:root[data-theme="dark"] {
+  --cut: #8fa4ff; --cut-bg: #3a56d6;
+  --cut-hover: #b3c1ff; --cut-hover-bg: #2947c8;
+  --cut-focus: rgba(143, 164, 255, 0.3);
+  --cut-underline: rgba(143, 164, 255, 0.4);
+  --cut-weak: #1e2540;
+  --hole: #f08078; --hole-weak: #33201e;
+  --ok: #58c48c;
+  --rule: #2b3140;
+  --fg: #dfe3ee;
+}
+:root[data-theme="light"] {
+  --cut: #2947c8; --cut-bg: #2947c8;
+  --cut-hover: #1c37a5; --cut-hover-bg: #1c37a5;
+  --cut-focus: rgba(41, 71, 200, 0.25);
+  --cut-underline: rgba(41, 71, 200, 0.4);
+  --cut-weak: #e7ebfb;
+  --hole: #c8392f; --hole-weak: #fbeceb;
+  --ok: #1b7a4b;
+  --rule: #dcdfe8;
+  --fg: #131722;
+}
+
+/* ---- Pico の変数への割り当て ------------------------------------------ */
+/* [!! 重要 !!] セレクタを二重に書いているのは詳細度のため。
+   Pico は配色を `:root:not([data-theme=dark])` = (0,2,0) で定義している。
+   素の `:root` = (0,1,0) で上書きしようとすると、あとから読み込んでも
+   負けて Pico 既定の水色のままになる。                                  */
+:root:root {
+  --pico-primary:                  var(--cut);
+  --pico-primary-background:       var(--cut-bg);
+  --pico-primary-border:           var(--cut-bg);
+  --pico-primary-hover:            var(--cut-hover);
+  --pico-primary-hover-background: var(--cut-hover-bg);
+  --pico-primary-hover-border:     var(--cut-hover-bg);
+  --pico-primary-focus:            var(--cut-focus);
+  --pico-primary-underline:        var(--cut-underline);
+  --pico-border-radius:            6px;
+  /* 縦は Pico の既定より詰める。1 画面に収まる情報を増やしたい */
+  --pico-form-element-spacing-vertical: 0.4rem;
+  --pico-typography-spacing-vertical: 0.7rem;
+  --pico-block-spacing-vertical: 0.75rem;
+}
+
+/* ---- ヘッダー / 全体の枠 ---------------------------------------------- */
+/* 内容が短いページでフッターが画面の途中に浮かないよう、下端に寄せる */
+body { min-height: 100vh; display: flex; flex-direction: column; }
+body > main { flex: 1 0 auto; }
+
+.appbar {
+  border-bottom: 1px solid var(--rule);
+  background: var(--pico-card-background-color);
+}
+.appbar__inner {
+  max-width: 1180px; margin: 0 auto; padding: .55rem 1rem;
+  display: flex; align-items: center; gap: 1rem;
+}
+.brand { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: inherit; }
+.brand__name { font-weight: 700; font-size: 1rem; letter-spacing: .01em; }
+.brand__sub {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+  color: var(--pico-muted-color); text-transform: uppercase;
+}
+.appbar nav { margin-left: auto; display: flex; gap: .25rem; align-items: center; }
+.appbar nav a {
+  padding: .35rem .8rem; border-radius: 5px; font-size: .88rem;
+  text-decoration: none; color: var(--pico-muted-color);
+}
+.appbar nav a:hover { background: var(--cut-weak); color: var(--cut); }
+.appbar nav a[aria-current="page"] { background: var(--cut-weak); color: var(--cut); font-weight: 600; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 1.15rem 1rem 1.5rem; }
+.wrap--narrow { max-width: 680px; }
+
+h1.page-title { font-size: 1.45rem; margin-bottom: .25rem; }
+.page-lead { color: var(--pico-muted-color); font-size: .9rem; margin-bottom: 1rem; }
+
+/* 数値はすべて等幅・桁揃え。寸法を扱う道具なので数字が動くと読みにくい */
+.num, input[type="number"], .notes td input {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+
+footer.appfoot {
+  border-top: 1px solid var(--rule);
+  font-size: .75rem; color: var(--pico-muted-color);
+}
+/* Pico が `body>main` / `body>footer` に入れる padding-block を消す。
+   中身（.wrap / フッターの帯）が自前で余白を持っているので、二重に
+   すると間延びする。セレクタに html を足しているのは詳細度を
+   Pico (0,0,3) に揃えるため。                                        */
+html body > main,
+html body > footer.appfoot { padding-block: 0; }
+footer.appfoot div {
+  max-width: 1180px; margin: 0 auto; padding: .6rem 1rem;
+  display: flex; gap: 1rem; font-family: var(--mono);
+}
+footer.appfoot .spacer { margin-left: auto; }
+
+/* ---- 通知 -------------------------------------------------------------- */
+.alert {
+  border: 1px solid var(--rule); border-left-width: 4px; border-radius: 6px;
+  padding: .5rem .9rem; margin-bottom: .75rem; font-size: .87rem;
+}
+.alert--ok { border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); }
+.alert--error { border-left-color: var(--hole); background: var(--hole-weak); }
+.alert--warn { border-left-color: var(--pico-muted-color); }
+
+/* ---- ファイル選択 ------------------------------------------------------ */
+.drop {
+  display: block; cursor: pointer; text-align: center;
+  border: 2px dashed var(--rule); border-radius: 10px;
+  padding: 1.75rem 1.5rem; transition: border-color .15s, background .15s;
+}
+.drop:hover, .drop:focus-within { border-color: var(--cut); background: var(--cut-weak); }
+.drop input[type="file"] {
+  /* display:none にするとキーボードから辿れなくなるので、視覚的にだけ隠す */
+  position: absolute; width: 1px; height: 1px;
+  clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+}
+.drop__icon { color: var(--cut); }
+.drop__main { font-weight: 600; margin: .6rem 0 .25rem; }
+.drop__sub { font-size: .8rem; color: var(--pico-muted-color); margin: 0; }
+/* サーバーからのメッセージ（選択待ち / 読み込んだファイル名）の置き場 */
+.drop__status {
+  font-size: .78rem; color: var(--pico-muted-color);
+  margin: .55rem 0 0; text-align: center;
+}
+
+/* 選んだ機種の寸法を先に見せる。生成してから気づくのを避けるため */
+.specs { display: flex; flex-wrap: wrap; gap: 0 1.75rem; margin: 0; }
+.specs div { padding: .3rem 0; }
+.specs dt { font-size: .7rem; letter-spacing: .06em; color: var(--pico-muted-color); }
+.specs dd {
+  margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: .95rem; font-weight: 600;
+}
+.specs dd small { font-weight: 400; color: var(--pico-muted-color); font-size: .72rem; }
+
+/* ---- 生成結果 ---------------------------------------------------------- */
+.result-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem 1rem;
+  margin-bottom: .8rem;
+}
+.badge-ok {
+  font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
+  padding: .15rem .5rem; border-radius: 999px;
+}
+.result-file { font-family: var(--mono); font-size: .95rem; font-weight: 600; }
+
+.viewer-card {
+  border: 1px solid var(--rule); border-radius: 10px; overflow: hidden;
+  background: var(--pico-card-background-color);
+}
+
+.toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem;
+  padding: .45rem .8rem; border-bottom: 1px solid var(--rule);
+}
+.toolbar button:not(.zoombtn) { margin: 0; padding: .32rem .75rem; font-size: .82rem; width: auto; }
+.toolbar__sep { width: 1px; align-self: stretch; background: var(--rule); }
+
+.zoomgrp { display: flex; align-items: center; gap: .4rem; }
+.zoomgrp input[type="range"] { width: 130px; margin: 0; }
+.zoombtn {
+  all: unset; cursor: pointer; width: 1.9rem; height: 1.9rem; text-align: center;
+  line-height: 1.9rem; border: 1px solid var(--rule); border-radius: 5px;
+  font-family: var(--mono); color: var(--fg); box-sizing: border-box;
+}
+.zoombtn:hover { border-color: var(--cut); color: var(--cut); }
+.zoombtn:focus-visible { outline: 2px solid var(--cut); outline-offset: 1px; }
+.zoomval {
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .8rem;
+  min-width: 4.2em; color: var(--pico-muted-color);
+}
+
+/* 1sec = 50mm。つまりスクロール位置がそのまま演奏時間になる。
+   読み取り値を出しておくと「どのフレーズを見ているか」が分かる          */
+.readout {
+  margin-left: auto; display: flex; flex-wrap: wrap; gap: 1.1rem;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .78rem;
+  color: var(--pico-muted-color);
+}
+.readout b { font-weight: 600; color: var(--pico-color); }
+
+/* [!! 重要 !!] transform では拡縮しない。SVG の描画サイズそのものを変える。
+   こうするとブラウザ標準のスクロールがそのまま効き、スクロールバーが
+   全体の中の現在位置を示す。SVG が mm 単位なので倍率 1.0 が原寸になる。 */
+.svgbox {
+  overflow: auto; height: clamp(300px, 48vh, 560px); padding: 1rem;
+  background: var(--pico-background-color);
+  background-image: linear-gradient(var(--rule) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 20px 20px; background-position: -1px -1px;
+}
+.svgbox.is-grabbing { cursor: grabbing; }
+.svgbox > svg {
+  display: block; width: auto; max-width: none;
+  /* --book-h / --z は storgan.js が入れる。倍率が未設定でも潰れないよう既定値 */
+  height: calc(var(--book-h, 126mm) * var(--z, .2));
+  background: #fff; box-shadow: 0 1px 6px rgba(19, 23, 34, .18);
+}
+
+/* 全長 4m のうち今どこか。スクロールバーだけでは足りないので帯を出す */
+.minimap {
+  position: relative; height: 26px; margin: 0; cursor: pointer;
+  border-top: 1px solid var(--rule);
+  background: repeating-linear-gradient(90deg,
+    color-mix(in srgb, var(--hole) 22%, transparent) 0 1px,
+    transparent 1px 7px);
+}
+.minimap__window {
+  position: absolute; top: 0; bottom: 0;
+  background: color-mix(in srgb, var(--cut) 22%, transparent);
+  border: 1px solid var(--cut); border-radius: 2px;
+}
+.minimap__edge {
+  position: absolute; top: 0; bottom: 0; display: flex; align-items: center;
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .06em;
+  color: var(--pico-muted-color); padding: 0 .5rem; pointer-events: none;
+}
+.minimap__edge--l { left: 0; }
+.minimap__edge--r { right: 0; }
+
+.viewer-foot {
+  display: flex; flex-wrap: wrap; gap: .35rem 1.5rem;
+  padding: .45rem .8rem; border-top: 1px solid var(--rule);
+  font-size: .78rem; color: var(--pico-muted-color);
+}
+.viewer-foot b {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--pico-color); font-weight: 600;
+}
+.viewer-foot .spacer { margin-left: auto; }
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: 1.1rem; align-items: center;
+  font-size: .75rem; color: var(--pico-muted-color); margin-top: .7rem;
+}
+.legend i {
+  display: inline-block; width: 14px; height: 0; border-top: 2px solid;
+  margin-right: .35rem; vertical-align: middle;
+}
+
+/* ---- 機種設定 ---------------------------------------------------------- */
+.toolrow { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: .9rem; }
+.toolrow select { margin: 0; width: auto; min-width: 11rem; }
+.toolrow label { margin: 0; font-size: .87rem; }
+.toolrow button { margin: 0; width: auto; padding: .38rem .8rem; font-size: .84rem; }
+.toolrow .spacer { margin-left: auto; }
+
+.cfg-grid {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: .9rem; align-items: start;
+}
+@media (max-width: 900px) { .cfg-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel {
+  border: 1px solid var(--rule); border-radius: 10px;
+  background: var(--pico-card-background-color); margin-bottom: .9rem;
+}
+.panel > h2 {
+  font-size: .82rem; letter-spacing: .07em; margin: 0;
+  padding: .5rem .9rem; border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; gap: .5rem;
+}
+.panel > h2 .count {
+  margin-left: auto; font-family: var(--mono); font-weight: 400; font-size: .72rem;
+  color: var(--pico-muted-color); letter-spacing: 0;
+}
+.panel__body { padding: .7rem .9rem; }
+
+/* ラベル / 入力 / 単位 の 3 カラム。単位を入力欄の外に出して桁を揃える */
+.field {
+  display: grid; grid-template-columns: 1fr 7.5rem 2.6rem; gap: .5rem;
+  align-items: center; margin-bottom: .35rem;
+}
+.field:last-child { margin-bottom: 0; }
+.field > label { margin: 0; font-size: .87rem; }
+.field > label small { display: block; font-family: var(--mono); font-size: .68rem; color: var(--pico-muted-color); }
+.field > input { margin: 0; text-align: right; padding: .3rem .5rem; height: auto; }
+.field > input[type="text"] { text-align: left; }
+.field__unit { font-family: var(--mono); font-size: .75rem; color: var(--pico-muted-color); }
+.field__hint { grid-column: 1 / -1; font-size: .72rem; color: var(--pico-muted-color); margin: -.1rem 0 .2rem; }
+
+.notes-scroll { max-height: 460px; overflow-y: auto; }
+table.notes { margin: 0; font-size: .82rem; }
+table.notes thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--pico-card-background-color);
+  border-bottom: 1px solid var(--rule);
+  font-size: .7rem; letter-spacing: .06em; color: var(--pico-muted-color);
+  padding: .45rem .5rem;
+}
+table.notes td { padding: .2rem .5rem; border-bottom: 1px solid var(--rule); }
+table.notes td input { margin: 0; padding: .15rem .4rem; font-size: .82rem; height: auto; line-height: 1.35; }
+table.notes td.track-num {
+  font-family: var(--mono); color: var(--pico-muted-color); font-size: .75rem;
+  text-align: right; width: 2.6rem;
+}
+.btn-row {
+  all: unset; cursor: pointer; color: var(--hole);
+  padding: .1rem .4rem; border-radius: 4px; font-size: .95rem; line-height: 1;
+}
+.btn-row:hover { background: var(--hole-weak); }
+.btn-row:focus-visible { outline: 2px solid var(--hole); outline-offset: 1px; }
+
+.savebar {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+  padding: .55rem .9rem; margin-top: .25rem;
+  border: 1px solid var(--rule); border-radius: 10px;
+  background: color-mix(in srgb, var(--pico-card-background-color) 97%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -2px 10px rgba(19, 23, 34, .07);
+}
+.savebar__msg { font-size: .82rem; color: var(--pico-muted-color); }
+.savebar button { margin: 0; width: auto; margin-left: auto; }
+
+/* Pico はボタン要素の中で --pico-color を上書きする。破壊的操作の色は
+   自前のトークンから直接指定しないと、ボタン内で白くなる。            */
+.btn-danger {
+  --pico-background-color: transparent;
+  color: var(--hole); border-color: var(--hole);
+}
+
+.dialog-error { color: var(--hole); font-size: .82rem; margin: .5rem 0 0; }
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
