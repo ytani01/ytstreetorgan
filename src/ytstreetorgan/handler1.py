@@ -136,7 +136,8 @@ class Handler1(StorganBaseHandler):
 
         self._render()
 
-    def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None):
+    def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None,
+                src_size=''):
         """テンプレートを描画する。
 
         ``svg_data`` が空なら「ファイル選択」、そうでなければ「生成結果」の
@@ -152,6 +153,9 @@ class Handler1(StorganBaseHandler):
         book: dict | None
             ``RollBook`` の寸法（width / height / holes / mm_per_sec）。
             ファイル選択の画面では None。
+        src_size: str
+            元 MIDI のサイズ（'12.3 KB'）。ファイル名は SVG 名
+            （＝ MIDI 名 + '.svg'）に含まれるので渡さない。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
@@ -168,6 +172,7 @@ class Handler1(StorganBaseHandler):
                     svg_data=svg_data,
                     svg_filename=svg_filename,
                     book=book or {},
+                    src_size=src_size,
                     msg=msg)
 
     async def post(self):
@@ -193,7 +198,7 @@ class Handler1(StorganBaseHandler):
         result = self.get_filesize(file1_path)
         assert result is not None
         f_size, unit = result
-        msg = '{} ({:.1f} {})'.format(file1['filename'], f_size, unit)
+        src_size = f'{f_size:.1f} {unit}'
 
         svg_data = rollbook.parse_to_file(file1_path, svg1_path)
         logger.debug('len(svg_data)={}', len(svg_data))
@@ -201,7 +206,7 @@ class Handler1(StorganBaseHandler):
         self._render(
             svg_data=svg_data,
             svg_filename=svg1_fname,
-            msg=msg,
+            src_size=src_size,
             book={
                 'width': round(rollbook.width, 2),
                 'height': round(rollbook.height, 2),

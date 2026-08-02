@@ -191,6 +191,7 @@ footer.appfoot .spacer { margin-left: auto; }
   padding: .15rem .5rem; border-radius: 999px;
 }
 .result-file { font-family: var(--mono); font-size: .95rem; font-weight: 600; }
+.result-src { font-size: .8rem; color: var(--pico-muted-color); }
 
 .viewer-card {
   border: 1px solid var(--rule); border-radius: 10px; overflow: hidden;
@@ -219,13 +220,16 @@ footer.appfoot .spacer { margin-left: auto; }
 }
 
 /* 1sec = 50mm。つまりスクロール位置がそのまま演奏時間になる。
-   読み取り値を出しておくと「どのフレーズを見ているか」が分かる          */
+   読み取り値を出しておくと「どのフレーズを見ているか」が分かる。
+   全長・演奏時間は .viewer-foot にあるので、ここは現在位置だけ。      */
 .readout {
-  margin-left: auto; display: flex; flex-wrap: wrap; gap: 1.1rem;
+  margin-left: auto; display: flex; align-items: baseline; gap: .3rem;
   font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .78rem;
   color: var(--pico-muted-color);
 }
 .readout b { font-weight: 600; color: var(--pico-color); }
+.readout__label { font-family: var(--pico-font-family); margin-right: .15rem; }
+.readout__sep { opacity: .5; }
 
 /* [!! 重要 !!] transform では拡縮しない。SVG の描画サイズそのものを変える。
    こうするとブラウザ標準のスクロールがそのまま効き、スクロールバーが

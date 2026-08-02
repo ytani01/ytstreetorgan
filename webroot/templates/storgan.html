@@ -94,10 +94,12 @@
       {% else %}
       <!-- ==================== 生成結果 ==================== -->
       <section class="wrap">
+        <!-- SVG 名は「MIDI 名 + .svg」なので、元ファイル名は出さない
+             （同じ名前が二度並ぶだけになる）。サイズだけ添える。 -->
         <div class="result-head">
           <span class="badge-ok">生成しました</span>
           <span class="result-file">{{ svg_filename }}</span>
-          <span class="page-lead" style="margin:0;">{{ msg }}</span>
+          <span class="result-src">元 MIDI <span class="num">{{ src_size }}</span></span>
         </div>
 
         <div class="viewer-card">
@@ -115,9 +117,12 @@
             <button type="button" class="secondary outline" id="fit-actual"
               title="画面上で実際の紙と同じ大きさ（96dpi 換算）">原寸</button>
             <button type="button" class="secondary outline" id="to-start">先頭へ</button>
+            <!-- 現在位置だけ。全長・総時間はフッターに一度だけ出す -->
             <div class="readout">
-              <span>位置 <b id="pos-mm">0</b> / {{ '%.0f' % book['width'] }} mm</span>
-              <span>時間 <b id="pos-t">0:00</b> / <span id="dur-t">0:00</span></span>
+              <span class="readout__label">現在位置</span>
+              <b id="pos-mm">0</b> mm
+              <span class="readout__sep">·</span>
+              <b id="pos-t">0:00</b>
             </div>
           </div>
 
@@ -132,11 +137,13 @@
             <div class="minimap__window" id="mmwin"></div>
           </div>
 
+          <!-- ブックの諸元はここに一度だけ。総時間 (#dur-t) は storgan.js が入れる -->
           <div class="viewer-foot">
-            <span>全長 <b>{{ '%.2f' % book['width'] }}</b> mm</span>
-            <span>ブック高さ <b>{{ '%.2f' % book['height'] }}</b> mm</span>
+            <span>全長 <b>{{ '%.1f' % book['width'] }}</b> mm</span>
+            <span>演奏時間 <b id="dur-t">0:00</b></span>
+            <span>高さ <b>{{ '%.1f' % book['height'] }}</b> mm</span>
             <span>穴 <b>{{ book['holes'] }}</b> 個</span>
-            <span>演奏は右から左へ（1 秒 = {{ '%.0f' % book['mm_per_sec'] }} mm）</span>
+            <span>1 秒 = <b>{{ '%.0f' % book['mm_per_sec'] }}</b> mm</span>
             <a class="dlbtn spacer" role="button" download
               href="{{urlprefix}}/download/{{ svg_filename }}">
               <svg width="14" height="14" viewBox="0 0 24 24"
@@ -151,6 +158,7 @@
         </div>
 
         <div class="legend">
+          <span>演奏は右から左へ（右端が曲の先頭）</span>
           <span><i style="border-color: var(--hole);"></i>音階にある音（穴）</span>
           <span><i style="border-color: currentColor; border-top-style: dashed;"></i>オルガンの音階に無い音 — 破線で描き、穴は開けません</span>
         </div>
