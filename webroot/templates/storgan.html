@@ -137,11 +137,16 @@
             <span>ブック高さ <b>{{ '%.2f' % book['height'] }}</b> mm</span>
             <span>穴 <b>{{ book['holes'] }}</b> 個</span>
             <span>演奏は右から左へ（1 秒 = {{ '%.0f' % book['mm_per_sec'] }} mm）</span>
-            <span class="spacer">
-              <a href="{{urlprefix}}/download/{{ svg_filename }}" target="_blank">
-                SVG をダウンロード
-              </a>
-            </span>
+            <a class="dlbtn spacer" role="button" download
+              href="{{urlprefix}}/download/{{ svg_filename }}">
+              <svg width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" aria-hidden="true">
+                <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/>
+                <path d="M4 19h16"/>
+              </svg>
+              SVG をダウンロード
+            </a>
           </div>
         </div>
 
@@ -149,10 +154,6 @@
           <span><i style="border-color: var(--hole);"></i>音階にある音（穴）</span>
           <span><i style="border-color: currentColor; border-top-style: dashed;"></i>オルガンの音階に無い音 — 破線で描き、穴は開けません</span>
         </div>
-
-        <p style="margin-top:.9rem;">
-          <a href="{{urlprefix}}/">← 別のファイルを選ぶ</a>
-        </p>
       </section>
       {% end %}
     </main>
