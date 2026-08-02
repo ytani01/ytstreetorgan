@@ -311,9 +311,27 @@ footer.appfoot .spacer { margin-left: auto; }
 
 .cfg-grid {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: .9rem; align-items: start;
+  gap: .9rem; align-items: stretch;
 }
-@media (max-width: 900px) { .cfg-grid { grid-template-columns: minmax(0, 1fr); } }
+/* 音階マッピングの高さは左カラム（基本寸法＋ブリッジ）に揃え、
+   トラックの表はその中でスクロールさせる。
+   height:0 + min-height:100% は、右の中身が行の高さを押し上げないため
+   （素の height:100% だと、行高が中身で決まってから伸びるので揃わない）。 */
+.cfg-col--notes { height: 0; min-height: 100%; display: flex; }
+.cfg-col--notes > .panel {
+  flex: 1; min-height: 0; margin-bottom: 0;
+  display: flex; flex-direction: column;
+}
+.cfg-col--notes .notes-scroll { flex: 1; min-height: 0; max-height: none; }
+/* 揃えた下端が gap 分ずれないように、左カラム末尾の余白は落とす */
+.cfg-grid > div > .panel:last-child { margin-bottom: 0; }
+
+/* 1 カラムになったら縦に積むだけ。揃える相手がいないので高さは戻す */
+@media (max-width: 900px) {
+  .cfg-grid { grid-template-columns: minmax(0, 1fr); }
+  .cfg-col--notes { height: auto; min-height: 0; }
+  .cfg-col--notes .notes-scroll { max-height: 460px; }
+}
 
 .panel {
   border: 1px solid var(--rule); border-radius: 10px;
@@ -341,6 +359,20 @@ footer.appfoot .spacer { margin-left: auto; }
 .field > input { margin: 0; text-align: right; padding: .3rem .5rem; height: auto; }
 .field > input[type="text"] { text-align: left; }
 .field__unit { font-family: var(--mono); font-size: .75rem; color: var(--pico-muted-color); }
+
+/* 先頭の横断パネル。3 カラムのまま横いっぱいに伸ばすと、ラベルと入力欄が
+   両端に離れて対応が読めないので、ここだけ左に寄せる。 */
+.panel--head .field { grid-template-columns: 8rem 16rem 1fr; }
+
+/* メモは値ではなく覚え書きなので、3 カラムに載せずに横いっぱいへ。
+   高さは 2 行分に抑える（寸法の入力欄を押し下げないため）。 */
+.field--memo { display: block; margin-top: .5rem; }
+.field--memo > label { margin-bottom: .25rem; }
+.field--memo > label small { display: inline; margin-left: .4rem; }
+.field--memo > textarea {
+  margin: 0; padding: .35rem .5rem; font-size: .87rem; line-height: 1.5;
+  height: auto; resize: vertical;
+}
 .field__hint { grid-column: 1 / -1; font-size: .72rem; color: var(--pico-muted-color); margin: -.1rem 0 .2rem; }
 
 .notes-scroll { max-height: 460px; overflow-y: auto; }

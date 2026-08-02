@@ -71,16 +71,29 @@
         </div>
 
         <form id="config-form" onsubmit="return false;">
+          <!-- 機種名とメモは 2 カラムをまたいで先頭に置く。メモを左カラムの
+               末尾に置くと、どの機種の覚え書きなのか目に入らなかった。 -->
+          <section class="panel panel--head">
+            <h2>機種</h2>
+            <div class="panel__body">
+              <div class="field">
+                <label for="field-model">機種名<small>model</small></label>
+                <input type="text" id="field-model" name="model" required>
+                <span class="field__unit"></span>
+              </div>
+              <div class="field field--memo">
+                <label for="field-memo">メモ<small>memo</small></label>
+                <textarea id="field-memo" name="memo" rows="2"
+                  placeholder="この機種についての覚え書き"></textarea>
+              </div>
+            </div>
+          </section>
+
           <div class="cfg-grid">
             <div>
               <section class="panel">
                 <h2>基本寸法</h2>
                 <div class="panel__body">
-                  <div class="field">
-                    <label for="field-model">機種名<small>model</small></label>
-                    <input type="text" id="field-model" name="model" required>
-                    <span class="field__unit"></span>
-                  </div>
                   <div class="field">
                     <label for="field-book-height">ブック高さ<small>book height</small></label>
                     <input type="number" step="0.1" id="field-book-height"
@@ -142,17 +155,9 @@
                   </div>
                 </div>
               </section>
-
-              <section class="panel">
-                <h2>メモ</h2>
-                <div class="panel__body">
-                  <textarea id="field-memo" name="memo" rows="3"
-                    placeholder="この機種についての覚え書き"></textarea>
-                </div>
-              </section>
             </div>
 
-            <div>
+            <div class="cfg-col--notes">
               <section class="panel">
                 <h2>
                   音階マッピング
