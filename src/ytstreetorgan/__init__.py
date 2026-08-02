@@ -8,7 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from loguru import logger
 
-__author__ = 'Yoichi Tanibayashi'
+__author__ = 'ytani01'
 __copyright_year__ = "2026"
 
 
