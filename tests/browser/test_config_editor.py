@@ -51,6 +51,21 @@ def test_add_and_delete_note_row_renumbers(live_server: str, page: Page) -> None
     expect(rows.last.locator('.track-num')).to_have_text('34')
 
 
+def test_add_model_dialog_inherits_current_model(
+    live_server: str, page: Page
+) -> None:
+    """追加ダイアログは、今編集している機種を引き継ぐ。"""
+    page.goto(f'{live_server}/config')
+    page.select_option('#model-select', '20notes')
+    expect(page.locator('#field-model')).to_have_value('20notes')
+
+    page.click('#btn-add-model')
+
+    # コピー元は編集中の機種。名前もそれを元にした（重複しない）候補
+    expect(page.locator('#copy-from-model')).to_have_value('20notes')
+    expect(page.locator('#new-model-name')).to_have_value('20notes 2')
+
+
 def test_save_persists_edited_value(live_server: str, page: Page) -> None:
     """フォームの編集内容が保存され、サーバー側の値が変わる。"""
     page.goto(f'{live_server}/config')

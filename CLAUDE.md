@@ -118,6 +118,12 @@ Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書い
 
 モーダルは `<dialog>` +`showModal()`（Pico が素で面倒を見る）。
 
+選択中の機種は `static/js/model_store.js`（`window.ModelStore`）が localStorage
+（キー `storgan.model`）で持ち、作成画面と機種設定の間で受け継ぐ。サーバーには
+持たせない（端末ごとの状態で、設定ファイルに書き戻すものではないため）。
+覚えている機種は設定画面で削除・改名され得るので、復元は必ず
+`ModelStore.pick(names, fallback)` を通す。
+
 ### ロールブックのビューア
 
 `storgan.js` の後半。**transform で拡縮していない。SVG の描画サイズ

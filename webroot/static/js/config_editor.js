@@ -165,6 +165,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     currentModel = modelName;
+    // 機種の切り替えは必ずここを通る（追加・削除・改名の後も）。
+    // 覚えておいて、他の画面へ移ってもこの機種のままにする。
+    window.ModelStore.save(modelName);
+
     for (const [id, key] of Object.entries(FIELDS)) {
       const val = conf[key];
       $(id).value = val !== undefined && val !== null ? val : "";
@@ -278,11 +282,26 @@ document.addEventListener("DOMContentLoaded", function () {
     dialog.close();
   }
 
+  /* 既存機種と重複しない名前を作る。「34notes」→「34notes 2」 */
+  function suggestModelName(base) {
+    let name = base;
+    for (let i = 2; confData.some(d => d.model === name); i++) {
+      name = `${base} ${i}`;
+    }
+    return name;
+  }
+
   $("btn-add-model").addEventListener("click", () => {
-    newNameInput.value = "";
+    /* 今編集している機種を引き継ぐ。新機種はたいていその派生なので、
+       コピー元をそれにし、名前もそれを元にした候補を入れておく。
+       コピー元の選択肢はここで作り直す（機種を切り替えたあとでも
+       ダイアログが古い機種を指したままにならないように）。 */
+    fillSelect(copySelect, currentModel);
+    newNameInput.value = currentModel ? suggestModelName(currentModel) : "";
     addError.hidden = true;
     dialog.showModal();
     newNameInput.focus();
+    newNameInput.select();  // そのまま打ち直せるように全選択しておく
   });
 
   for (const id of ["btn-cancel-add-model", "btn-close-add-model"]) {
@@ -366,7 +385,10 @@ document.addEventListener("DOMContentLoaded", function () {
   /* ---- 初期表示 -------------------------------------------------------- */
 
   if (confData.length > 0) {
-    const initialModel = confData[0].model;
+    // 前の画面で選んだ機種を引き継ぐ。無ければ先頭の機種
+    const initialModel = window.ModelStore.pick(
+      confData.map(d => d.model), confData[0].model
+    );
     renderModelSelect(initialModel);
     loadModelIntoForm(initialModel);
   }

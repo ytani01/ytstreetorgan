@@ -47,7 +47,14 @@
     }));
   }
 
-  select.addEventListener("change", () => updateSpecs(select.value));
+  // 前の画面で選んだ機種を引き継ぐ（無ければサーバーが出した既定のまま）
+  const names = Array.from(select.options).map(o => o.value);
+  select.value = window.ModelStore.pick(names, select.value);
+
+  select.addEventListener("change", () => {
+    window.ModelStore.save(select.value);
+    updateSpecs(select.value);
+  });
   updateSpecs(select.value);
 })();
 
