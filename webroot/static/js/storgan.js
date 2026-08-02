@@ -75,7 +75,7 @@
 
   const PX_PER_MM = 96 / 25.4;
   const Z_MIN = 0.02;
-  const Z_MAX = 2.0;
+  const Z_MAX = 5.0;
 
   const $ = id => document.getElementById(id);
   const zoomEl = $("zoom");
@@ -89,7 +89,7 @@
 
   box.style.setProperty("--book-h", book.height + "mm");
 
-  // 倍率の刻みは対数。2% と 200% を線形に並べると低倍率側が潰れる
+  // 倍率の刻みは対数。2% と 500% を線形に並べると低倍率側が潰れる
   const toSlider = v => Math.round(
     100 * (Math.log(v) - Math.log(Z_MIN)) / (Math.log(Z_MAX) - Math.log(Z_MIN))
   );
