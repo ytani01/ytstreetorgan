@@ -91,7 +91,12 @@ class WebServer:
             static_path=self._webroot / 'static',
             static_url_prefix=self._urlprefix + '/static/',
             template_path=self._webroot / 'templates',
+            # autoreload だけでは .py しか反映されない。テンプレートと
+            # 静的ファイルのハッシュもキャッシュを切らないと、直しても
+            # サーバーを再起動するまで反映されない。
             autoreload=True,
+            compiled_template_cache=False,
+            static_hash_cache=False,
             # xsrf_cookies=False,
 
             webroot=self._webroot,

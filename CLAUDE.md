@@ -97,10 +97,11 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 prefix が付くうえに `?v=<hash>` が付くので、更新したときに古いキャッシュを
 掴まれない。
 
-**テンプレートも静的ファイルのハッシュも `autoreload=True` では更新されない。**
-`compiled_template_cache` と `static_hash_cache` が効いたままなので（無効化するのは
-`debug=True`）、テンプレートや CSS / JS を直したら**サーバーを再起動**すること。
-再起動せずに「直したのに変わらない」と悩んだ実績が二度ある。
+`autoreload=True` **だけでは `.py` しか反映されない**（テンプレートは
+`compiled_template_cache`、`?v=<hash>` は `static_hash_cache` が握っている）。
+かつて再起動せずに「直したのに変わらない」と悩んだ実績が二度あるので、
+`WebServer` はこの 2 つも `False` にしてある。**再起動は不要**。
+消すと元の落とし穴に戻る。
 
 ### フロントエンド
 
