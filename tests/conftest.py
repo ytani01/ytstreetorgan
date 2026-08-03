@@ -22,7 +22,7 @@ TEST_URL_PREFIX = '/storgan-test'
 def isolate_user_config(tmp_path_factory):
     """全テストで、利用者の実設定を触らないようにする。"""
     conf_dir = tmp_path_factory.mktemp('conf')
-    shutil.copy(REPO_ROOT / 'conf' / 'storgan.conf-dist',
+    shutil.copy(REPO_ROOT / 'conf' / Conf.CONF_FNAME,
                 conf_dir / Conf.CONF_FNAME)
 
     original = Conf.SEARCH_PATH

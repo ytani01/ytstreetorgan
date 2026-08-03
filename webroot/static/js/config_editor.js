@@ -135,15 +135,12 @@ document.addEventListener("DOMContentLoaded", function () {
     return noteBody.querySelectorAll("tr.note-row");
   }
 
-  function renderNoteTable(noteNames, noteOffsets) {
+  function renderNoteTable(notes) {
     noteBody.replaceChildren();
 
-    const count = Math.max(noteNames.length, noteOffsets.length);
-    for (let i = 0; i < count; i++) {
-      const name = noteNames[i] !== undefined ? noteNames[i] : "";
-      const offset = noteOffsets[i] !== undefined ? noteOffsets[i] : 0;
-      appendNoteRow(i + 1, name, offset);
-    }
+    notes.forEach((note, i) => {
+      appendNoteRow(i + 1, note.name || "", note.offset || 0);
+    });
     updateTrackBadge();
   }
 
@@ -174,18 +171,17 @@ document.addEventListener("DOMContentLoaded", function () {
       $(id).value = val !== undefined && val !== null ? val : "";
     }
 
-    renderNoteTable(conf["note name"] || [], conf["note offset"] || []);
+    renderNoteTable(conf["notes"] || []);
   }
 
   function gatherFormData() {
-    const noteNames = [];
-    const noteOffsets = [];
+    const notes = [];
 
     noteRows().forEach(tr => {
-      noteNames.push(tr.querySelector(".note-name-input").value.trim());
-      noteOffsets.push(
-        parseInt(tr.querySelector(".note-offset-input").value, 10) || 0
-      );
+      notes.push({
+        name: tr.querySelector(".note-name-input").value.trim(),
+        offset: parseInt(tr.querySelector(".note-offset-input").value, 10) || 0,
+      });
     });
 
     const data = {};
@@ -193,8 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const raw = $(id).value;
       data[key] = NUMERIC[key] ? NUMERIC[key](raw) : raw.trim();
     }
-    data["note name"] = noteNames;
-    data["note offset"] = noteOffsets;
+    data["notes"] = notes;
     return data;
   }
 

@@ -363,8 +363,7 @@ class TestValidateConfig:
             "pitch": 3.5,
             "hole height": 2.5,
             "1sec": 50,
-            "note name": ["C", "D"],
-            "note offset": [0, 2],
+            "notes": [{"name": "C", "offset": 0}, {"name": "D", "offset": 2}],
             "base note": 60,
             "bridge width": 1,
             "bridge threshold": 50,
@@ -402,7 +401,7 @@ class TestValidateConfig:
             "base note": 60,
             "bridge width": 1,
             "bridge threshold": 50,
-            "note name": ["C"], "note offset": [0]
+            "notes": [{"name": "C", "offset": 0}]
         }
         valid, msg = validate_config(sample)
         assert valid is False
@@ -418,13 +417,22 @@ class TestValidateConfig:
             "base note": "60.5",
             "bridge width": 1,
             "bridge threshold": 50,
-            "note name": ["C"], "note offset": [0]
+            "notes": [{"name": "C", "offset": 0}]
         }
         valid, msg = validate_config(sample)
         assert valid is False
         assert "'base note'" in msg
 
-    def test_length_mismatch(self):
+    # 'notes' の各要素は {'name': str, 'offset': int}。
+    # 壊れ方ごとに、どの要素が悪いのか（index）が分かること。
+    @pytest.mark.parametrize("bad_note, expected", [
+        ("C", "must be an object"),
+        ({"offset": 0}, "must have a string 'name'"),
+        ({"name": 60, "offset": 0}, "must have a string 'name'"),
+        ({"name": "C"}, "must have an integer 'offset'"),
+        ({"name": "C", "offset": "abc"}, "must have an integer 'offset'"),
+    ])
+    def test_invalid_note_item(self, bad_note, expected):
         sample = {
             "model": "test_model",
             "book height": 100,
@@ -435,11 +443,29 @@ class TestValidateConfig:
             "base note": 60,
             "bridge width": 1,
             "bridge threshold": 50,
-            "note name": ["C", "D"], "note offset": [0]
+            "notes": [{"name": "C", "offset": 0}, bad_note]
         }
         valid, msg = validate_config(sample)
         assert valid is False
-        assert "Length mismatch" in msg
+        assert "index 1" in msg
+        assert expected in msg
+
+    def test_notes_must_be_a_list(self):
+        sample = {
+            "model": "test_model",
+            "book height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole height": 2.5,
+            "1sec": 50,
+            "base note": 60,
+            "bridge width": 1,
+            "bridge threshold": 50,
+            "notes": {"name": "C", "offset": 0}
+        }
+        valid, msg = validate_config(sample)
+        assert valid is False
+        assert "'notes' must be a list" in msg
 
 
 # ---------------------------------------------------------------------
@@ -460,7 +486,7 @@ class TestConfMutations:
                 "base note": 60,
                 "bridge width": 1,
                 "bridge threshold": 50,
-                "note name": ["C"], "note offset": [0], "memo": "m1 memo"
+                "notes": [{"name": "C", "offset": 0}], "memo": "m1 memo"
             }
         ]
         file_path = tmp_path / "storgan-conf.json"
@@ -510,7 +536,7 @@ class TestConfMutations:
             "base note": 60,
             "bridge width": 1,
             "bridge threshold": 50,
-            "note name": ["D"], "note offset": [2], "memo": "m2 memo"
+            "notes": [{"name": "D", "offset": 2}], "memo": "m2 memo"
         }
         ok, msg = conf.add_model(new_model)
 
@@ -553,7 +579,7 @@ class TestCoerceNumericFields:
         "hole height": "2.5", "1sec": "50",
         "base note": "60",
         "bridge width": "1", "bridge threshold": "50",
-        "note name": ["C", "D"], "note offset": ["0", "2"],
+        "notes": [{"name": "C", "offset": "0"}, {"name": "D", "offset": "2"}],
         "memo": "keep me",
     }
 
@@ -562,7 +588,9 @@ class TestCoerceNumericFields:
 
         for field, cast in NUMERIC_FIELDS.items():
             assert type(out[field]) is cast, field
-        assert out["note offset"] == [0, 2]
+        assert out["notes"] == [
+            {"name": "C", "offset": 0}, {"name": "D", "offset": 2}
+        ]
 
     def test_does_not_mutate_input(self):
         original = dict(self.SAMPLE)
@@ -574,7 +602,7 @@ class TestCoerceNumericFields:
         # 未知のキー（旧設定の名残など）は素通りさせる
         assert out["memo"] == "keep me"
         assert out["bridge interval"] == 10
-        assert out["note name"] == ["C", "D"]
+        assert [n["name"] for n in out["notes"]] == ["C", "D"]
 
     def test_covers_every_validated_numeric_field(self):
         # validate_config() が必須にする数値項目と、変換対象が一致すること

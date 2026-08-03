@@ -71,6 +71,12 @@ def test_save_persists_edited_value(live_server: str, page: Page) -> None:
     page.goto(f'{live_server}/config')
 
     page.fill('#field-margin', '7.5')
+
+    # トラックの音名・オフセットも、表から拾って保存されること
+    rows = page.locator('#note-table-body tr.note-row')
+    rows.first.locator('.note-name-input').fill('C#')
+    rows.first.locator('.note-offset-input').fill('3')
+
     page.click('#btn-save-config')
 
     expect(page.locator('#alert-container')).to_contain_text('正常に保存しました')
@@ -80,3 +86,7 @@ def test_save_persists_edited_value(live_server: str, page: Page) -> None:
     data = json.loads(body)
     saved = next(d for d in data['data'] if d['model'] == '34notes')
     assert saved['margin'] == 7.5
+    # 編集した先頭トラックだけが変わり、残りは並び順ごと保たれている
+    assert len(saved['notes']) == 34
+    assert saved['notes'][0] == {'name': 'C#', 'offset': 3}
+    assert saved['notes'][1] == {'name': 'G', 'offset': 2}

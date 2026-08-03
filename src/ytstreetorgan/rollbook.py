@@ -9,26 +9,26 @@ from typing import TypedDict
 from loguru import logger
 from ytmidilib import NoteInfo, Parser
 
-from .conf import Conf, ModelConf
+from .conf import Conf, ModelConf, NoteConf
 
 DEF_LINE_WIDTH = 0.2
 
 
-def note2scale(midi_note: int, base_note: int, note_offset: list[int]) -> int:
+def note2scale(midi_note: int, base_note: int, notes: list[NoteConf]) -> int:
     """MIDIノート番号からスケール番号（インデックス）を取得する。
 
     Args:
         midi_note (int): 対象のMIDIノート番号。
         base_note (int): 基準となるベースノート番号。
-        note_offset (list[int]): 各スケールに対するノートのオフセット値のリスト。
+        notes (list[NoteConf]): トラックの定義（``'offset'`` だけを見る）。
 
     Returns:
         int: 対応するスケール番号（インデックス）。該当するものがない場合は -1。
     """
     scale = -1
 
-    for s, offset in enumerate(note_offset):
-        if base_note + offset == midi_note:
+    for s, note in enumerate(notes):
+        if base_note + note['offset'] == midi_note:
             scale = s
             break
 
@@ -167,9 +167,9 @@ class HoleInfo:
         self.sec = self.note_info.length()
 
         base_note = self.conf.get('base note', 0)
-        note_offset = self.conf.get('note offset', [])
+        notes = self.conf.get('notes', [])
         note_val = self.note_info.note if self.note_info.note is not None else -1
-        self.scale = note2scale(note_val, base_note, note_offset)
+        self.scale = note2scale(note_val, base_note, notes)
 
         sec_per_sec = self.conf.get('1sec', 0.0)
         pitch = self.conf.get('pitch', 0.0)

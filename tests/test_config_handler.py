@@ -72,7 +72,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
             "base note": 60,
             "bridge width": 1,
             "bridge threshold": 50,
-            "note name": ["C"], "note offset": [0], "memo": "test"
+            "notes": [{"name": "C", "offset": 0}], "memo": "test"
         }
         add_payload = json.dumps({'action': 'add', 'config': new_conf})
         response = self.fetch(

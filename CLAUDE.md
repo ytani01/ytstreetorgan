@@ -48,14 +48,24 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 
 モデル設定は `storgan-conf.json`。**リポジトリには含まれていない**。`Conf` が
 `.` → `~/.config` → `~/etc` → `/usr/local/etc` → `/etc` の順に探索し、最初に見つかったものを使う。
-実運用の設定は `~/etc/storgan-conf.json` に置いてある。`conf/storgan.conf-dist` がテンプレート。
+実運用の設定は `~/etc/storgan-conf.json` に置いてある。`conf/storgan-conf.json` がテンプレート
+（テストもこれを複製して使う）。
 見つからないと `Conf.__init__` が `FileNotFoundError` を投げるので、設定に触るテストは
 必ずパスを明示するかモックする。
 
 `ModelConf` の**キーは生の JSON フィールド名**で、空白や数字始まりを含む
-（`'book height'`, `'hole height'`, `'note offset'`, `'1sec'`）。Python の識別子ではないので
+（`'book height'`, `'hole height'`, `'base note'`, `'1sec'`）。Python の識別子ではないので
 `conf['book height']` のように添字でアクセスする。`Conf.save()` は `.bak` を作ってから
 一時ファイル経由で原子的に置換する。
+
+トラックの定義は `'notes'`（`NoteConf` = `{'name': str, 'offset': int}` のリスト）。
+リストの**並び順がそのままトラック番号**で、`note2scale()` はその index を返す。
+かつては `'note name'` と `'note offset'` の 2 本の並行配列だったが、長さがずれると
+壊れるので統合した。**旧形式はもう読めない**（`validate_config()` が弾く）。
+
+`'name'` は**設定エディタの表示専用**。SVG 生成は `'offset'` しか見ないので、
+音名が実際の音と食い違っていてもロールブックは変わらない（人間が読むためのラベル）。
+穴の位置を決めるのは `'base note' + 'offset'` だけ。
 
 ### SVG 座標系
 

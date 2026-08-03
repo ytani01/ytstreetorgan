@@ -52,7 +52,7 @@ def live_server(tmp_path_factory) -> Iterator[str]:
     # 設定ファイルを隔離する（テンプレートを複製して使う）
     conf_dir = tmp / 'conf'
     conf_dir.mkdir()
-    shutil.copy(REPO_ROOT / 'conf' / 'storgan.conf-dist',
+    shutil.copy(REPO_ROOT / 'conf' / Conf.CONF_FNAME,
                 conf_dir / Conf.CONF_FNAME)
     original_search_path = Conf.SEARCH_PATH
     Conf.SEARCH_PATH = [conf_dir]

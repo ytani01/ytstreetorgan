@@ -11,6 +11,19 @@ from loguru import logger
 
 from .mylog import exmsg
 
+
+class NoteConf(TypedDict):
+    """トラック 1 本の定義。
+
+    Attributes:
+        name: 音名（例: 'F#'）。表示用で、穴の位置には影響しない。
+        offset: ``'base note'`` からの半音数。
+    """
+
+    name: str
+    offset: int
+
+
 ModelConf = TypedDict(
     'ModelConf',
     {
@@ -20,8 +33,7 @@ ModelConf = TypedDict(
         'pitch': float,
         'hole height': float,
         '1sec': float,
-        'note name': list[str],
-        'note offset': list[int],
+        'notes': list[NoteConf],
         'base note': int,
         'bridge width': float,
         'bridge threshold': float,
@@ -55,7 +67,10 @@ def coerce_numeric_fields(conf: dict) -> dict:
     cleaned = dict(conf)
     for field, cast in NUMERIC_FIELDS.items():
         cleaned[field] = cast(cleaned[field])
-    cleaned['note offset'] = [int(x) for x in cleaned['note offset']]
+    cleaned['notes'] = [
+        {'name': str(n['name']), 'offset': int(n['offset'])}
+        for n in cleaned['notes']
+    ]
     return cleaned
 
 
@@ -84,27 +99,28 @@ def validate_config(conf: object) -> tuple[bool, str]:
         except (ValueError, TypeError):
             return False, f"Field '{field}' must be a valid number"
 
-    note_names = conf.get('note name')
-    note_offsets = conf.get('note offset')
+    notes = conf.get('notes')
 
-    if not isinstance(note_names, list):
-        return False, "'note name' must be a list of strings"
+    if not isinstance(notes, list):
+        return False, "'notes' must be a list of {'name', 'offset'} objects"
 
-    if not isinstance(note_offsets, list):
-        return False, "'note offset' must be a list of integers"
+    for idx, note in enumerate(notes):
+        if not isinstance(note, dict):
+            return False, (
+                f"Item at index {idx} in 'notes' must be an object"
+                " with 'name' and 'offset'"
+            )
 
-    if len(note_names) != len(note_offsets):
-        return False, (
-            f"Length mismatch: 'note name' ({len(note_names)}) and"
-            f" 'note offset' ({len(note_offsets)}) must have equal length"
-        )
+        if not isinstance(note.get('name'), str):
+            return False, (
+                f"Item at index {idx} in 'notes' must have a string 'name'"
+            )
 
-    for idx, offset in enumerate(note_offsets):
         try:
-            int(offset)
+            int(note.get('offset'))  # type: ignore[arg-type]
         except (ValueError, TypeError):
             return False, (
-                f"Item at index {idx} in 'note offset' must be an integer"
+                f"Item at index {idx} in 'notes' must have an integer 'offset'"
             )
 
     return True, ""
@@ -178,7 +194,7 @@ class Conf:
         """Get config data for ``model_name``.
 
         Returns a dict whose keys match the raw JSON field names
-        (e.g. ``'base note'``, ``'note offset'``, ``'1sec'``, …).
+        (e.g. ``'base note'``, ``'hole height'``, ``'1sec'``, …).
         See :class:`ModelConf` for the full schema documentation.
         """
         logger.debug(f'model_name=\'{model_name}\'')

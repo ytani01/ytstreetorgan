@@ -124,13 +124,6 @@
                       name="1sec" required>
                     <span class="field__unit">mm</span>
                   </div>
-                  <div class="field">
-                    <label for="field-base-note">基準ノート番号<small>base note</small></label>
-                    <input type="number" id="field-base-note"
-                      name="base note" required>
-                    <span class="field__unit"></span>
-                  </div>
-                  <p class="field__hint">41 = F2、43 = G2、60 = C4</p>
                 </div>
               </section>
 
@@ -163,6 +156,20 @@
                   音階マッピング
                   <span class="count" id="note-count-badge">0 トラック</span>
                 </h2>
+                <!-- 各トラックのオフセットはこの番号からの半音数なので、
+                     表の真上に置く。基本寸法（mm の話）とは別物。 -->
+                <div class="panel__body"
+                  style="border-bottom:1px solid var(--rule);">
+                  <div class="field">
+                    <label for="field-base-note">基準ノート番号<small>base note</small></label>
+                    <input type="number" id="field-base-note"
+                      name="base note" required>
+                    <span class="field__unit"></span>
+                  </div>
+                  <p class="field__hint" style="margin-bottom:0;">
+                    41 = F2、43 = G2、60 = C4
+                  </p>
+                </div>
                 <div class="notes-scroll">
                   <table class="notes">
                     <thead>

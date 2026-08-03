@@ -6,24 +6,31 @@
     "pitch": 3.83,
     "hole height": 2.5,
     "1sec": 50,
-
-    "note name": [
-                                                  "G",
-        "C",        "D",        "E",  "F",  "F#", "G",        "A",        "B",
-        "C",        "D",        "E",  "F",  "F#", "G",        "A",        "B",
-        "C",        "D",        "E"
-    ],
-    "note offset": [
-                                                    0,
-         5,          7,           9,   10,   11,   12,         14,         16,
-        17,         19,          21,   22,   23,   24,         26,         28,
-        29,         31,          33
-    ],
     "base note": 43,
-    
     "bridge width": 1,
     "bridge threshold": 50,
-
+    "notes": [
+      { "name": "G", "offset": 0 },
+      { "name": "C", "offset": 5 },
+      { "name": "D", "offset": 7 },
+      { "name": "E", "offset": 9 },
+      { "name": "F", "offset": 10 },
+      { "name": "F#", "offset": 11 },
+      { "name": "G", "offset": 12 },
+      { "name": "A", "offset": 14 },
+      { "name": "B", "offset": 16 },
+      { "name": "C", "offset": 17 },
+      { "name": "D", "offset": 19 },
+      { "name": "E", "offset": 21 },
+      { "name": "F", "offset": 22 },
+      { "name": "F#", "offset": 23 },
+      { "name": "G", "offset": 24 },
+      { "name": "A", "offset": 26 },
+      { "name": "B", "offset": 28 },
+      { "name": "C", "offset": 29 },
+      { "name": "D", "offset": 31 },
+      { "name": "E", "offset": 33 }
+    ],
     "memo": ""
   }
 ]

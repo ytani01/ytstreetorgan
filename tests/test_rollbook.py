@@ -5,9 +5,14 @@ from ytstreetorgan.rollbook import HoleInfo, RollBook, note2scale, svg_square
 
 
 def test_note2scale():
-    assert note2scale(60, 60, [0, 2, 4]) == 0
-    assert note2scale(62, 60, [0, 2, 4]) == 1
-    assert note2scale(65, 60, [0, 2, 4]) == -1
+    notes = [
+        {'name': 'C', 'offset': 0},
+        {'name': 'D', 'offset': 2},
+        {'name': 'E', 'offset': 4},
+    ]
+    assert note2scale(60, 60, notes) == 0
+    assert note2scale(62, 60, notes) == 1
+    assert note2scale(65, 60, notes) == -1
 
 def test_svg_square():
     svg = svg_square(10, 20, 30, 40, '#123456')
@@ -38,7 +43,11 @@ def test_rollbook_parse(mock_parser):
     # Mock conf slightly if needed, but defaults might work
     rb._conf = {
         'base note': 60,
-        'note offset': [0, 2, 4],
+        'notes': [
+            {'name': 'C', 'offset': 0},
+            {'name': 'D', 'offset': 2},
+            {'name': 'E', 'offset': 4},
+        ],
         '1sec': 10,
         'pitch': 5,
         'margin': 2,
@@ -60,7 +69,11 @@ def test_holeinfo_str():
 
     conf = {
         'base note': 60,
-        'note offset': [0, 2, 4],
+        'notes': [
+            {'name': 'C', 'offset': 0},
+            {'name': 'D', 'offset': 2},
+            {'name': 'E', 'offset': 4},
+        ],
         '1sec': 10,
         'pitch': 5,
         'margin': 2,
