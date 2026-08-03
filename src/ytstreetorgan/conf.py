@@ -24,6 +24,14 @@ class NoteConf(TypedDict):
     offset: int
 
 
+# 項目名にスペースが入っていると
+#
+# class ModelConf(TypedDict, total=False):
+#      :
+#    'book height': float
+#      :
+#
+# のようには定義できない。(文法エラー)
 ModelConf = TypedDict(
     'ModelConf',
     {
