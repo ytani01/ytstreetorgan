@@ -135,11 +135,27 @@ class WebServer:
             self._app, max_buffer_size=self._size_limit
         )
 
+    @property
+    def url(self) -> str:
+        """ブラウザで開く URL。
+
+        **末尾のスラッシュは必須。** 無いと `Handler1.get()` が
+        リダイレクトする（`_url_path` と突き合わせている）。
+        """
+        return f'http://localhost:{self._port}{self._urlprefix}/'
+
     def main(self):
         """待ち受けを始めて、イベントループを回す（戻らない）。"""
         logger.debug('')
 
         self._svr.listen(self._port)
+
+        # URL だけの行を stdout に出す。**端末がリンクとして拾えるように。**
+        # Shift + クリック（端末によっては Ctrl / ⌘ + クリック）で開ける。
+        # loguru ではなく print にしているのは、ログの水準に関わらず必ず
+        # 出したいのと、file:line が付くと URL だけの行にならないため。
+        print(f'\n  {self.url}\n', flush=True)
+
         logger.info('start server: run forever ..')
 
         tornado.ioloop.IOLoop.current().start()

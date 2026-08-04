@@ -35,6 +35,31 @@ def test_webserver_init_and_main(mock_app, mock_httpserver, mock_ioloop, tmp_pat
     mock_httpserver.return_value.listen.assert_called_once_with(8080)
     mock_ioloop.return_value.start.assert_called_once()
 
+
+@patch('tornado.ioloop.IOLoop.current')
+@patch('tornado.httpserver.HTTPServer')
+@patch('tornado.web.Application')
+def test_main_prints_the_url(
+    mock_app, mock_httpserver, mock_ioloop, tmp_path, capsys
+):
+    """起動したら、開く URL を 1 行で出す。
+
+    端末がリンクとして拾えるよう、**URL だけの行**にすること
+    （Shift + クリックでブラウザが開く）。ログではなく stdout に出す。
+    """
+    server = WebServer(
+        port=8080, urlprefix="/test",
+        webroot=str(tmp_path / "webroot"), workdir=str(tmp_path / "workdir"),
+    )
+
+    # 末尾のスラッシュは必須（無いと Handler1.get() がリダイレクトする）
+    assert server.url == "http://localhost:8080/test/"
+
+    server.main()
+
+    lines = [ln.strip() for ln in capsys.readouterr().out.splitlines()]
+    assert server.url in lines, "URL だけの行になっていない"
+
 @patch('ytstreetorgan.webapp.logger')
 def test_webserver_makedirs_exception(mock_logger, tmp_path):
     # Make tmp_path read-only so makedirs fails
