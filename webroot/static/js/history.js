@@ -7,28 +7,13 @@
 document.addEventListener("DOMContentLoaded", function () {
   const $ = id => document.getElementById(id);
 
-  const alertBox = $("alert-container");
   const modelSelect = $("model-select");
   const form = $("act-form");
 
   const LABEL = { midi: "MIDI", svg: "SVG" };
 
-  /* ---- 通知（設定エディタと同じ形） ------------------------------------ */
-
-  function showAlert(message, type = "success") {
-    const cls = {
-      success: "alert--ok",
-      danger: "alert--error",
-      warning: "alert--warn",
-    }[type] || "alert--warn";
-
-    const div = document.createElement("div");
-    div.className = `alert ${cls}`;
-    div.setAttribute("role", type === "success" ? "status" : "alert");
-    div.textContent = message;
-    alertBox.replaceChildren(div);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  // 知らせの出し方は alert.js（履歴と機種設定で共通）
+  const showAlert = window.StorganAlert.show;
 
   /* ---- 再生成 / 表示 ---------------------------------------------------- */
 

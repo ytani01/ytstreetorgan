@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const $ = id => document.getElementById(id);
 
-  const alertBox = $("alert-container");
   const modelSelect = $("model-select");
   const copySelect = $("copy-from-model");
   const noteBody = $("note-table-body");
@@ -49,22 +48,8 @@ document.addEventListener("DOMContentLoaded", function () {
     "bridge_threshold": parseFloat,
   };
 
-  /* ---- 通知 ------------------------------------------------------------ */
-
-  function showAlert(message, type = "success") {
-    const cls = {
-      success: "alert--ok",
-      danger: "alert--error",
-      warning: "alert--warn",
-    }[type] || "alert--warn";
-
-    const div = document.createElement("div");
-    div.className = `alert ${cls}`;
-    div.setAttribute("role", type === "success" ? "status" : "alert");
-    div.textContent = message;
-    alertBox.replaceChildren(div);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  // 知らせの出し方は alert.js（履歴と機種設定で共通）
+  const showAlert = window.StorganAlert.show;
 
   /* ---- 描画 ------------------------------------------------------------ */
 
