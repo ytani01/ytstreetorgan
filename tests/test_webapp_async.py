@@ -168,10 +168,11 @@ class TestWebAppLiveReload(AsyncHTTPTestCase):
         response = self.fetch(f'{TEST_URL_PREFIX}/')
         self.assertIn(b'js/livereload.js', response.body)
 
-    def test_script_is_included_on_the_config_page(self):
-        # 全ページに要る（テンプレートは 2 本あって共通の親が無い）
-        response = self.fetch(f'{TEST_URL_PREFIX}/config')
-        self.assertIn(b'js/livereload.js', response.body)
+    def test_script_is_included_on_every_page(self):
+        # base.html に 1 回書いてあるので、全ページに出る
+        for path in ('/config', '/history'):
+            response = self.fetch(f'{TEST_URL_PREFIX}{path}')
+            self.assertIn(b'js/livereload.js', response.body, path)
 
     def test_websocket_endpoint_accepts_a_connection(self):
         url = self.get_url(f'{TEST_URL_PREFIX}/livereload').replace(

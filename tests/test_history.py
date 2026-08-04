@@ -4,6 +4,7 @@
 リポジトリの `webroot/` をそのまま触らせない。
 """
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -257,3 +258,47 @@ class TestDownload(HistoryTestBase):
         self.assertEqual(response.code, 200)
         self.assertIn('filename="a b.mid"',
                       response.headers['Content-Disposition'])
+
+
+class TestBaseTemplate(HistoryTestBase):
+    """`base.html` の共通部分が全ページに出ること。
+
+    かつては `<head>` も appbar も各テンプレートが同じ内容を持っていて、
+    片方だけ直すと食い違った。
+    """
+
+    PAGES = ('/', '/history', '/config')
+
+    def test_nav_is_on_every_page(self):
+        for path in self.PAGES:
+            body = self.fetch(f'{TEST_URL_PREFIX}{path}').body
+            for label in ('ロールブック作成', '履歴', '機種設定'):
+                self.assertIn(label.encode(), body, f'{path}: {label}')
+
+    def test_current_page_is_marked(self):
+        """いま居るページのリンクだけに aria-current が付く。"""
+        for path in self.PAGES:
+            body = self.fetch(f'{TEST_URL_PREFIX}{path}').body.decode()
+
+            # 現在地は 1 か所だけ
+            self.assertEqual(body.count('aria-current="page"'), 1, path)
+
+            # それが今のページのリンクであること
+            # （テンプレートが行頭の空白を落とすので、空白は数えない）
+            href = f'{TEST_URL_PREFIX}{path}'
+            marked = re.search(
+                r'<a href="' + re.escape(href) + r'"\s*aria-current="page"',
+                body,
+            )
+            self.assertIsNotNone(marked, path)
+
+    def test_stylesheets_are_on_every_page(self):
+        for path in self.PAGES:
+            body = self.fetch(f'{TEST_URL_PREFIX}{path}').body
+            self.assertIn(b'css/pico.min.css', body, path)
+            self.assertIn(b'css/my.css', body, path)
+
+    def test_url_prefix_is_exposed_on_every_page(self):
+        for path in self.PAGES:
+            body = self.fetch(f'{TEST_URL_PREFIX}{path}').body
+            self.assertIn(b'window.URL_PREFIX', body, path)

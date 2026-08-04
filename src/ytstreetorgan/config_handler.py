@@ -58,6 +58,7 @@ class ConfigHandler(StorganBaseHandler):
             models=conf.models,
             conf_data=json.dumps(conf.data, ensure_ascii=False),
             livereload=self._livereload,
+            nav='config',
         )
 
     def post(self):

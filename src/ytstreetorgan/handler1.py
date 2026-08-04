@@ -210,6 +210,7 @@ class Handler1(StorganBaseHandler):
                     reused=reused,
                     from_history=from_history,
                     livereload=self._livereload,
+                    nav='top',   # base.html のナビで現在地を示す
                     models=self._models,
                     models_data=self._conf_data,
                     svg_data=svg_data,

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+
+    <!-- 外部 CDN は使わない。ローカルで動かす道具なので、ネットに繋がって
+         いなくてもレイアウトが崩れないこと。 -->
+    <!-- static_url() は urlprefix と ?v=<hash> を付ける。手で組み立てると
+         prefix を変えたときに 404 になり、更新してもキャッシュが残る。 -->
+    <link rel="icon" href="{{ static_url('favicon.svg') }}">
+    <link rel="stylesheet" href="{{ static_url('css/pico.min.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/my.css') }}">
+
+    <script>
+      window.URL_PREFIX = "{{ urlprefix }}";
+    </script>
+    {% block head %}{% end %}
+  </head>
+  <body>
+    <header class="appbar">
+      <div class="appbar__inner">
+        <a href="{{urlprefix}}/" class="brand">
+          <svg width="30" height="20" viewBox="0 0 30 20" aria-hidden="true">
+            <rect x=".5" y=".5" width="29" height="19" rx="1.5"
+              fill="none" stroke="var(--cut)"/>
+            <g fill="var(--hole)">
+              <rect x="4" y="4" width="7" height="2" rx="1"/>
+              <rect x="14" y="4" width="4" height="2" rx="1"/>
+              <rect x="7" y="9" width="11" height="2" rx="1"/>
+              <rect x="21" y="9" width="4" height="2" rx="1"/>
+              <rect x="4" y="14" width="4" height="2" rx="1"/>
+              <rect x="12" y="14" width="8" height="2" rx="1"/>
+            </g>
+          </svg>
+          <span class="brand__name">Roll Book Maker</span>
+          <span class="brand__sub">storgan</span>
+        </a>
+        <!-- いま居るページは各ハンドラが nav で渡す（'top' / 'history' / 'config'） -->
+        <nav>
+          <a href="{{urlprefix}}/"
+            {% if nav == 'top' %}aria-current="page"{% end %}>ロールブック作成</a>
+          <a href="{{urlprefix}}/history"
+            {% if nav == 'history' %}aria-current="page"{% end %}>履歴</a>
+          <a href="{{urlprefix}}/config"
+            {% if nav == 'config' %}aria-current="page"{% end %}>機種設定</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      {% block content %}{% end %}
+    </main>
+
+    <!-- モーダルは <main> の外に置く（Pico が <dialog> を素で面倒見る） -->
+    {% block dialogs %}{% end %}
+
+    <footer class="appfoot">
+      <div>
+        <span>{{ title }}</span>
+        <span class="spacer">v{{ version }}</span>
+        <span>&copy; {{ copyright_year }} {{ author }}</span>
+      </div>
+    </footer>
+
+    <!-- 開発用（webapp --debug）。ここに 1 回書けば全ページに効く。
+         かつては各ページに複製していて、増やすたびに書き足していた。 -->
+    {% if livereload %}
+    <script src="{{ static_url('js/livereload.js') }}"></script>
+    {% end %}
+    {% block scripts %}{% end %}
+  </body>
+</html>

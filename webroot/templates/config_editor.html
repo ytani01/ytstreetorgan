@@ -1,51 +1,12 @@
-<!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ title }}</title>
+{% extends "base.html" %}
 
-    <!-- 外部 CDN は使わない。ローカルで動かす道具なので、ネットに繋がって
-         いなくてもレイアウトが崩れないこと。 -->
-    <!-- static_url() は urlprefix と ?v=<hash> を付ける。手で組み立てると
-         prefix を変えたときに 404 になり、更新してもキャッシュが残る。 -->
-    <link rel="icon" href="{{ static_url('favicon.svg') }}">
-    <link rel="stylesheet" href="{{ static_url('css/pico.min.css') }}">
-    <link rel="stylesheet" href="{{ static_url('css/my.css') }}">
-
+{% block head %}
     <script>
       window.INITIAL_CONF_DATA = {% raw conf_data %};
-      window.URL_PREFIX = "{{ urlprefix }}";
     </script>
-  </head>
-  <body>
-    <header class="appbar">
-      <div class="appbar__inner">
-        <a href="{{urlprefix}}/" class="brand">
-          <svg width="30" height="20" viewBox="0 0 30 20" aria-hidden="true">
-            <rect x=".5" y=".5" width="29" height="19" rx="1.5"
-              fill="none" stroke="var(--cut)"/>
-            <g fill="var(--hole)">
-              <rect x="4" y="4" width="7" height="2" rx="1"/>
-              <rect x="14" y="4" width="4" height="2" rx="1"/>
-              <rect x="7" y="9" width="11" height="2" rx="1"/>
-              <rect x="21" y="9" width="4" height="2" rx="1"/>
-              <rect x="4" y="14" width="4" height="2" rx="1"/>
-              <rect x="12" y="14" width="8" height="2" rx="1"/>
-            </g>
-          </svg>
-          <span class="brand__name">Roll Book Maker</span>
-          <span class="brand__sub">storgan</span>
-        </a>
-        <nav>
-          <a href="{{urlprefix}}/">ロールブック作成</a>
-          <a href="{{urlprefix}}/history">履歴</a>
-          <a href="{{urlprefix}}/config" aria-current="page">機種設定</a>
-        </nav>
-      </div>
-    </header>
+{% end %}
 
-    <main>
+{% block content %}
       <section class="wrap">
         <h1 class="page-title">機種設定</h1>
         <p class="page-lead">
@@ -212,8 +173,9 @@
           </div>
         </form>
       </section>
-    </main>
+{% end %}
 
+{% block dialogs %}
     <!-- 機種の追加。Pico は <dialog> をそのまま使う（JS ライブラリ不要） -->
     <dialog id="addModelModal">
       <article>
@@ -235,23 +197,9 @@
         </footer>
       </article>
     </dialog>
+{% end %}
 
-    <footer class="appfoot">
-      <div>
-        <span>{{ title }}</span>
-        <span class="spacer">v{{ version }}</span>
-        <span>&copy; {{ copyright_year }} {{ author }}</span>
-      </div>
-    </footer>
-
-    {% if livereload %}
-    <!-- 開発用（webapp --debug）。この 1 行は全ページに要る。
-         いま HTML は storgan.html と config_editor.html の 2 本あり、
-         <head> も appbar も同じ内容をそれぞれ持っている（共通の親
-         テンプレートが無い）。ページを増やすときはここも忘れないこと。 -->
-    <script src="{{ static_url('js/livereload.js') }}"></script>
-    {% end %}
+{% block scripts %}
     <script src="{{ static_url('js/model_store.js') }}"></script>
     <script src="{{ static_url('js/config_editor.js') }}"></script>
-  </body>
-</html>
+{% end %}

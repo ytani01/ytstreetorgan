@@ -50,6 +50,7 @@ class HistoryHandler(StorganBaseHandler):
             copyright_year=__copyright_year__,
             urlprefix=self._urlprefix,
             livereload=self._livereload,
+            nav='history',
             models=conf.models,
             midi_files=list_files(self._dir('midi')),
             svg_files=list_files(self._dir('svg')),

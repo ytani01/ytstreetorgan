@@ -1,0 +1,53 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Roll Book Maker storgan" [ref=e4] [cursor=pointer]:
+        - /url: /storgan2/
+        - generic [ref=e14]: Roll Book Maker
+        - generic [ref=e15]: storgan
+      - navigation [ref=e16]:
+        - link "ロールブック作成" [ref=e17] [cursor=pointer]:
+          - /url: /storgan2/
+        - link "履歴" [ref=e18] [cursor=pointer]:
+          - /url: /storgan2/history
+        - link "機種設定" [ref=e19] [cursor=pointer]:
+          - /url: /storgan2/config
+  - main [ref=e20]:
+    - generic [ref=e21]:
+      - heading "ロールブックを作る" [level=1] [ref=e22]
+      - paragraph [ref=e23]: MIDI ファイルを選ぶと、穴あけ用の SVG を生成します。
+      - article [ref=e24]:
+        - generic [ref=e25]:
+          - generic [ref=e26]: 機種
+          - combobox "機種" [ref=e27]:
+            - option "34notes" [selected]
+            - option "20notes"
+            - option "20notes a"
+            - option "34notes-a"
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - term [ref=e30]: ブック高さ
+              - definition [ref=e31]: 126.0 mm
+            - generic [ref=e32]:
+              - term [ref=e33]: トラック数
+              - definition [ref=e34]: "34"
+            - generic [ref=e35]:
+              - term [ref=e36]: ピッチ
+              - definition [ref=e37]: 3.5 mm
+            - generic [ref=e38]:
+              - term [ref=e39]: 送り速度
+              - definition [ref=e40]: 50 mm/秒
+            - generic [ref=e41]:
+              - term [ref=e42]: 基準の音
+              - definition [ref=e43]: "41"
+          - separator [ref=e44]
+          - generic [ref=e45] [cursor=pointer]:
+            - generic [ref=e49]: MIDI ファイルをドロップ、またはクリックして選択
+            - paragraph [ref=e50]: .mid / .midi — 100.0 MB まで
+            - button "MIDI ファイルをドロップ、またはクリックして選択 .mid / .midi — 100.0 MB まで" [ref=e51]
+        - paragraph [ref=e52]: MIDI ファイルを選んでください
+  - contentinfo [ref=e53]:
+    - generic [ref=e54]:
+      - generic [ref=e55]: Street Organ Roll Book Maker
+      - generic [ref=e56]: v0.4.3.dev0+g1935dc833.d20260803
+      - generic [ref=e57]: © 2026 ytani01
