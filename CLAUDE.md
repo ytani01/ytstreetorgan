@@ -170,7 +170,7 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 
 ### ロールブックのビューア
 
-`storgan.js` の後半。**transform で拡縮していない。SVG の描画サイズ
+`webroot/static/js/viewer.js`。**transform で拡縮していない。SVG の描画サイズ
 （`.svgbox > svg` の `height: calc(var(--book-h) * var(--z))`）そのものを変える。**
 こうするとブラウザ標準のスクロールがそのまま効き、スクロールバーが全体の中の
 現在位置を示す。SVG が mm 単位で出力されているので倍率 1.0 が原寸になる。
