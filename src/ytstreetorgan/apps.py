@@ -1,11 +1,10 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""
-Application classes for ytstreetorgan CLI commands.
+"""CLI の各サブコマンドの中身。
 
-Separating business logic from click command definitions keeps
-``__main__.py`` thin and makes these classes independently testable.
+**`__main__.py` は click の定義だけの薄い層に保つ**という決めごとがある
+（テストしやすくするため）。ロジックはここに置く。
 """
 from collections.abc import Sequence
 from pathlib import Path
@@ -17,7 +16,11 @@ from .rollbook import RollBook
 
 
 class RollBookApp:
-    """ RollBookApp """
+    """`rollbook` コマンド。MIDI から SVG を作ってファイルに書く。
+
+    Attributes:
+        DEF_OUT_DIR: `-o` を省略したときの出力先。
+    """
     DEF_OUT_DIR = '~/Desktop'
 
     def __init__(
@@ -26,7 +29,15 @@ class RollBookApp:
         channel: Sequence[int] = (),
         out_file: str | None = None,
     ) -> None:
-        """ Constructor
+        """出力先を決めて、`RollBook` を用意する。
+
+        Args:
+            midi_file (str): 対象の MIDI ファイル。
+            conf_file (str): 設定ファイル。空なら `Conf` が探す。
+            model_name (str): 機種名。
+            channel (Sequence[int]): 対象の MIDI チャンネル（空なら全部）。
+            out_file (str | None): 出力先。**省略すると
+                `DEF_OUT_DIR` に「MIDI 名 + .svg」で書く。**
 
         Note:
             version と debug は受け取っていたが使っていなかったので外した
@@ -54,7 +65,7 @@ class RollBookApp:
         self._rollbook = RollBook(self._model_name, self._conf_file)
 
     def main(self) -> None:
-        """ main """
+        """MIDI を解析して SVG を書き出す。"""
         logger.debug('')
 
         self._rollbook.parse_to_file(
@@ -62,11 +73,11 @@ class RollBookApp:
         )
 
     def end(self) -> None:
-        """ end ... do nothing """
+        """後片付け（いまは何もしない）。`main()` と対で呼ぶ。"""
 
 
 class MidiApp:
-    """ MidiApp """
+    """`parse` と `play` コマンド。MIDI を解析して、表示または再生する。"""
     def __init__(self, midi_file: str,
                  channel: Sequence[int] = (),
                  parse_only: bool = False,
@@ -76,7 +87,19 @@ class MidiApp:
                  sec_max: float = Player.SEC_MAX,
                  pos_sec: float = 0.0,
                  debug: bool = False) -> None:
-        """ Constructor """
+        """解析器と再生器を用意する。
+
+        Args:
+            midi_file (str): 対象の MIDI ファイル。
+            channel (Sequence[int]): 対象の MIDI チャンネル（空なら全部）。
+            parse_only (bool): 解析結果を出すだけで再生しない（`parse`）。
+            visual_flag (bool): 解析結果を図にして出す。
+            rate (int): 再生のサンプリング周波数 [Hz]。
+            sec_min (float): 音の長さの下限 [秒]。
+            sec_max (float): 音の長さの上限 [秒]。
+            pos_sec (float): 再生を始める位置 [秒]。
+            debug (bool): 解析器と再生器にそのまま渡す。
+        """
         self._dbg = debug
         logger.debug('midi_file={}, channel={}', midi_file, channel)
         logger.debug('parse_only={}, visual_flag={}', parse_only, visual_flag)
@@ -97,7 +120,7 @@ class MidiApp:
         self._player = Player(rate=self._rate, debug=self._dbg)
 
     def main(self) -> None:
-        """ main """
+        """解析し、必要なら図にして出し、`parse_only` でなければ再生する。"""
         logger.debug('')
 
         parsed_data = self._parser.parse(self._midi_file, self._channel)
@@ -121,7 +144,4 @@ class MidiApp:
                           self._sec_min, self._sec_max)
 
     def end(self) -> None:
-        """ end
-
-        do nothing
-        """
+        """後片付け（いまは何もしない）。`main()` と対で呼ぶ。"""

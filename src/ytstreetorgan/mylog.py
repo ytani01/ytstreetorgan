@@ -35,16 +35,23 @@ LOG_FMT = (
 
 
 def logLevel(debug: bool = False) -> str:
-    """Log level."""
+    """ログの水準。``debug`` なら DEBUG、そうでなければ INFO。"""
     return "DEBUG" if debug else "INFO"
 
 
 def loggerInit(debug: bool = False, out=sys.stderr) -> None:
-    """Initialize logger."""
+    """logger を初期化する。
+
+    各 CLI コマンドの先頭で 1 度だけ呼ぶ。
+
+    Args:
+        debug (bool): デバッグ出力を出すか。
+        out: 出力先。既定は標準エラー。
+    """
     logger.remove()
     logger.add(out, format=LOG_FMT, level=logLevel(debug))
 
 
 def exmsg(ex) -> str:
-    """exception to message string."""
+    """例外を 1 行の文字列にする（``ValueError: 使えない名前です`` の形）。"""
     return f'{type(ex).__name__}: {ex}'

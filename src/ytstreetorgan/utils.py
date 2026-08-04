@@ -1,24 +1,21 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""
-Shared utility functions for ytstreetorgan.
-"""
+"""ytstreetorgan 全体で使う小物。"""
 
 
 def get_size_unit(f_size: int | float) -> tuple[float, str]:
-    """
-    Convert byte count to human-readable (value, unit) pair.
+    """バイト数を、読める大きさと単位の組に直す。
 
-    Parameters
-    ----------
-    f_size: int | float
-        file size in bytes
+    Args:
+        f_size (int | float): バイト数。
 
-    Returns
-    -------
-    (value, unit): tuple[float, str]
-        e.g. (1.5, 'MB')
+    Returns:
+        tuple[float, str]: 例: ``(1.5, 'MB')``。
+
+    Note:
+        画面に出す文字列にするのは `storage.size_text()`。書式は
+        あちらが決める。
     """
     size_units = ['B', 'KB', 'MB', 'GB', 'TB']
     idx = 0

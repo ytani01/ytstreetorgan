@@ -22,11 +22,13 @@ from .utils import get_size_unit
 
 
 class StorganBaseHandler(tornado.web.RequestHandler):
+    """全ハンドラの土台。`app.settings` から共通の設定を取り出す。
+
+    `webroot` / `workdir` は `WebServer` が `Path` に正規化して渡している。
     """
-    Common base handler that extracts shared settings from app.settings.
-    """
+
     def __init__(self, app, req):
-        """ Constructor """
+        """設定を取り出してから、tornado の初期化を呼ぶ。"""
         logger.debug('app={}', app)
         logger.debug('req={}', req)
 
@@ -144,15 +146,17 @@ class Download(StorganBaseHandler):
 
 
 class Handler1(StorganBaseHandler):
-    """
-    Web handler1
+    """ロールブックを作る画面（`/`）。
+
+    MIDI のアップロード → SVG 生成 → プレビュー。履歴からの
+    再生成（`stored_midi`）と再表示（`stored_svg`）もここが受ける。
     """
     TITLE = 'Street Organ Roll Book Maker'
 
     HTML_FILE = 'storgan.html'
 
     def __init__(self, app, req):
-        """ Constructor """
+        """設定を読む（機種の一覧と、画面に出す寸法に使う）。"""
         self._conf_file = RollBook.DEF_CONF_FILE
         self._model_name = RollBook.DEF_MODEL_NAME
 
@@ -175,10 +179,10 @@ class Handler1(StorganBaseHandler):
                       'MIDI ファイルではないか、壊れている可能性があります。')
 
     def get(self):
+        """ファイル選択の画面を出す。
+
+        末尾のスラッシュが無ければ、付けた URL へリダイレクトする。
         """
-        GET method
-        """
-        logger.debug('request={}', self.request)
 
         if self.request.uri != self._url_path:
             self.redirect(self._url_path, permanent=True)
@@ -199,23 +203,22 @@ class Handler1(StorganBaseHandler):
         は取り出せない**ので、``book`` に入れて別に渡す。ビューアはこれで
         初期倍率とスクロール位置を決める。
 
-        Parameters
-        ----------
-        book: dict | None
-            ``RollBook`` の寸法（width / height / holes / mm_per_sec）。
-            ファイル選択の画面では None。
-        src_size: str
-            元 MIDI のサイズ（'12.3 KB'）。ファイル名は SVG 名
-            （＝ MIDI 名 + '.svg'）に含まれるので渡さない。
-        msg_error: bool
-            ``msg`` が失敗の知らせなら True（画面上で赤くする）。
-        reused_name: str
-            今回送られたファイルではなく、サーバーにあった同名のファイル
-            から作った場合、その名前。結果の画面にその旨を出す
-            （空なら普通に生成した場合）。
-        from_history: bool
-            履歴から保存済みの SVG をそのまま出した場合は True。
-            諸元が SVG から読めるぶんしか無いことを画面に断る。
+        Args:
+            svg_data (str): 埋め込む SVG。空ならファイル選択の画面になる。
+            svg_filename (str): 生成した SVG のファイル名。
+            msg (str): 画面に出す知らせ。
+            book (dict | None): ブックの諸元（寸法・穴の数・mm_per_sec）。
+                ファイル選択の画面では None。
+            src_size (str): 元 MIDI のサイズ（'12.3 KB'）。ファイル名は
+                SVG 名（＝ MIDI 名 + '.svg'）に含まれるので渡さない。
+            msg_error (bool): ``msg`` が失敗の知らせなら True
+                （画面上で赤くする）。
+            reused_name (str): 今回送られたファイルではなく、サーバーに
+                あった同名のファイルから作った場合、その名前。結果の
+                画面にその旨を出す（空なら普通に生成した場合）。
+            from_history (bool): 履歴から保存済みの SVG をそのまま出した
+                場合は True。諸元が SVG から読めるぶんしか無いことを
+                画面に断る。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
@@ -243,11 +246,11 @@ class Handler1(StorganBaseHandler):
                          msg=msg)
 
     async def post(self):
-        """
-        POST method
-        """
-        logger.debug(dir(self.request))
+        """MIDI を受け取って SVG を作る。
 
+        履歴からの操作（`stored_svg` / `stored_midi`）もここで受ける。
+        どちらもファイルは送られてこない。
+        """
         # 履歴の画面からの操作。どちらもファイルは送られてこない
         stored_svg = self.get_argument('stored_svg', '')
         if stored_svg:

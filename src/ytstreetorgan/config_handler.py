@@ -11,23 +11,21 @@ from .rollbook import RollBook
 
 
 class ConfigHandler(StorganBaseHandler):
-    """
-    Handler for viewing and editing organ model configurations.
+    """機種設定のエディタ（`/config`）。
+
+    `?api=1` または `/config/api/data` なら JSON を返す。
+    POST は save / update / add / delete を JSON で受ける。
     """
     HTML_FILE = 'config_editor.html'
     TITLE = 'Organ Model Config Editor'
 
     def __init__(self, app, req):
-        """Constructor."""
+        """設定ファイルの位置を決めてから、土台の初期化を呼ぶ。"""
         self._conf_file = RollBook.DEF_CONF_FILE
         super().__init__(app, req)
 
     def get(self):
-        """
-        GET method.
-        Renders the configuration editor HTML page, or returns JSON data
-        if the API is requested.
-        """
+        """エディタの画面を出す。API として呼ばれたら JSON を返す。"""
         logger.debug('request uri={}', self.request.uri)
 
         # Check if API request for JSON data
@@ -57,9 +55,10 @@ class ConfigHandler(StorganBaseHandler):
         )
 
     def post(self):
-        """
-        POST method for updating, adding, or deleting model configurations.
-        Accepts JSON payload or Form data.
+        """機種の追加・更新・削除。JSON でもフォームでも受ける。
+
+        `action` は save / update / add / delete。結果は JSON で返し、
+        **`message` はそのまま画面に出る**（日本語で書くこと）。
         """
         self.set_header('Content-Type', 'application/json')
         logger.debug('request body={}', self.request.body)

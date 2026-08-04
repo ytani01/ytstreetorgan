@@ -1,9 +1,7 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""
-storgan
-"""
+"""storgan — MIDI から手回しオルガン用ロールブック（SVG）を作る。"""
 from importlib.metadata import PackageNotFoundError, version
 
 from loguru import logger

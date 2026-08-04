@@ -1,11 +1,10 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""
-CLI entry point for ytstreetorgan (Storgan).
+"""CLI の入口（Storgan）。
 
-This module is intentionally thin: it only defines click command wrappers
-that delegate to the application classes in :mod:`apps`.
+**この層は薄く保つ。** click の定義だけを置き、中身は :mod:`apps` の
+アプリクラスに任せる（テストしやすくするため）。
 """
 import click
 from loguru import logger
@@ -26,7 +25,7 @@ from .webapp import WebServer
 @click.group()
 @click_common_opts(__version__)
 def cli(ctx, debug):
-    """ click group """
+    """MIDI から手回しオルガン用のロールブックを作る。"""
     loggerInit(debug)
     logger.debug(ctx)
     logger.debug(debug)
@@ -57,7 +56,7 @@ def cli(ctx, debug):
               help=f'upload size limit, default={WebServer.DEF_SIZE_LIMIT}')
 @click_common_opts(__version__)
 def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
-    """"Web application."""
+    """Web サーバーを起動する（--debug でブラウザの live reload も有効）。"""
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
     logger.debug("__version__={}", __version__)
@@ -97,9 +96,7 @@ def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
 def rollbook(
     ctx, midi_file, conf_file, model_name, channel, out_file, debug
 ) -> None:
-    """
-    rollbook main
-    """
+    """MIDI からロールブックの SVG を作る（-o 省略時は ~/Desktop）。"""
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
 
@@ -124,9 +121,7 @@ def rollbook(
 )
 @click_common_opts(__version__, use_v=False)
 def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
-    """
-    parser main
-    """
+    """MIDI を解析して中身を表示する（-v で図にする）。"""
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
 
@@ -170,9 +165,7 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
 def play(
     ctx, midi_file, pos_sec, channel, rate, sec_min, sec_max, debug
 ) -> None:
-    """
-    player main
-    """
+    """MIDI を再生する。"""
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
 

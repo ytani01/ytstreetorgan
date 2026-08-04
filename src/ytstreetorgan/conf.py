@@ -77,10 +77,16 @@ NUMERIC_FIELDS: dict[str, Callable[[Any], Any]] = {
 
 
 def coerce_numeric_fields(conf: dict) -> dict:
-    """Return a copy of ``conf`` with numeric fields converted to their type.
+    """数値の項目を型変換した写しを返す。
 
-    ``validate_config()` must have passed first: this assumes every key in
-    :data:`NUMERIC_FIELDS` is present and convertible.
+    **先に `validate_config()` を通してあること。** :data:`NUMERIC_FIELDS`
+    のキーが全部あって変換できる前提で書いてある。
+
+    Args:
+        conf (dict): 機種 1 つ分の設定。
+
+    Returns:
+        dict: 数値項目を float / int に直した写し。
     """
     cleaned = dict(conf)
     for field, cast in NUMERIC_FIELDS.items():
@@ -93,10 +99,18 @@ def coerce_numeric_fields(conf: dict) -> dict:
 
 
 def validate_config(conf: object) -> tuple[bool, str]:
-    """Validate a ModelConf dictionary structure and values.
+    """機種 1 つ分の設定の形と値を確かめる。
 
-    ``conf`` is untrusted input: it comes straight from the JSON body of a
-    ``ConfigHandler`` POST, so it may be any JSON type, not just a dict.
+    **``conf`` は外から来た値。** `ConfigHandler` の POST の本文がそのまま
+    渡るので、dict とは限らず、どんな JSON の型でもありうる。
+
+    Args:
+        conf (object): 確かめる設定。
+
+    Returns:
+        tuple[bool, str]: 問題なければ ``(True, '')``。
+            駄目なら ``(False, 理由)``。**理由はそのまま画面に出る**ので
+            日本語で書くこと。`'notes'` の要素を指す番号は 1 始まり。
     """
 
     if not isinstance(conf, dict):
@@ -145,7 +159,15 @@ def validate_config(conf: object) -> tuple[bool, str]:
 
 
 class Conf:
-    """Configuration data class."""
+    """設定ファイル（`storgan-conf.json`）の読み書き。
+
+    ファイルは**リポジトリの外**にある。`config_file` を省略すると
+    :data:`SEARCH_PATH` を順に探し、最初に見つかったものを使う。
+
+    Attributes:
+        SEARCH_PATH: 探す場所の並び。
+        CONF_FNAME: 設定ファイルの名前。
+    """
     SEARCH_PATH = [
         Path('.'),
         Path('~/.config'),
@@ -156,7 +178,16 @@ class Conf:
     CONF_FNAME = 'storgan-conf.json'
 
     def __init__(self, config_file: str = ''):
-        """Constructor."""
+        """設定を読み込む。
+
+        Args:
+            config_file (str): 設定ファイルのパス。空なら
+                :data:`SEARCH_PATH` を探す。
+
+        Raises:
+            FileNotFoundError: どこにも見つからないとき（探した場所を
+                メッセージに並べる）。
+        """
         logger.debug(f'config_file=\'{config_file}\'')
 
         self.config_file = Path(config_file).expanduser()
@@ -198,7 +229,12 @@ class Conf:
             raise FileNotFoundError(msg)
 
     def load(self) -> list[ModelConf]:
-        """Load config file."""
+        """設定ファイルを読む。
+
+        Returns:
+            list[ModelConf]: 読めた設定。読めなければ空のリスト
+                （理由はログに出す。**例外にはしない**）。
+        """
         logger.debug(f'config_file=\'{self.config_file}\'')
 
         # 読めない理由（文字コード / JSON / 'model' が無い）で扱いを
@@ -237,11 +273,17 @@ class Conf:
         return None
 
     def get(self, model_name: str = '') -> ModelConf:
-        """Get config data for ``model_name``.
+        """機種 1 つ分の設定を取り出す。
 
-        Returns a dict whose keys match the raw JSON field names
-        (e.g. ``'base_note'``, ``'hole_height'``, ``'mm_per_sec'``, …).
-        See :class:`ModelConf` for the full schema documentation.
+        Args:
+            model_name (str): 機種名。
+
+        Returns:
+            ModelConf: キーは生の JSON のフィールド名（``'base_note'``、
+                ``'hole_height'``、``'mm_per_sec'`` …）。
+                **知らない機種名には空の dict を返す**ので、
+                呼ぶ側が空かどうか確かめること（`RollBook.__init__` は
+                空なら `ValueError` にする）。
         """
         logger.debug(f'model_name=\'{model_name}\'')
 
@@ -253,7 +295,14 @@ class Conf:
         return self.data[idx]
 
     def save(self) -> tuple[bool, str]:
-        """Save configuration to JSON file atomically with backup."""
+        """設定をファイルに書く。
+
+        `.bak` を作ってから一時ファイル経由で置き換える（書いている
+        途中で落ちても元が壊れないように）。
+
+        Returns:
+            tuple[bool, str]: 成否と、画面に出すメッセージ。
+        """
         if not self.config_file:
             msg = "設定ファイルのパスが設定されていません"
             logger.error(msg)
@@ -283,7 +332,15 @@ class Conf:
             return False, msg
 
     def update_model(self, model_name: str, new_conf: dict) -> tuple[bool, str]:
-        """Update an existing model configuration and save."""
+        """既にある機種の設定を書き換えて保存する。
+
+        Args:
+            model_name (str): 書き換える機種の名前。
+            new_conf (dict): 新しい設定（`validate_config()` を通す）。
+
+        Returns:
+            tuple[bool, str]: 成否と、画面に出すメッセージ。
+        """
         valid, msg = validate_config(new_conf)
         if not valid:
             return False, msg
@@ -298,7 +355,14 @@ class Conf:
         return self.save()
 
     def add_model(self, new_conf: dict) -> tuple[bool, str]:
-        """Add a new model configuration and save."""
+        """機種を足して保存する。
+
+        Args:
+            new_conf (dict): 足す設定（`validate_config()` を通す）。
+
+        Returns:
+            tuple[bool, str]: 成否と、画面に出すメッセージ。
+        """
         valid, msg = validate_config(new_conf)
         if not valid:
             return False, msg
@@ -313,7 +377,14 @@ class Conf:
         return self.save()
 
     def delete_model(self, model_name: str) -> tuple[bool, str]:
-        """Delete a model configuration by name and save."""
+        """機種を消して保存する。
+
+        Args:
+            model_name (str): 消す機種の名前。
+
+        Returns:
+            tuple[bool, str]: 成否と、画面に出すメッセージ。
+        """
         target_idx = self._index_of(model_name)
         if target_idx is None:
             msg = f"機種 '{model_name}' が見つかりません"

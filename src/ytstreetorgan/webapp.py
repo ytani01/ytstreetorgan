@@ -18,8 +18,9 @@ from .mylog import exmsg
 
 
 class WebServer:
-    """
-    Web application server
+    """Tornado の Web サーバー。
+
+    URL のプレフィックスは :data:`URL_PREFIX`（既定 `/storgan2`）。
     """
     DEF_PORT = 10081
 
@@ -39,29 +40,20 @@ class WebServer:
         version=__version__,
         debug=False
     ):
-        """ Constructor
+        """サーバーを組み立てる（listen は `main()`）。
 
-        Parameters
-        ----------
-        port: int
-            port number
-
-        urlprefix: str
-
-        webroot: str | Path
-            静的ファイルとテンプレートの置き場。内部では Path に正規化し、
-            app.settings にも Path のまま渡す（各ハンドラも Path で受ける）。
-
-        workdir: str | Path
-
-        size_limit: int
-            max upload size
-        version: str
-            version string
-        debug: bool
-            開発用。ブラウザの live reload を有効にする
-            （`/livereload` を生やし、テンプレートと静的ファイルも
-            autoreload の監視対象にする）。
+        Args:
+            port (int): 待ち受けるポート。
+            urlprefix (str): URL の頭に付ける。
+            webroot (str | Path): 静的ファイルとテンプレートの置き場。
+                内部では `Path` に正規化し、`app.settings` にも `Path` の
+                まま渡す（各ハンドラも `Path` で受ける）。
+            workdir (str | Path): 作業用ディレクトリ。無ければ作る。
+            size_limit (int): アップロードの上限 [byte]。
+            version (str): 画面のフッターに出す版。
+            debug (bool): 開発用。ブラウザの live reload を有効にする
+                （`/livereload` を生やし、テンプレートと静的ファイルも
+                autoreload の監視対象にする）。
         """
         # loggerInit(debug)
         logger.debug(
@@ -139,7 +131,7 @@ class WebServer:
         logger.debug('svr={}', self._svr.__dict__)
 
     def main(self):
-        """ main """
+        """待ち受けを始めて、イベントループを回す（戻らない）。"""
         logger.debug('')
 
         self._svr.listen(self._port)
