@@ -93,3 +93,52 @@ def test_static_assets_load(live_server: str, page: Page) -> None:
     page.wait_for_load_state('networkidle')
 
     assert not failed, f'読み込みに失敗したリソース: {failed}'
+
+
+def test_upload_non_midi_returns_500(
+    live_server: str, page: Page, tmp_path: Path
+) -> None:
+    """MIDI でないファイルを送ると、素の 500 ページになる。【既知の不具合】
+
+    ``Handler1.post()`` が解析の例外を捕まえていないため、tornado 既定の
+    エラーページに置き換わり、画面そのものが失われる。TODO.md「J」参照。
+    **現状を固定するためのテスト**なので、直したらここも直すこと。
+    """
+    bad = tmp_path / 'not-a-song.mid'
+    bad.write_bytes(b'this is not a MIDI file')
+
+    page.goto(f'{live_server}/')
+
+    with page.expect_response(
+        lambda r: r.request.method == 'POST'
+    ) as info:
+        page.set_input_files('input[name="file1"]', str(bad))
+
+    assert info.value.status == 500
+    # ロールブックは出ず、フォームごと消える
+    expect(page.locator('#svgbox')).to_have_count(0)
+    expect(page.locator('input[name="file1"]')).to_have_count(0)
+
+
+def test_upload_over_size_limit_is_rejected(
+    small_limit_server: str, page: Page, sample_midi: Path
+) -> None:
+    """上限を超えるファイルはロールブックにならない。【一部、既知の不具合】
+
+    上限は画面にも出る。超えた場合 tornado は本文を読まずに接続を切るので、
+    ブラウザには**何も表示されない**（理由は伝わらない）。TODO.md「J」参照。
+    """
+    assert sample_midi.stat().st_size > 4096
+
+    page.goto(f'{small_limit_server}/')
+    # size_limit がそのまま画面の案内になっている
+    expect(page.locator('.drop__sub')).to_contain_text('4.0 KB まで')
+
+    # 送信そのものが失敗する（サーバーが接続を切るため）
+    with page.expect_event(
+        'requestfailed', lambda r: r.method == 'POST'
+    ):
+        page.set_input_files('input[name="file1"]', str(sample_midi))
+
+    # ロールブックは生成されない
+    expect(page.locator('#svgbox')).to_have_count(0)

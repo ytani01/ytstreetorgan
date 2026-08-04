@@ -12,7 +12,7 @@ import asyncio
 import shutil
 import socket
 import threading
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -38,6 +38,57 @@ def _free_port() -> int:
         return int(s.getsockname()[1])
 
 
+def _make_webroot(tmp: Path) -> Path:
+    """テンプレートと静的ファイルを複製した webroot を作る。
+
+    アップロード先（``midi/`` と ``svg/``）は書き込まれるので空で用意する。
+    """
+    webroot = tmp / 'webroot'
+    shutil.copytree(REPO_ROOT / 'webroot' / 'templates', webroot / 'templates')
+    shutil.copytree(REPO_ROOT / 'webroot' / 'static', webroot / 'static')
+    (webroot / 'midi').mkdir()
+    (webroot / 'svg').mkdir()
+    return webroot
+
+
+def _start_server(tmp: Path, **kwargs) -> tuple[str, Callable[[], None]]:
+    """WebServer を別スレッドで起動し、(ベース URL, 停止関数) を返す。"""
+    port = _free_port()
+    started = threading.Event()
+    state: dict = {}
+
+    def serve() -> None:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+        try:
+            server = WebServer(
+                port=port, urlprefix=URL_PREFIX,
+                webroot=str(_make_webroot(tmp)), workdir=str(tmp / 'work'),
+                **kwargs,
+            )
+            server._svr.listen(port, address='127.0.0.1')
+            state['loop'] = tornado.ioloop.IOLoop.current()
+        except Exception as e:  # 起動失敗をテスト側に伝える
+            state['error'] = e
+            started.set()
+            return
+        started.set()
+        state['loop'].start()
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+
+    if not started.wait(timeout=30):
+        pytest.fail('サーバーが起動しなかった')
+    if 'error' in state:
+        pytest.fail(f'サーバーの起動に失敗: {state["error"]}')
+
+    def stop() -> None:
+        state['loop'].add_callback(state['loop'].stop)
+        thread.join(timeout=10)
+
+    return f'http://127.0.0.1:{port}{URL_PREFIX}', stop
+
+
 @pytest.fixture(scope='session')
 def sample_midi() -> Path:
     """アップロードテスト用の実 MIDI ファイル。"""
@@ -57,45 +108,51 @@ def live_server(tmp_path_factory) -> Iterator[str]:
     original_search_path = Conf.SEARCH_PATH
     Conf.SEARCH_PATH = [conf_dir]
 
-    # webroot を隔離する（アップロード先が書き込まれるため）
-    webroot = tmp / 'webroot'
-    shutil.copytree(REPO_ROOT / 'webroot' / 'templates', webroot / 'templates')
-    shutil.copytree(REPO_ROOT / 'webroot' / 'static', webroot / 'static')
-    (webroot / 'midi').mkdir()
-    (webroot / 'svg').mkdir()
-
-    port = _free_port()
-    started = threading.Event()
-    state: dict = {}
-
-    def serve() -> None:
-        asyncio.set_event_loop(asyncio.new_event_loop())
-        try:
-            server = WebServer(
-                port=port, urlprefix=URL_PREFIX,
-                webroot=str(webroot), workdir=str(tmp / 'work'),
-            )
-            server._svr.listen(port, address='127.0.0.1')
-            state['loop'] = tornado.ioloop.IOLoop.current()
-        except Exception as e:  # 起動失敗をテスト側に伝える
-            state['error'] = e
-            started.set()
-            return
-        started.set()
-        state['loop'].start()
-
-    thread = threading.Thread(target=serve, daemon=True)
-    thread.start()
-
-    if not started.wait(timeout=30):
+    url, stop = _start_server(tmp)
+    try:
+        yield url
+    finally:
+        stop()
         Conf.SEARCH_PATH = original_search_path
-        pytest.fail('サーバーが起動しなかった')
-    if 'error' in state:
-        Conf.SEARCH_PATH = original_search_path
-        pytest.fail(f'サーバーの起動に失敗: {state["error"]}')
 
-    yield f'http://127.0.0.1:{port}{URL_PREFIX}'
 
-    state['loop'].add_callback(state['loop'].stop)
-    thread.join(timeout=10)
-    Conf.SEARCH_PATH = original_search_path
+@pytest.fixture(scope='session')
+def small_limit_server(live_server: str, tmp_path_factory) -> Iterator[str]:
+    """アップロード上限を 4 KB にしたサーバー。
+
+    既定の上限は 100 MB で、超えさせるには 100 MB 送る必要がある。
+    上限そのものの挙動だけ見たいので、小さい上限のサーバーを別に立てる。
+
+    ``live_server`` に依存しているのは順序のため。``Conf.SEARCH_PATH`` は
+    クラス変数なので、こちらが先に走って別の場所を指すと、あとから起動する
+    ``live_server`` の設定と食い違う。隔離済みの設定に相乗りする。
+    """
+    tmp = tmp_path_factory.mktemp('storgan-small')
+    url, stop = _start_server(tmp, size_limit=4096)
+    try:
+        yield url
+    finally:
+        stop()
+
+
+@pytest.fixture(scope='session')
+def conf_file() -> Path:
+    """``live_server`` が読み書きしている設定ファイル。
+
+    ``live_server`` が ``Conf.SEARCH_PATH`` を一時ディレクトリ 1 本に
+    差し替えているので、そこから引ける。
+    """
+    return Conf.SEARCH_PATH[0] / Conf.CONF_FNAME
+
+
+@pytest.fixture
+def restore_conf(live_server: str, conf_file: Path) -> Iterator[None]:
+    """設定を書き換えるテストのために、テスト後に内容を元へ戻す。
+
+    ``live_server`` はセッション全体で 1 個なので、機種を足したり消したり
+    したままにすると後続のテストが影響を受ける。ハンドラはリクエストごとに
+    ``Conf()`` を作り直すため、ファイルを戻せばサーバー側の状態も戻る。
+    """
+    saved = conf_file.read_text(encoding='utf-8')
+    yield
+    conf_file.write_text(saved, encoding='utf-8')
