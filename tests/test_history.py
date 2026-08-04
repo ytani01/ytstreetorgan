@@ -33,6 +33,11 @@ class HistoryTestBase(AsyncHTTPTestCase):
         shutil.copy(REPO_ROOT / 'webroot' / 'midi' / 'holy.mid',
                     self.webroot / 'midi' / 'holy.mid')
         (self.webroot / 'midi' / 'other.mid').write_bytes(b'not midi')
+        # 名前の扱い（L）を確かめるためのもの
+        shutil.copy(REPO_ROOT / 'webroot' / 'midi' / 'holy.mid',
+                    self.webroot / 'midi' / 'テスト曲.mid')
+        shutil.copy(REPO_ROOT / 'webroot' / 'midi' / 'holy.mid',
+                    self.webroot / 'midi' / 'a b.mid')
         (self.webroot / 'svg' / 'holy.mid.svg').write_text(
             '<svg xmlns="http://www.w3.org/2000/svg"'
             ' width="2089.30mm" height="126.00mm"'
@@ -94,11 +99,12 @@ class TestHistoryDelete(HistoryTestBase):
         self.assertIn('holy.mid', self.names('midi'))
 
     def test_delete_all(self):
+        before = len(self.names('midi'))
         response = self.delete(kind='midi', all=True)
 
         self.assertEqual(response.code, 200)
         body = json.loads(response.body)
-        self.assertEqual(body['removed'], 2)
+        self.assertEqual(body['removed'], before)
         self.assertEqual(self.names('midi'), [])
         self.assertEqual(self.names('svg'), ['holy.mid.svg'])
 
@@ -214,3 +220,40 @@ class TestDownload(HistoryTestBase):
         response = self.fetch(f'{TEST_URL_PREFIX}/download/nope.svg')
 
         self.assertEqual(response.code, 404)
+
+    def test_download_japanese_name(self):
+        """日本語のファイル名でも落とせる。
+
+        名前をヘッダにそのまま入れていたころは 500 になっていた
+        （ヘッダは latin-1 しか通らない）。
+        """
+        from urllib.parse import quote
+
+        response = self.fetch(
+            f'{TEST_URL_PREFIX}/download/midi/{quote("テスト曲.mid")}'
+        )
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(
+            response.body, (self.webroot / 'midi' / 'holy.mid').read_bytes()
+        )
+
+        cd = response.headers['Content-Disposition']
+        # UTF-8 の名前は filename* に入る
+        self.assertIn(
+            "filename*=UTF-8''" + quote('テスト曲.mid', safe=''), cd
+        )
+        # 読まないもの向けの ASCII 版も付く
+        self.assertIn('filename="download.mid"', cd)
+
+    def test_download_name_with_space_is_quoted(self):
+        """空白入りの名前は引用符で囲む（囲まないと途中で切られうる）。"""
+        from urllib.parse import quote
+
+        response = self.fetch(
+            f'{TEST_URL_PREFIX}/download/midi/{quote("a b.mid")}'
+        )
+
+        self.assertEqual(response.code, 200)
+        self.assertIn('filename="a b.mid"',
+                      response.headers['Content-Disposition'])

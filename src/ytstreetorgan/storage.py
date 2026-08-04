@@ -8,9 +8,11 @@
 出られると事故になる。名前を受け取ったら必ず `resolve_in()` を通すこと。
 """
 import re
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import TypedDict
+from urllib.parse import quote
 
 from loguru import logger
 
@@ -18,6 +20,9 @@ from .utils import get_size_unit
 
 # 置き場の名前 → webroot 下のディレクトリ名
 KINDS = {'midi': 'midi', 'svg': 'svg'}
+
+# ヘッダの quoted-string を壊す文字と、制御文字
+_UNSAFE_IN_HEADER_RE = re.compile(r'["\\]|[\x00-\x1f\x7f]')
 
 # <svg ... width="4133.20mm" height="126.00mm" ...>
 _SVG_SIZE_RE = re.compile(
@@ -129,3 +134,37 @@ def book_from_svg(svg: str) -> dict:
     }
     logger.debug('book={}', book)
     return book
+
+
+def content_disposition(name: str) -> str:
+    """ダウンロード用の ``Content-Disposition`` の値を組み立てる。
+
+    **名前をそのまま入れてはいけない。** HTTP ヘッダは latin-1 しか通らず、
+    日本語のファイル名だと tornado が弾いて 500 になる（実際なっていた）。
+    引用符も無かったので、空白入りの名前はブラウザが途中で切りうる。
+
+    RFC 6266 に従い、UTF-8 のままの名前を ``filename*`` に入れ、
+    それを読まないもの向けに ASCII へ落とした ``filename`` を引用符付きで
+    併記する。今のブラウザは ``filename*`` を優先する。
+
+    Args:
+        name (str): 元のファイル名。
+
+    Returns:
+        str: ``attachment; filename="…"; filename*=UTF-8''…``
+    """
+    # NFKD で分解してから ASCII に落とす（'é' → 'e'。日本語は消える）
+    def to_ascii(part: str) -> str:
+        ascii_part = unicodedata.normalize('NFKD', part).encode(
+            'ascii', 'ignore'
+        ).decode('ascii')
+        return _UNSAFE_IN_HEADER_RE.sub('_', ascii_part).strip()
+
+    src = Path(name)
+    stem = to_ascii(src.stem) or 'download'
+    fallback = stem + to_ascii(src.suffix)
+
+    return (
+        f'attachment; filename="{fallback}"; '
+        f"filename*=UTF-8''{quote(name, safe='')}"
+    )

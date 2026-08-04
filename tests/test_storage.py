@@ -7,6 +7,7 @@ import pytest
 
 from ytstreetorgan.storage import (
     book_from_svg,
+    content_disposition,
     list_files,
     resolve_in,
     safe_name,
@@ -108,3 +109,40 @@ class TestBookFromSvg:
 
         assert book['width'] is None
         assert book['height'] is None
+
+
+class TestContentDisposition:
+    """ヘッダは latin-1 しか通らない。名前をそのまま入れると 500 になる。"""
+
+    def test_ascii_name_is_quoted(self):
+        value = content_disposition('holy.mid')
+
+        assert 'filename="holy.mid"' in value
+        assert "filename*=UTF-8''holy.mid" in value
+
+    def test_space_is_kept_inside_the_quotes(self):
+        assert 'filename="a b.mid"' in content_disposition('a b.mid')
+
+    def test_japanese_name_goes_to_filename_star(self):
+        value = content_disposition('テスト曲.mid')
+
+        assert "filename*=UTF-8''%E3%83%86%E3%82%B9%E3%83%88%E6%9B%B2.mid" in value
+        # ASCII に落ちると名前が消えるので、代わりの名前を使う
+        assert 'filename="download.mid"' in value
+
+    def test_accents_are_folded_for_the_ascii_version(self):
+        assert 'filename="naive.mid"' in content_disposition('naïve.mid')
+
+    @pytest.mark.parametrize('name', ['a"b.mid', 'a\\b.mid', 'a\nb.mid'])
+    def test_quoted_string_is_not_broken(self, name):
+        """引用符・バックスラッシュ・制御文字を ASCII 版に残さない。"""
+        value = content_disposition(name)
+        ascii_part = value.split('filename="', 1)[1].split('"', 1)[0]
+
+        assert '"' not in ascii_part
+        assert '\\' not in ascii_part
+        assert '\n' not in ascii_part
+
+    def test_the_whole_value_is_latin_1_safe(self):
+        """組み立てた値がヘッダに載ること（載らないと 500 になる）。"""
+        content_disposition('テスト曲.mid').encode('latin-1')

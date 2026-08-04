@@ -10,7 +10,7 @@ from . import __author__, __copyright_year__
 from .conf import Conf
 from .mylog import exmsg
 from .rollbook import RollBook
-from .storage import book_from_svg, resolve_in
+from .storage import book_from_svg, content_disposition, resolve_in
 from .utils import get_size_unit
 
 
@@ -108,8 +108,9 @@ class Download(StorganBaseHandler):
         logger.debug('path_name={}', path_name)
 
         self.set_header('Content-Type', 'application/octet-stream')
+        # 名前をそのまま入れると、日本語のファイル名で 500 になる
         self.set_header('Content-Disposition',
-                        'attachment; filename=' + path_name.name)
+                        content_disposition(path_name.name))
 
         buf_size = 4096
         with path_name.open('rb') as f:
