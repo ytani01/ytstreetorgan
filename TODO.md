@@ -2,24 +2,34 @@
 
 作成: 2026-08-02（コミット `82aaa65` 時点）
 
-A〜T は片付いた（N・O・S は「対応しない」、P と Q は方針・文言を
-決めて決着）。残りは R の 1 件。
-
----
-
-## R. `tests/test_webapp_async.py` がリポジトリの `webroot/` を直接使う
-
-- [ ] 一時ディレクトリに複製する形へ揃える
-
-アップロードのテストが実際の `webroot/midi/` に `dummy.mid` を書き、
-`tearDown` で消している。**テストが落ちた位置によっては消し残る。**
-
-K で足した `tests/test_history.py` は一時ディレクトリに複製する形にした
-（削除を試すため）。同じ土台に揃えるほうがよい。
+**A〜T はすべて片付いた**（N・O・S は「対応しない」、P と Q は方針・文言を
+決めて決着）。新しい計画は同じ形で書き足していく。
 
 ---
 
 ## 完了済み
+
+### R. HTTP テストが実物の `webroot/` を触っていた
+
+`tests/test_webapp_async.py` が `webroot=Path('./webroot')` と実物を渡していて、
+アップロードのテストが `webroot/midi/dummy.mid` と
+`webroot/svg/dummy.mid.svg` を**実際に書いていた**。`tearDown` で消しては
+いたが、途中で落ちると消し残る。一覧を読むテストは、そこに置いてある
+実ファイルの影響も受けていた。
+
+K で足した `tests/test_history.py` は一時ディレクトリに複製する形にして
+いたので、**同じ目的のテストが 2 通りのやり方で書かれていた**。
+
+`tests/webapp_base.py` に `WebAppTestCase` を切り出し、両方をそこに載せた。
+
+- `webroot` をテストごとに一時ディレクトリへ複製し、後片付けは
+  `addCleanup` に任せる（`tearDown` は不要になった）
+- 置き場に何か置きたいときは `setup_files()` を上書きする
+  （履歴のテストが MIDI と古い形の SVG を置いている）
+- `PORT` と `SERVER_KWARGS`（`debug` / `size_limit`）は subclass が決める
+
+**わざと落としても実物が汚れないことを確認した**（アップロード直後に
+例外を投げるテストを一時的に作り、`webroot/` に何も残らないことを見た）。
 
 ### Q. 同名アップロードの選択肢（文言を直して決着）
 

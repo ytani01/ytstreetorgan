@@ -1,67 +1,33 @@
 """履歴の画面（`/history`）とダウンロードの HTTP テスト。
 
-`webroot` はテストごとに一時ディレクトリへ複製する。削除するので、
-リポジトリの `webroot/` をそのまま触らせない。
+`webroot` の複製は `WebAppTestCase` が用意する（削除を試すので、
+リポジトリの `webroot/` をそのまま触らせない）。
 """
 import json
 import re
-import shutil
-from pathlib import Path
-
-from tornado.testing import AsyncHTTPTestCase
-
-from ytstreetorgan.webapp import WebServer
 
 from .conftest import TEST_URL_PREFIX
+from .webapp_base import WebAppTestCase
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 
+class HistoryTestBase(WebAppTestCase):
+    """一覧・削除を試せるように、置き場に何本か置いておく。"""
 
-class HistoryTestBase(AsyncHTTPTestCase):
-    """`webroot` を複製したサーバーを立てる。"""
+    PORT = 10084
 
-    def get_app(self):
-        self.tmp = Path(self.mktemp_dir())
-        self.webroot = self.tmp / 'webroot'
-        shutil.copytree(REPO_ROOT / 'webroot' / 'templates',
-                        self.webroot / 'templates')
-        shutil.copytree(REPO_ROOT / 'webroot' / 'static',
-                        self.webroot / 'static')
-        (self.webroot / 'midi').mkdir(parents=True)
-        (self.webroot / 'svg').mkdir(parents=True)
-
-        # 中身のある MIDI と、その SVG を 1 組ずつ置いておく
-        shutil.copy(REPO_ROOT / 'webroot' / 'midi' / 'holy.mid',
-                    self.webroot / 'midi' / 'holy.mid')
+    def setup_files(self):
+        self.put_midi('holy.mid')
         (self.webroot / 'midi' / 'other.mid').write_bytes(b'not midi')
         # 名前の扱い（L）を確かめるためのもの
-        shutil.copy(REPO_ROOT / 'webroot' / 'midi' / 'holy.mid',
-                    self.webroot / 'midi' / 'テスト曲.mid')
-        shutil.copy(REPO_ROOT / 'webroot' / 'midi' / 'holy.mid',
-                    self.webroot / 'midi' / 'a b.mid')
+        self.put_midi('テスト曲.mid')
+        self.put_midi('a b.mid')
+        # 諸元の属性が無い、古い形の SVG
         (self.webroot / 'svg' / 'holy.mid.svg').write_text(
             '<svg xmlns="http://www.w3.org/2000/svg"'
             ' width="2089.30mm" height="126.00mm"'
             ' viewBox="-2089.30 -126.00 2089.30 126.00"></svg>\n',
             encoding='utf-8',
         )
-
-        self.server = WebServer(
-            port=10084,
-            urlprefix=TEST_URL_PREFIX,
-            webroot=self.webroot,
-            workdir=self.tmp / 'work',
-        )
-        return self.server._app
-
-    def mktemp_dir(self) -> str:
-        import tempfile
-        d = tempfile.mkdtemp(prefix='storgan-hist-')
-        self.addCleanup(shutil.rmtree, d, True)
-        return d
-
-    def names(self, kind: str) -> list[str]:
-        return sorted(p.name for p in (self.webroot / kind).iterdir())
 
     def delete(self, **payload):
         return self.fetch(

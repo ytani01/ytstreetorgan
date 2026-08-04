@@ -257,6 +257,16 @@ fixture が実サーバーを空きポートで起動する。
 `ConfigHandler` は `Conf()` を引数なしで生成するため、これが無いとテストが
 `~/etc/storgan-conf.json`（利用者の実設定）を書き換える。実際に書き換えていた。
 
+### HTTP テスト
+
+`tests/webapp_base.py` の `WebAppTestCase` を継承する。**`webroot` を
+テストごとに一時ディレクトリへ複製する**ので、リポジトリの `webroot/` は
+汚れない（アップロードや削除を試すため。実際に汚していた）。
+
+- 置き場に何か置きたいときは `setup_files()` を上書きする
+- `PORT` と `SERVER_KWARGS`（`debug` / `size_limit`）は subclass が決める
+- 後片付けは `addCleanup` 任せ。`tearDown` を書かない
+
 ### ロギング
 
 loguru を `mylog.py` 経由で使う。各 CLI コマンドの先頭で `loggerInit(debug)` を呼び、
