@@ -26,6 +26,12 @@
                                   上書きする。ボタンとして作った自前の
                                   コントロールの文字色にはこちらを使う */
   --mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+
+  /* ロールブックの紙。古紙っぽい茶。**明暗テーマで切り替えない**
+     （下の dark / light の各ブロックにもわざと置いていない）。
+     破線＝音階に無い音は #000000 なので、暗い紙にすると消える。
+     あれは「どの音が鳴らないか」を目視するためのもの。 */
+  --paper: #e8d8b8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -256,7 +262,11 @@ footer.appfoot .spacer { margin-left: auto; }
   display: block; width: auto; max-width: none;
   /* --book-h / --z は storgan.js が入れる。倍率が未設定でも潰れないよう既定値 */
   height: calc(var(--book-h, 126mm) * var(--z, .2));
-  background: #fff; box-shadow: 0 1px 6px rgba(19, 23, 34, .18);
+  /* 紙の色。**SVG には背景が入っていない**ので、ここだけで決まる
+     （変えても生成物・ダウンロードには影響しない）。
+     暗い色にはしないこと。破線（音階に無い音）は #000000 なので
+     暗い紙だと消える。あれは「どの音が鳴らないか」を目視するためのもの。 */
+  background: var(--paper); box-shadow: 0 1px 6px rgba(19, 23, 34, .18);
 }
 
 /* ---- 画面で見るときだけの見え方 ----------------------------------------
