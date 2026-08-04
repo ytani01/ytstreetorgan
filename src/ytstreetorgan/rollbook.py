@@ -402,10 +402,20 @@ class RollBook:
 
         Returns:
             str: 生成されたSVG形式のテキスト文字列。
+
+        Note:
+            **同じインスタンスで何度呼んでも同じ結果になる。** かつては
+            `_holes` を初期化せずに追加していたので、2 回目は穴が二重になり、
+            `_width` も `max()` で伸びたままだった。
         """
         if channel is None:
             channel = []
         logger.debug('midi_file={}', midi_file)
+
+        # 前回の結果を捨てる。持ち越すと穴が二重になる
+        self._width = 0.0
+        self._holes = []
+        self._svg = ''
 
         # ytmidilib は外部パッケージなので str に落として渡す
         midi = self._midi_parser.parse(str(midi_file), channel)

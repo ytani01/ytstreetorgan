@@ -123,6 +123,26 @@ def test_rollbook_dimension_properties():
     assert f'width="{rb.width:.2f}mm" height="{rb.height:.2f}mm"' in svg
 
 
+def test_parse_twice_gives_the_same_book():
+    """同じインスタンスで 2 回 parse しても結果が変わらないこと。
+
+    かつては `_holes` を初期化せずに追加していたので、2 回目は穴が二重に
+    なり、`_width` も `max()` で伸びたままだった。
+    """
+    midi_file = Path('webroot/midi/d-kaeru.mid')
+    if not midi_file.exists():
+        return
+
+    rb = RollBook('34notes')
+    first = rb.parse(midi_file)
+    counts = (rb.width, rb.note_count, rb.hole_count, rb.off_scale_count)
+
+    second = rb.parse(midi_file)
+
+    assert (rb.width, rb.note_count, rb.hole_count, rb.off_scale_count) == counts
+    assert second == first
+
+
 def test_hole_counts_are_split_into_solid_and_dashed():
     """穴の数は「音符の数」と「分割後の数」を、実線と破線で分けて数える。
 
