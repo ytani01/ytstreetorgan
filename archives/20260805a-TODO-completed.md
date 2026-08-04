@@ -241,7 +241,7 @@ CDN も使わない（CLAUDE.md「フロントエンド」）。色は `.icon` �
 
 <a id="item-r"></a>
 
-## R. HTTP テストが実物の `webroot/` を触っていた
+## R. HTTP テストが実物の webroot/ を触っていた
 
 `tests/test_webapp_async.py` が `webroot=Path('./webroot')` と実物を渡していて、
 アップロードのテストが `webroot/midi/dummy.mid` と
@@ -451,7 +451,7 @@ K で履歴に全ファイルのダウンロードリンクが並び、日本語
 
 <a id="item-o"></a>
 
-## O. `webroot/midi/` と `webroot/svg/` が溜まり続ける（対応しない）
+## O. webroot/midi/ と webroot/svg/ が溜まり続ける（対応しない）
 
 上限や自動削除を入れるか検討したが、**K の履歴の画面から見えて消せるので
 それで足りる**と判断した。件数や日数での自動削除は入れない。
@@ -615,7 +615,7 @@ F で見つけた 2 件。どちらも**画面ごと失われて、利用者は�
 
 <a id="item-a-2"></a>
 
-## A-2. `note name` / `note offset` を `notes` に統合（A 完了）
+## A-2. note name / note offset を notes に統合（A 完了）
 
 2 本の並行配列（`'note name'` と `'note offset'`）を、
 `'notes': [{"name": ..., "offset": ...}, ...]` の 1 本にした。
@@ -711,7 +711,7 @@ Pico.css v2.1.1 を `webroot/static/css/pico.min.css` に同梱し、アイコ�
 
 <a id="item-b"></a>
 
-## B. `os.path` → `pathlib` 移行
+## B. os.path → pathlib 移行
 
 26 件すべて解消。`per-file-ignores` の移行チェックリストは空になった。
 
@@ -726,7 +726,7 @@ B-1（`webroot` / `workdir` の `str` 配線）も同時に解消。`WebServer` 
 
 <a id="note-24"></a>
 
-## `webroot/svg/` の古い成果物を削除
+## webroot/svg/ の古い成果物を削除
 
 `127b94d`（hairline 対応）より前に生成された 7 件を削除した。`stroke-width` も
 book height も現行と異なり、出力を目視比較するときに紛らわしかった。
@@ -744,7 +744,7 @@ book height も現行と異なり、出力を目視比較するときに紛ら�
 
 <a id="note-26"></a>
 
-## `URL_PREFIX_HANDLER1` を削除
+## URL_PREFIX_HANDLER1 を削除
 
 `/{prefix}/handler1.*` のルートは、テンプレートからも JS からも参照されない
 死んだ経路だった。冗長だった `url_prefix_handler1` 設定も外し、`handler1.py` の
@@ -766,7 +766,7 @@ prefix（`/storgan-test`）で動かすようにした。テンプレートや J
 
 <a id="note-28"></a>
 
-## `archives/` を追跡対象に
+## archives/ を追跡対象に
 
 過去の計画書 4 件。最新仕様の参考にはならないが、記録として残す。
 
@@ -793,7 +793,7 @@ prefix（`/storgan-test`）で動かすようにした。テンプレートや J
 
 <a id="item-a-1"></a>
 
-## A-1. `bridge interval` を設定項目から削除
+## A-1. bridge interval を設定項目から削除
 
 `validate_config()` が必須項目として要求していたが `rollbook.py` は一度も
 読んでいなかったため、スキーマ・検証・設定エディタ・設定テンプレート・テストの
@@ -809,7 +809,7 @@ prefix（`/storgan-test`）で動かすようにした。テンプレートや J
 
 <a id="note-32"></a>
 
-## `82aaa65`
+## 82aaa65
 
 - テスト 2 件の失敗を解消（`validate_config` の型ガード追加、古い期待値の更新）
 - ruff の設定整備（`select` 拡張、`line-length = 88`、指摘 76 件を解消）
