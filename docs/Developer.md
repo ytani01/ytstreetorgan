@@ -16,11 +16,11 @@ uv run playwright install chromium   # ブラウザテストを走らせる場�
 
 テストは 2 系統ある。**ブラウザテストは既定では走らない。**
 
-| コマンド | 対象 | 件数 | 所要 |
+| コマンド | 対象 | 件数 | 所要（手元での目安） |
 |---|---|---|---|
-| `uv run pytest` | 通常テスト | 80 | 約 5 秒 |
-| `uv run pytest -m browser` | ブラウザテスト | 5 | 約 8 秒 |
-| `uv run pytest -m ""` | 両方 | 85 | 約 12 秒 |
+| `uv run pytest` | 通常テスト | 163 | 約 25 秒 |
+| `uv run pytest -m browser` | ブラウザテスト | 35 | 約 20 秒 |
+| `uv run pytest -m ""` | 両方 | 198 | 約 45 秒 |
 
 `pyproject.toml` の `addopts = "-m 'not browser'"` により、`uv run pytest` は
 ブラウザテストを除外する。実 Chromium を起動して桁違いに遅いため。
@@ -123,6 +123,27 @@ uv run pytest -m ""
 ```
 
 ## テストを書くときの注意
+
+### HTTP テストは `WebAppTestCase` を継承すること
+
+`tests/webapp_base.py` の `WebAppTestCase` が、**`webroot` をテストごとに
+一時ディレクトリへ複製する**。アップロードや削除を試すので、実物の
+`webroot/` を渡すと `webroot/midi/` と `webroot/svg/` に書き込まれ、
+途中で落ちれば消し残る（実際そうなっていた）。
+
+- 置き場に何か置きたいときは `setup_files()` を上書きする
+- `PORT` と `SERVER_KWARGS`（`debug` / `size_limit`）は subclass が決める
+- 後片付けは `addCleanup` 任せ。`tearDown` は書かない
+- 送る MIDI の中身はリポジトリの `webroot/midi/` から読む
+  （複製先は空で始まるため）
+
+### ブラウザテストのアップロードは `upload_midi()` を使うこと
+
+`tests/browser/conftest.py` にある。ページを開き、ファイルを選び、
+同名ダイアログが出たら答え、**生成結果が出るまで待つ**。
+
+待たずに次へ進むと、サーバーが書き終える前に履歴を読みにいって落ちる。
+送信そのものが止まる場合（上限超えなど）は `wait_result=False` で呼ぶ。
 
 ### 利用者の実設定を壊さないこと
 
