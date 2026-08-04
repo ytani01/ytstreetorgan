@@ -90,10 +90,12 @@
                 {{ size_unit }} まで
               </p>
               <!-- 送信は storgan.js が行う（大きさと同名を確かめてから
-                   submit する）。overwrite は同名を置き換えると答えたとき
-                   だけ 1 になる（サーバーはこれが無いと置き換えない） -->
+                   submit する）。同名だったとき、置き換えるなら overwrite、
+                   前回のファイルを使うなら reuse が 1 になる。
+                   サーバーはどちらも無い同名の POST を断る -->
               <input type="file" id="file1" name="file1" accept=".mid,.midi">
               <input type="hidden" id="overwrite" name="overwrite" value="">
+              <input type="hidden" id="reuse" name="reuse" value="">
             </label>
           </form>
           <p class="drop__status{% if msg_error %} drop__status--error{% end %}"
@@ -110,6 +112,9 @@
           <span class="badge-ok">生成しました</span>
           <span class="result-file">{{ svg_filename }}</span>
           <span class="result-src">元 MIDI <span class="num">{{ src_size }}</span></span>
+          {% if reused %}
+          <span class="result-src">前回アップロードしたファイルから作りました</span>
+          {% end %}
         </div>
 
         <div class="viewer-card">
@@ -175,6 +180,28 @@
       </section>
       {% end %}
     </main>
+
+    <!-- 同じ名前のファイルを選んだとき。confirm() では 2 択にしかならず、
+         「前回の結果を表示」を足せない。Pico が <dialog> を素で面倒見る -->
+    <dialog id="same-name-modal">
+      <article>
+        <header>
+          <button type="button" aria-label="閉じる" rel="prev"
+            id="btn-same-close"></button>
+          <h3 style="margin:0;">同じ名前のファイルがあります</h3>
+        </header>
+        <p id="same-name-msg"></p>
+        <footer>
+          <button type="button" class="secondary" id="btn-same-cancel">
+            キャンセル
+          </button>
+          <button type="button" class="secondary outline" id="btn-same-reuse">
+            前回の結果を表示
+          </button>
+          <button type="button" id="btn-same-replace">置き換える</button>
+        </footer>
+      </article>
+    </dialog>
 
     <footer class="appfoot">
       <div>

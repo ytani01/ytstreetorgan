@@ -15,6 +15,9 @@
 
   const status = document.getElementById("drop-status");
   const overwrite = document.getElementById("overwrite");
+  const reuse = document.getElementById("reuse");
+  const modal = document.getElementById("same-name-modal");
+  const modalMsg = document.getElementById("same-name-msg");
   const limit = window.SIZE_LIMIT || 0;
   const uploaded = window.UPLOADED_NAMES || [];
 
@@ -49,21 +52,52 @@
 
     // 同じ名前が既にあるなら訊く。黙って上書きすると、直したつもりの
     // ファイルなのか前のままなのかが画面から分からない。
+    // 送るかどうかはダイアログのボタンが決める（下の close ハンドラ）。
     if (uploaded.includes(file.name)) {
-      const ok = confirm(
-        `${file.name} は既にアップロードされています。\n` +
-        "今回選んだファイルで置き換えますか？"
-      );
-      if (!ok) {
-        setStatus("置き換えないので、そのままにしました。", false);
-        reset();
-        return;
-      }
-      overwrite.value = "1";
+      modalMsg.textContent =
+        `${file.name} は既にアップロードされています。どうしますか？`;
+      modal.showModal();
+      return;
     }
 
     input.form.submit();
   });
+
+  /* ---- 同名だったときの 3 択 ---- */
+
+  // ESC や ✕ で閉じた場合も「キャンセル」と同じ扱いにしたいので、
+  // 選ばれたものを覚えてから閉じ、close イベント 1 か所で処理する。
+  let choice = "";
+
+  function closeWith(next) {
+    choice = next;
+    modal.close();
+  }
+
+  modal.addEventListener("close", () => {
+    const chosen = choice;
+    choice = "";
+
+    if (chosen === "replace") {
+      overwrite.value = "1";
+    } else if (chosen === "reuse") {
+      reuse.value = "1";
+    } else {
+      setStatus("そのままにしました。", false);
+      reset();
+      return;
+    }
+    input.form.submit();
+  });
+
+  document.getElementById("btn-same-replace")
+    .addEventListener("click", () => closeWith("replace"));
+  document.getElementById("btn-same-reuse")
+    .addEventListener("click", () => closeWith("reuse"));
+  for (const id of ["btn-same-cancel", "btn-same-close"]) {
+    document.getElementById(id)
+      .addEventListener("click", () => closeWith(""));
+  }
 })();
 
 (function () {

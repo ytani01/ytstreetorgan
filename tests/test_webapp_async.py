@@ -41,7 +41,8 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         # Should contain the default message
         self.assertIn("MIDI ファイルを選んでください".encode(), response.body)
 
-    def _upload(self, fname='dummy.mid', overwrite=False, src='d-kaeru.mid'):
+    def _upload(self, fname='dummy.mid', overwrite=False, src='d-kaeru.mid',
+                reuse=False):
         """MIDI を 1 本アップロードする（multipart を手で組み立てる）。"""
         midi_data = (self.webroot / 'midi' / src).read_bytes()
 
@@ -49,12 +50,13 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         fields = f'--{boundary}\r\n' \
             'Content-Disposition: form-data; name="model"\r\n\r\n' \
             '34notes\r\n'
-        if overwrite:
-            fields += (
-                f'--{boundary}\r\n'
-                'Content-Disposition: form-data; name="overwrite"\r\n\r\n'
-                '1\r\n'
-            )
+        for name, on in (('overwrite', overwrite), ('reuse', reuse)):
+            if on:
+                fields += (
+                    f'--{boundary}\r\n'
+                    f'Content-Disposition: form-data; name="{name}"\r\n\r\n'
+                    '1\r\n'
+                )
         body = (
             fields
             + f'--{boundary}\r\n'
@@ -119,3 +121,30 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         response = self.fetch(f'{TEST_URL_PREFIX}/download/dummy.mid.svg')
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, b'<svg>dummy</svg>')
+
+    def test_post_same_name_with_reuse_keeps_the_previous_file(self):
+        """reuse=1 なら置き換えず、サーバーにある前回のファイルから作る。"""
+        self.assertEqual(self._upload().code, 200)
+        before = (self.webroot / 'midi' / 'dummy.mid').read_bytes()
+
+        # 同じ名前で別の中身を送るが、使うのは前回のほう
+        response = self._upload(src='holy.mid', reuse=True)
+
+        self.assertEqual(response.code, 200)
+        self.assertIn(b'id="svgbox"', response.body)
+        self.assertIn("前回アップロードしたファイル".encode(), response.body)
+        self.assertEqual(
+            (self.webroot / 'midi' / 'dummy.mid').read_bytes(), before
+        )
+
+    def test_post_reuse_without_the_file_falls_back_to_writing(self):
+        """reuse=1 でもサーバーに無ければ、普通に受け取って書く。"""
+        (self.webroot / 'midi' / 'dummy.mid').unlink(missing_ok=True)
+
+        response = self._upload(reuse=True)
+
+        self.assertEqual(response.code, 200)
+        self.assertIn(b'id="svgbox"', response.body)
+        self.assertTrue((self.webroot / 'midi' / 'dummy.mid').exists())
+        # 前回のファイルは無かったので、その旨は出さない
+        self.assertNotIn("前回アップロードしたファイル".encode(), response.body)

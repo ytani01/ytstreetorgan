@@ -11,15 +11,18 @@ from .conftest import REPO_ROOT
 pytestmark = pytest.mark.browser
 
 
-def upload(page: Page, midi: Path) -> None:
+def upload(page: Page, midi: Path, choice: str = 'btn-same-replace') -> None:
     """MIDI を選んで送る。
 
     ``live_server`` はセッション全体で 1 個なので、同じ名前のファイルを
-    先に別のテストが送っていると「置き換えますか？」を訊かれる。
-    ここでは常に置き換える。
+    先に別のテストが送っていると同名ダイアログが出る。既定では
+    「置き換える」を押す。
     """
-    page.once('dialog', lambda d: d.accept())
     page.set_input_files('input[name="file1"]', str(midi))
+
+    modal = page.locator('#same-name-modal')
+    if modal.is_visible():
+        page.click(f'#{choice}')
 
 
 def test_upload_midi_renders_svg_preview(
@@ -216,8 +219,9 @@ def test_same_name_replaces_after_confirming(
     # 同じ名前・違う中身。訊かれたら「置き換える」
     page.goto(f'{live_server}/')
     same.write_bytes(long.read_bytes())
-    page.once('dialog', lambda d: d.accept())
     page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#same-name-modal')).to_be_visible()
+    page.click('#btn-same-replace')
     expect(page.locator('#svgbox svg')).to_be_visible()
 
     assert _book_size(page) != before, '古いほうの結果が返っている'
@@ -240,11 +244,77 @@ def test_same_name_cancelled_sends_nothing(
     page.on('request', lambda r: (
         sent.append(r.url) if r.method == 'POST' else None
     ))
-    page.once('dialog', lambda d: d.dismiss())
     page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#same-name-modal')).to_be_visible()
+    page.click('#btn-same-cancel')
 
+    expect(page.locator('#same-name-modal')).to_be_hidden()
     expect(page.locator('#drop-status')).to_contain_text('そのままにしました')
     # ファイル選択の画面のまま。送ってもいない
     expect(page.locator('input[name="file1"]')).to_be_attached()
     page.wait_for_timeout(500)
     assert not sent, f'取りやめたのに送っている: {sent}'
+
+
+def test_same_name_reuse_shows_the_previous_file(
+    live_server: str, page: Page, tmp_path: Path
+) -> None:
+    """「前回の結果を表示」なら、置き換えずに前回のファイルから作る。"""
+    first = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+    second = REPO_ROOT / 'webroot' / 'midi' / 'd-kaeru.mid'
+    same = tmp_path / 'reuse-me.mid'
+
+    page.goto(f'{live_server}/')
+    same.write_bytes(first.read_bytes())
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#svgbox svg')).to_be_visible()
+    before = _book_size(page)
+
+    # 同じ名前で中身は別物。「前回の結果を表示」を選ぶ
+    page.goto(f'{live_server}/')
+    same.write_bytes(second.read_bytes())
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#same-name-modal')).to_be_visible()
+    page.click('#btn-same-reuse')
+
+    expect(page.locator('#svgbox svg')).to_be_visible()
+    assert _book_size(page) == before, '今回選んだほうで作られている'
+    # 何が起きたのか画面に出る
+    expect(page.locator('.result-head')).to_contain_text(
+        '前回アップロードしたファイルから作りました'
+    )
+
+    # サーバー側のファイルも置き換わっていない
+    page.goto(f'{live_server}/')
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#same-name-modal')).to_be_visible()
+    page.click('#btn-same-reuse')
+    expect(page.locator('#svgbox svg')).to_be_visible()
+    assert _book_size(page) == before
+
+
+def test_same_name_dialog_closed_by_esc_is_a_cancel(
+    live_server: str, page: Page, tmp_path: Path
+) -> None:
+    """ESC で閉じた場合も、キャンセルと同じ（送らない）。"""
+    midi = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+    same = tmp_path / 'esc-me.mid'
+    same.write_bytes(midi.read_bytes())
+
+    page.goto(f'{live_server}/')
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    page.goto(f'{live_server}/')
+    sent: list[str] = []
+    page.on('request', lambda r: (
+        sent.append(r.url) if r.method == 'POST' else None
+    ))
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#same-name-modal')).to_be_visible()
+    page.keyboard.press('Escape')
+
+    expect(page.locator('#same-name-modal')).to_be_hidden()
+    expect(page.locator('#drop-status')).to_contain_text('そのままにしました')
+    page.wait_for_timeout(500)
+    assert not sent, f'ESC で閉じたのに送っている: {sent}'

@@ -153,7 +153,7 @@ class Handler1(StorganBaseHandler):
         self._render()
 
     def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None,
-                src_size='', msg_error=False):
+                src_size='', msg_error=False, reused=False):
         """テンプレートを描画する。
 
         ``svg_data`` が空なら「ファイル選択」、そうでなければ「生成結果」の
@@ -174,6 +174,9 @@ class Handler1(StorganBaseHandler):
             （＝ MIDI 名 + '.svg'）に含まれるので渡さない。
         msg_error: bool
             ``msg`` が失敗の知らせなら True（画面上で赤くする）。
+        reused: bool
+            今回送られたファイルではなく、サーバーにあった同名のファイル
+            から作った場合は True（結果の画面にその旨を出す）。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
@@ -190,6 +193,7 @@ class Handler1(StorganBaseHandler):
                     size_limit_bytes=self._size_limit,
                     msg_error=msg_error,
                     uploaded_names=self.uploaded_midi_names(),
+                    reused=reused,
                     models=self._models,
                     models_data=self._conf_data,
                     svg_data=svg_data,
@@ -215,12 +219,20 @@ class Handler1(StorganBaseHandler):
 
         rollbook = RollBook(self._model, self._conf_file)
 
-        # 同じ名前が既にあるなら、確かめてからでないと置き換えない。
-        # かつては送られてきた中身を捨てて古いほうを解析していたので、
-        # MIDI を直して同じ名前で上げ直すと**前回の結果がそのまま返っていた**。
-        # 成功したように見えるぶん、エラーになるより質が悪い。
-        # 画面は storgan.js が先に訊くので、ここへは来ない。
-        if file1_path.exists() and self.get_argument('overwrite', '') != '1':
+        # 同じ名前が既にあるときの扱いは、画面 (storgan.js) が先に訊いて
+        # overwrite / reuse のどちらかを立ててくる。
+        #
+        # - overwrite: 送られてきた中身で置き換える
+        # - reuse:     置き換えず、サーバーにある前回のファイルから作り直す
+        #
+        # どちらも無いまま同名を送るのは断る。かつては送られてきた中身を
+        # 捨てて古いほうを解析していたため、MIDI を直して同じ名前で上げ直すと
+        # **前回の結果がそのまま返っていた**。成功したように見えるぶん、
+        # エラーになるより質が悪い。
+        overwrite = self.get_argument('overwrite', '') == '1'
+        reuse = self.get_argument('reuse', '') == '1' and file1_path.exists()
+
+        if file1_path.exists() and not (overwrite or reuse):
             self._render(
                 msg=f'{file1_fname} は既にあります。'
                     '置き換えるか、名前を変えてください。',
@@ -228,7 +240,11 @@ class Handler1(StorganBaseHandler):
             )
             return
 
-        file1_path.write_bytes(file1['body'])
+        # reuse のときは、送られてきた中身を使わない（捨てる）。
+        # 画面はファイル選択の form ごと送ってくるので中身は届いているが、
+        # ここで書かないことが「前回のファイルのまま」の意味になる。
+        if not reuse:
+            file1_path.write_bytes(file1['body'])
 
         result = self.get_filesize(file1_path)
         assert result is not None
@@ -259,6 +275,7 @@ class Handler1(StorganBaseHandler):
             svg_data=svg_data,
             svg_filename=svg1_fname,
             src_size=src_size,
+            reused=reuse,
             book={
                 'width': round(rollbook.width, 2),
                 'height': round(rollbook.height, 2),
