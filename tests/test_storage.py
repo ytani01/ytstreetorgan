@@ -12,6 +12,7 @@ from ytstreetorgan.storage import (
     mtime_text,
     resolve_in,
     safe_name,
+    size_text,
 )
 
 
@@ -252,3 +253,14 @@ class TestMtimeText:
 
     def test_missing_file_is_none(self, tmp_path):
         assert mtime_text(tmp_path / 'nope.svg') is None
+
+
+def test_size_text_is_the_one_place_for_the_format(tmp_path):
+    """サイズの書式はここ 1 か所。一覧も生成結果の画面も同じ形になる。"""
+    f = tmp_path / 'a.bin'
+    f.write_bytes(b'x' * 2048)
+
+    assert size_text(f) == '2.0 KB'
+
+    # 一覧も同じ関数を通っている
+    assert list_files(tmp_path)[0]['size'] == '2.0 KB'

@@ -133,14 +133,25 @@ def list_files(dir_path: Path) -> list[FileInfo]:
 
     files: list[FileInfo] = []
     for p in entries:
-        size, unit = get_size_unit(p.stat().st_size)
         files.append({
             'name': p.name,
-            'size': f'{size:.1f} {unit}',
+            'size': size_text(p),
             'mtime': mtime_text(p) or UNKNOWN,
         })
 
     return files
+
+
+def size_text(path: Path) -> str:
+    """ファイルの大きさを、画面に出す形にする（``'12.3 KB'``）。
+
+    一覧も生成結果の画面もこの形なので、書式はここ 1 か所で決める。
+
+    Raises:
+        OSError: ファイルが無い / 読めないとき。
+    """
+    size, unit = get_size_unit(path.stat().st_size)
+    return f'{size:.1f} {unit}'
 
 
 def mtime_text(path: Path) -> str | None:

@@ -3,69 +3,36 @@ from unittest.mock import MagicMock, patch
 
 from ytstreetorgan.handler1 import Download, Handler1
 
+APP_SETTINGS = {
+    'urlprefix': '/',
+    'webroot': Path('/tmp'),
+    'workdir': Path('/tmp'),
+    'size_limit': 1024,
+    'version': '1.0.0',
+}
 
-def test_handler1_size_unit():
-    # get_size_unit is now in utils, test via utils directly
-    from ytstreetorgan.utils import get_size_unit
-    assert get_size_unit(1023) == (1023, 'B')
-    assert get_size_unit(1024) == (1.0, 'KB')
-    assert get_size_unit(1024 * 1024) == (1.0, 'MB')
 
-    # Handler1 still has get_filesize (via StorganBaseHandler)
+def make_app():
     app = MagicMock()
-    app.settings = {
-        'urlprefix': '/',
-        'webroot': Path('/tmp'),
-        'workdir': Path('/tmp'),
-        'size_limit': 1024,
-        'url_prefix_handler1': '/handler1',
-        'version': '1.0.0'
-    }
-    req = MagicMock()
-    with patch('tornado.web.RequestHandler.__init__'):
-        handler = Handler1(app, req)
-        handler.application = app
-        handler.request = req
-        assert handler.get_filesize(Path('/nonexistent')) is None
+    app.settings = dict(APP_SETTINGS)
+    return app
 
-def test_handler1_get_filesize(tmp_path):
-    app = MagicMock()
-    app.settings = {
-        'urlprefix': '/',
-        'webroot': Path('/tmp'),
-        'workdir': Path('/tmp'),
-        'size_limit': 1024,
-        'url_prefix_handler1': '/handler1',
-        'version': '1.0.0'
-    }
-    req = MagicMock()
+
+def test_handler1_reads_settings():
+    """`StorganBaseHandler` が app.settings から拾うもの。"""
+    app, req = make_app(), MagicMock()
 
     with patch('tornado.web.RequestHandler.__init__'):
         handler = Handler1(app, req)
-        handler.application = app
-        handler.request = req
 
-        # Test non-existent file
-        assert handler.get_filesize(tmp_path / "non_existent") is None
+        assert handler._webroot == Path('/tmp')
+        assert handler._size_limit == 1024
+        # 末尾のスラッシュは必須（get() がこれと突き合わせる）
+        assert handler._url_path.endswith('/')
 
-        # Test existing file
-        file_path = tmp_path / "test.txt"
-        file_path.write_text("hello")
-        size, unit = handler.get_filesize(file_path)
-        assert size == 5
-        assert unit == 'B'
 
 def test_download_init():
-    app = MagicMock()
-    app.settings = {
-        'urlprefix': '/',
-        'webroot': Path('/tmp'),
-        'workdir': Path('/tmp'),
-        'size_limit': 1024,
-        'url_prefix_handler1': '/handler1',
-        'version': '1.0.0'
-    }
-    req = MagicMock()
+    app, req = make_app(), MagicMock()
 
     with patch('tornado.web.RequestHandler.__init__'):
         download = Download(app, req)

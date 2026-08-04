@@ -15,6 +15,7 @@ from .storage import (
     content_disposition,
     mtime_text,
     resolve_in,
+    size_text,
 )
 from .utils import get_size_unit
 
@@ -52,17 +53,6 @@ class StorganBaseHandler(tornado.web.RequestHandler):
         self._livereload = app.settings.get('livereload', False)
 
         super().__init__(app, req)
-
-    def get_filesize(self, file_path: Path) -> tuple[float, str] | None:
-        """
-        Parameters
-        ----------
-        file_path: Path
-        """
-        if not file_path.exists():
-            return None
-
-        return get_size_unit(file_path.stat().st_size)
 
     def uploaded_midi_names(self) -> list[str]:
         """これまでにアップロードされた MIDI のファイル名。
@@ -282,10 +272,7 @@ class Handler1(StorganBaseHandler):
         if not reuse:
             file1_path.write_bytes(file1['body'])
 
-        result = self.get_filesize(file1_path)
-        assert result is not None
-        f_size, unit = result
-        src_size = f'{f_size:.1f} {unit}'
+        src_size = size_text(file1_path)
 
         try:
             svg_data = rollbook.parse_to_file(file1_path, svg1_path)
@@ -374,7 +361,6 @@ class Handler1(StorganBaseHandler):
             return
 
         svg_data = path.read_text(encoding='utf-8')
-        size, unit = get_size_unit(path.stat().st_size)
 
         book = book_from_svg(svg_data)
         # 生成日時は SVG の中ではなくファイルの更新日時から取る
@@ -383,7 +369,7 @@ class Handler1(StorganBaseHandler):
         self._render(
             svg_data=svg_data,
             svg_filename=path.name,
-            src_size=f'{size:.1f} {unit}',
+            src_size=size_text(path),
             book=book,
             from_history=True,
         )
@@ -419,11 +405,9 @@ class Handler1(StorganBaseHandler):
             )
             return
 
-        size, unit = get_size_unit(midi_path.stat().st_size)
-
         self._render(
             svg_data=svg_data,
             svg_filename=svg_path.name,
-            src_size=f'{size:.1f} {unit}',
+            src_size=size_text(midi_path),
             book=self._book_of(rollbook, svg_path),
         )
