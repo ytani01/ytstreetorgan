@@ -261,12 +261,15 @@ footer.appfoot .spacer { margin-left: auto; }
 
 /* 全長 4m のうち今どこか。スクロールバーだけでは足りないので帯を出す */
 .minimap {
-  position: relative; height: 26px; margin: 0; cursor: pointer;
+  position: relative; height: 26px; margin: 0; cursor: grab;
   border-top: 1px solid var(--rule);
+  /* 指でのドラッグを自前で扱う。既定のままだとページのスクロールに取られる */
+  touch-action: none; user-select: none;
   background: repeating-linear-gradient(90deg,
     color-mix(in srgb, var(--hole) 22%, transparent) 0 1px,
     transparent 1px 7px);
 }
+.minimap.is-grabbing, .minimap.is-grabbing .minimap__window { cursor: grabbing; }
 .minimap__window {
   position: absolute; top: 0; bottom: 0;
   background: color-mix(in srgb, var(--cut) 22%, transparent);

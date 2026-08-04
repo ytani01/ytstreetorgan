@@ -291,12 +291,54 @@
   box.addEventListener("scroll", update, { passive: true });
   window.addEventListener("resize", update);
 
-  minimap.addEventListener("click", e => {
+  /* ---- 帯（ミニマップ）: クリックでその位置へ、ドラッグで送る ----
+     枠（#mmwin = いま見えている範囲）を掴んだときだけ相対移動にする。
+     掴んだ場所がずれずに付いてくるので、少しだけ動かしたいときに扱いやすい。
+     枠の外を押したときは、これまで通りその位置へ飛ばしてから追従する。 */
+
+  // 掴んだ点と表示範囲の左端との距離（box のスクロール座標）。
+  // ドラッグ中は scrollWidth が変わらないので、押した時点で決めてよい。
+  let mmGrab = null;
+
+  function mmScrollTo(clientX) {
     const r = minimap.getBoundingClientRect();
-    box.scrollLeft =
-      (e.clientX - r.left) / r.width * box.scrollWidth - box.clientWidth / 2;
+    const ratio = (clientX - r.left) / Math.max(1, r.width);
+    box.scrollLeft = ratio * box.scrollWidth - mmGrab;
     update();
+  }
+
+  minimap.addEventListener("pointerdown", e => {
+    if (e.button !== 0) {
+      return;
+    }
+    const r = minimap.getBoundingClientRect();
+    const ratio = (e.clientX - r.left) / Math.max(1, r.width);
+
+    if (e.target === mmwin) {
+      mmGrab = ratio * box.scrollWidth - box.scrollLeft;
+    } else {
+      mmGrab = box.clientWidth / 2;  // 押した点が中央に来るように飛ぶ
+      mmScrollTo(e.clientX);
+    }
+
+    minimap.classList.add("is-grabbing");
+    minimap.setPointerCapture(e.pointerId);
+    e.preventDefault();  // 帯の上での選択やスクロールの開始を止める
   });
+
+  minimap.addEventListener("pointermove", e => {
+    if (mmGrab === null) {
+      return;
+    }
+    mmScrollTo(e.clientX);
+  });
+
+  for (const ev of ["pointerup", "pointercancel"]) {
+    minimap.addEventListener(ev, () => {
+      mmGrab = null;
+      minimap.classList.remove("is-grabbing");
+    });
+  }
 
   /* Ctrl / ⌘ + ホイールで拡縮。素のホイールはスクロールのまま残す。 */
   box.addEventListener("wheel", e => {

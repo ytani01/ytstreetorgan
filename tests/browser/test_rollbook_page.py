@@ -95,6 +95,88 @@ def test_viewer_zoom_controls(
     )
 
 
+def scroll_left(page: Page) -> float:
+    """ビューアの横スクロール位置。"""
+    return page.evaluate('() => document.getElementById("svgbox").scrollLeft')
+
+
+def open_viewer(page: Page, live_server: str, midi: Path) -> None:
+    """SVG を出して、帯が使える状態にする。"""
+    page.goto(f'{live_server}/')
+    upload(page, midi)
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    # 既定の「高さ合わせ」では横にはみ出しているので、帯に動く余地がある
+    page.wait_for_function(
+        '() => { const b = document.getElementById("svgbox");'
+        ' return b.scrollWidth > b.clientWidth * 2; }'
+    )
+
+
+def test_minimap_click_jumps_and_drag_follows(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """帯は押した位置へ飛び、押したまま動かすと付いてくる。"""
+    open_viewer(page, live_server, sample_midi)
+
+    bar = page.locator('#minimap').bounding_box()
+    assert bar is not None
+    y = bar['y'] + bar['height'] / 2
+
+    # 枠の外を押す → その位置へ飛ぶ
+    page.mouse.move(bar['x'] + bar['width'] * 0.2, y)
+    page.mouse.down()
+    left = scroll_left(page)
+
+    # 押したまま右へ → 追従する（離すまで動く）
+    page.mouse.move(bar['x'] + bar['width'] * 0.6, y)
+    middle = scroll_left(page)
+    assert middle > left
+
+    page.mouse.move(bar['x'] + bar['width'] * 0.9, y)
+    right = scroll_left(page)
+    assert right > middle
+
+    # 離したあとは追従しない
+    page.mouse.up()
+    page.mouse.move(bar['x'] + bar['width'] * 0.1, y)
+    assert scroll_left(page) == right
+
+
+def test_minimap_window_drag_is_relative(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """枠を掴んだときは飛ばさず、掴んだ場所を保ったまま動かす。"""
+    open_viewer(page, live_server, sample_midi)
+
+    bar = page.locator('#minimap').bounding_box()
+    assert bar is not None
+    y = bar['y'] + bar['height'] / 2
+
+    # まん中あたりへ移しておく（枠が端に貼り付いていると相対移動が見えない）
+    page.mouse.click(bar['x'] + bar['width'] / 2, y)
+    before = scroll_left(page)
+
+    win = page.locator('#mmwin').bounding_box()
+    assert win is not None
+
+    # 枠を掴んだだけでは動かない
+    page.mouse.move(win['x'] + win['width'] / 2, y)
+    page.mouse.down()
+    assert scroll_left(page) == before
+
+    # 動かした分だけ進む（帯の幅に対する割合 = 全長に対する割合）。
+    # 離す前に見ること。離してからだと、飛ばすだけの実装でも同じ位置になる
+    delta = bar['width'] * 0.1
+    page.mouse.move(win['x'] + win['width'] / 2 + delta, y)
+
+    total = page.evaluate('() => document.getElementById("svgbox").scrollWidth')
+    assert scroll_left(page) == pytest.approx(
+        before + total * 0.1, abs=total * 0.01
+    )
+    page.mouse.up()
+
+
 def test_static_assets_load(live_server: str, page: Page) -> None:
     """CSS/JS が 404 しない。
 
