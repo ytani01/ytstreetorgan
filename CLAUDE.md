@@ -9,29 +9,25 @@ CLI とブラウザ UI の 2 系統がある。
 
 ## コマンド
 
-`uv` 管理。`uv sync` 後、すべて `uv run` 経由で実行する。
+`uv` 管理。すべて `uv run` 経由で実行する。よく使うのはこれだけ。
 
 ```bash
 uv run pytest -q                          # 通常テスト（browser マーカーは除外される）
-uv run pytest -m browser -q               # ブラウザテスト（実 Chromium を起動、要 playwright install）
-uv run pytest --cov=ytstreetorgan --cov-report=term-missing -m ""         # カバレッジ
-
+uv run pytest -m browser -q               # ブラウザテスト（実 Chromium を起動）
 uv run ruff check src tests               # lint（--fix で自動修正）
 uv run mypy src                           # 型チェック
-uv run basedpyright src                   # 型チェック（standard モード）
 
-uv run ytstreetorgan webapp -p 10081      # Web サーバー起動 → http://localhost:10081/storgan2/
+uv run ytstreetorgan webapp -p 10081      # Web サーバー → http://localhost:10081/storgan2/
 uv run ytstreetorgan rollbook FILE.mid -m 34notes   # SVG 生成
 uv run ytstreetorgan parse FILE.mid -v    # MIDI 解析結果を表示（-v で可視化）
 uv run ytstreetorgan play FILE.mid        # MIDI 再生
 ```
 
-絞り込み、カバレッジ、ruff の設定方針、テストを書くときの注意は
-`docs/Developer.md` にまとめてある。
-
-`ytmidilib` は git 依存（`pyproject.toml` の `[tool.uv.sources]`）。上流を変更したら `uv sync --upgrade-package ytmidilib`。
-
-バージョンは hatch-vcs が git タグから生成する。未インストールのチェックアウトで直接実行すると `__version__` が `0.0.0` になる。
+- **実行方法の詳細は `docs/Developer.md`** — 環境の用意、絞り込み、
+  カバレッジ、basedpyright、ruff の設定方針、コミット前に通すもの、
+  テストを書くときの注意
+- **依存とその選定理由は `docs/tech-stack.md`** — `ytmidilib` が git 依存
+  であること、hatch-vcs によるバージョン、フロントエンドの方針
 
 ## アーキテクチャ
 
@@ -226,9 +222,8 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 
 ### ロギング
 
-loguru を `mylog.py` 経由で使う。各 CLI コマンドの先頭で `loggerInit(debug)` を呼び、
-他のモジュールでは `from loguru import logger` でグローバル logger を使うだけ。
-例外は `exmsg(e)` で整形する。標準 `logging` は使わない。
+**標準 `logging` は使わない。** loguru を `mylog.py` 経由で使い、例外は
+`exmsg(e)` で整形する。初期化と書式の決めごとは `docs/tech-stack.md`。
 
 ## 注意
 
