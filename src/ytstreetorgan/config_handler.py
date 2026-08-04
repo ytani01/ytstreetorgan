@@ -5,7 +5,6 @@ import json
 
 from loguru import logger
 
-from . import __author__, __copyright_year__
 from .conf import Conf
 from .handler1 import StorganBaseHandler
 from .rollbook import RollBook
@@ -16,6 +15,7 @@ class ConfigHandler(StorganBaseHandler):
     Handler for viewing and editing organ model configurations.
     """
     HTML_FILE = 'config_editor.html'
+    TITLE = 'Organ Model Config Editor'
 
     def __init__(self, app, req):
         """Constructor."""
@@ -48,17 +48,12 @@ class ConfigHandler(StorganBaseHandler):
             return
 
         conf = Conf(self._conf_file)
-        self.render(
+        self.render_page(
             self.HTML_FILE,
-            title='Organ Model Config Editor',
-            author=__author__,
-            version=self._version,
-            copyright_year=__copyright_year__,
-            urlprefix=self._urlprefix,
+            title=self.TITLE,
+            nav='config',
             models=conf.models,
             conf_data=json.dumps(conf.data, ensure_ascii=False),
-            livereload=self._livereload,
-            nav='config',
         )
 
     def post(self):

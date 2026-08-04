@@ -54,6 +54,30 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
         super().__init__(app, req)
 
+    def render_page(self, html_file: str, title: str, nav: str, **kwargs):
+        """テンプレートを描画する。**全ページ共通の引数はここで足す。**
+
+        `base.html` が使う author / version / copyright_year / urlprefix /
+        livereload はどのページでも同じ値なので、各ハンドラで並べない。
+
+        Args:
+            html_file (str): テンプレートのファイル名。
+            title (str): `<title>` とフッターに出す名前。
+            nav (str): ナビの現在地（'top' / 'history' / 'config'）。
+            **kwargs: そのページだけの変数。
+        """
+        self.render(
+            html_file,
+            title=title,
+            author=__author__,
+            version=self._version,
+            copyright_year=__copyright_year__,
+            urlprefix=self._urlprefix,
+            livereload=self._livereload,
+            nav=nav,
+            **kwargs,
+        )
+
     def uploaded_midi_names(self) -> list[str]:
         """これまでにアップロードされた MIDI のファイル名。
 
@@ -190,30 +214,25 @@ class Handler1(StorganBaseHandler):
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
-        self.render(self.HTML_FILE,
-                    title=self.TITLE,
-                    author=__author__,
-                    version=self._version,
-                    copyright_year=__copyright_year__,
-                    urlprefix=self._urlprefix,
-                    size_limit=size_limit,
-                    size_unit=size_unit,
-                    # 表示用に丸めた値とは別に、素のバイト数も渡す。
-                    # JS が送信前に大きさを比べるのに使う。
-                    size_limit_bytes=self._size_limit,
-                    msg_error=msg_error,
-                    uploaded_names=self.uploaded_midi_names(),
-                    reused_name=reused_name,
-                    from_history=from_history,
-                    livereload=self._livereload,
-                    nav='top',   # base.html のナビで現在地を示す
-                    models=self._models,
-                    models_data=self._conf_data,
-                    svg_data=svg_data,
-                    svg_filename=svg_filename,
-                    book=book or {},
-                    src_size=src_size,
-                    msg=msg)
+        self.render_page(self.HTML_FILE,
+                         title=self.TITLE,
+                         nav='top',
+                         size_limit=size_limit,
+                         size_unit=size_unit,
+                         # 表示用に丸めた値とは別に、素のバイト数も渡す。
+                         # JS が送信前に大きさを比べるのに使う。
+                         size_limit_bytes=self._size_limit,
+                         msg_error=msg_error,
+                         uploaded_names=self.uploaded_midi_names(),
+                         reused_name=reused_name,
+                         from_history=from_history,
+                         models=self._models,
+                         models_data=self._conf_data,
+                         svg_data=svg_data,
+                         svg_filename=svg_filename,
+                         book=book or {},
+                         src_size=src_size,
+                         msg=msg)
 
     async def post(self):
         """

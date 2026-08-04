@@ -10,7 +10,6 @@ from pathlib import Path
 
 from loguru import logger
 
-from . import __author__, __copyright_year__
 from .conf import Conf
 from .handler1 import StorganBaseHandler
 from .mylog import exmsg
@@ -42,14 +41,9 @@ class HistoryHandler(StorganBaseHandler):
 
         conf = Conf(self._conf_file)
 
-        self.render(
+        self.render_page(
             self.HTML_FILE,
             title=self.TITLE,
-            author=__author__,
-            version=self._version,
-            copyright_year=__copyright_year__,
-            urlprefix=self._urlprefix,
-            livereload=self._livereload,
             nav='history',
             models=conf.models,
             midi_files=list_files(self._dir('midi')),
