@@ -13,6 +13,8 @@
       // width/height は SVG にもあるが、穴の数と mm_per_sec は
       // SVG から取り出せないので、まとめてサーバーから渡している。
       window.BOOK_DATA = {% raw json_encode(book) %};
+      // 分からない値の出し方。storage.UNKNOWN から来る
+      window.UNKNOWN = {% raw json_encode(unknown) %};
     </script>
 {% end %}
 
@@ -69,9 +71,9 @@
       {% else %}
       <!-- ==================== 生成結果 ==================== -->
       <section class="wrap">
-        <!-- 分からない値の出し方。storgan.js と storage.py にも同じ表記がある。
-             履歴から古い SVG を出したときに使う。 -->
-        {% set unknown = '---' %}
+        <!-- unknown（分からない値の出し方）はサーバーが渡す。実体は
+             storage.UNKNOWN で、storgan.js も window.UNKNOWN で同じものを使う。
+             履歴から古い SVG を出したときに出る。 -->
         <!-- SVG 名は「MIDI 名 + .svg」なので、元ファイル名は出さない
              （同じ名前が二度並ぶだけになる）。サイズだけ添える。 -->
         <div class="result-head">

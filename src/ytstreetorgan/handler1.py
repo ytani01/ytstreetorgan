@@ -11,6 +11,7 @@ from .conf import Conf
 from .mylog import exmsg
 from .rollbook import RollBook
 from .storage import (
+    UNKNOWN,
     book_from_svg,
     content_disposition,
     mtime_text,
@@ -223,6 +224,9 @@ class Handler1(StorganBaseHandler):
                          nav='top',
                          size_limit=size_limit,
                          size_unit=size_unit,
+                         # 分からない値の出し方。テンプレートと JS が
+                         # それぞれ '---' を持たないよう、ここから渡す
+                         unknown=UNKNOWN,
                          # 表示用に丸めた値とは別に、素のバイト数も渡す。
                          # JS が送信前に大きさを比べるのに使う。
                          size_limit_bytes=self._size_limit,

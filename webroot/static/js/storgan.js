@@ -178,8 +178,8 @@
   svgEl.removeAttribute("width");
   svgEl.removeAttribute("height");
 
-  // 分からない値の出し方。テンプレート側の表記と合わせること
-  const UNKNOWN = "---";
+  // 分からない値の出し方。サーバー（storage.UNKNOWN）から来る
+  const UNKNOWN = window.UNKNOWN || "---";
 
   const PX_PER_MM = 96 / 25.4;
   const Z_MIN = 0.02;
