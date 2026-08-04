@@ -14,6 +14,18 @@ from .conf import Conf, ModelConf, NoteConf, validate_config
 
 DEF_LINE_WIDTH = 0.2
 
+# 線の色と、諸元を埋める属性の接頭辞。
+# **`storage.book_from_svg()` がこの色で穴と破線を見分け、この接頭辞で
+# 諸元を読む。** どちらも「描いたものを読み直す」ための約束なので、
+# 定義はここ 1 か所に置き、storage 側はこれを import して使う。
+BOOK_COLOR = '#0000FF'       # ブックの外枠
+HOLE_COLOR = '#FF0000'       # 実線（実際に開ける穴）
+OFF_SCALE_COLOR = '#000000'  # 破線（オルガンの音階に無い音）
+OFF_SCALE_DASH = '3 1'       # 破線の刻み
+
+# 他のツールが付けた属性と紛れないように storgan- で始める
+META_PREFIX = 'data-storgan-'
+
 
 def note2scale(midi_note: int, base_note: int, notes: list[NoteConf]) -> int:
     """MIDIノート番号からスケール番号（インデックス）を取得する。
@@ -207,12 +219,12 @@ class HoleInfo:
         str_data += f' ({self.x:.2f}, {self.y:.2f})-({self.w:.2f}, {self.h:.2f})'
         return str_data
 
-    def svg(self, color: str = '#FF0000', line_width: float = DEF_LINE_WIDTH,
+    def svg(self, color: str = HOLE_COLOR, line_width: float = DEF_LINE_WIDTH,
             stroke_dasharray: str = 'none') -> str:
         """穴描画用のSVGパス文字列を生成する。
 
         Args:
-            color (str, optional): 線色。デフォルトは '#FF0000'。
+            color (str, optional): 線色。デフォルトは HOLE_COLOR。
             line_width (float, optional): 線の太さ（mm単位）。
                 デフォルトは DEF_LINE_WIDTH。
             stroke_dasharray (str, optional): 破線のスタイル。デフォルトは 'none'。
@@ -347,10 +359,7 @@ class RollBook:
     # 音符の数（ブリッジで分割する前）は分割が多対一なので逆算できず、
     # 秒 → mm の係数はどこにも現れない。
     #
-    # 読むのは `storage.book_from_svg()`。名前を storgan- で始めているのは、
-    # 他のツールが付けた属性と紛れないようにするため。
-    META_PREFIX = 'data-storgan-'
-
+    # 読むのは `storage.book_from_svg()`（接頭辞は module 定数の META_PREFIX）。
     def _meta_attrs(self) -> str:
         """`<svg>` に付ける諸元の属性を組み立てる。"""
         meta = {
@@ -362,21 +371,21 @@ class RollBook:
         }
 
         return ''.join(
-            f' {self.META_PREFIX}{key}={quoteattr(value)}'
+            f' {META_PREFIX}{key}={quoteattr(value)}'
             for key, value in meta.items()
         )
 
     def svg(
-        self, color: str = '#0000FF', hole_color: str = '#FF0000',
+        self, color: str = BOOK_COLOR, hole_color: str = HOLE_COLOR,
         line_width: float = DEF_LINE_WIDTH, stroke_dasharray: str = 'none'
     ) -> str:
         """ロールブック全体を描画するSVGドキュメント文字列を生成する。
 
         Args:
             color (str, optional): ブック外枠の線色。
-                デフォルトは '#0000FF'。
+                デフォルトは BOOK_COLOR。
             hole_color (str, optional): 穴の線色。
-                デフォルトは '#FF0000'。
+                デフォルトは HOLE_COLOR。
             line_width (float, optional): 線の太さ（mm単位）。
                 デフォルトは DEF_LINE_WIDTH。
             stroke_dasharray (str, optional): 破線のスタイル。
@@ -401,7 +410,9 @@ class RollBook:
 
         for hi in self._holes:
             if hi.scale < 0:
-                s1 = hi.svg(color='#000000', stroke_dasharray='3 1')
+                s1 = hi.svg(
+                    color=OFF_SCALE_COLOR, stroke_dasharray=OFF_SCALE_DASH
+                )
             else:
                 s1 = hi.svg(color=hole_color)
 

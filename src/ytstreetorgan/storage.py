@@ -16,6 +16,7 @@ from urllib.parse import quote
 
 from loguru import logger
 
+from .rollbook import HOLE_COLOR, META_PREFIX, OFF_SCALE_COLOR
 from .utils import get_size_unit
 
 # 置き場の名前 → webroot 下のディレクトリ名
@@ -32,20 +33,15 @@ _SVG_SIZE_RE = re.compile(
     r'<svg\b[^>]*?\bwidth="([\d.]+)mm"[^>]*?\bheight="([\d.]+)mm"'
 )
 
-# 穴と破線は線の色で見分ける（`RollBook.svg()` / `HoleInfo.svg()` の既定色）。
-# **色を変えるならここも合わせること。** `tests/test_storage.py` が
-# `RollBook` の数え上げと突き合わせているので、ずれれば落ちる。
-_HOLE_COLOR_RE = re.compile(r'stroke:#FF0000')
-_OFF_SCALE_COLOR_RE = re.compile(r'stroke:#000000')
-
-# 図からは求まらない値は `<svg>` の属性に埋めてある
-# （`RollBook._meta_attrs()`。名前を変えるならここも）。
-_META_PREFIX = 'data-storgan-'
+# 穴と破線は線の色で見分ける。色も属性の接頭辞も **定義は rollbook 側**
+# （描くほうが持ち主）。ここは読むだけなので import して使う。
+_HOLE_COLOR_RE = re.compile('stroke:' + re.escape(HOLE_COLOR))
+_OFF_SCALE_COLOR_RE = re.compile('stroke:' + re.escape(OFF_SCALE_COLOR))
 
 
 def _meta(svg: str, key: str) -> str | None:
     """`<svg>` に埋めた諸元を 1 つ読む。無ければ None。"""
-    m = re.search(rf'{_META_PREFIX}{key}="([^"]*)"', svg)
+    m = re.search(rf'{re.escape(META_PREFIX)}{key}="([^"]*)"', svg)
     return m.group(1) if m else None
 
 
