@@ -3,14 +3,14 @@
 作成: 2026-08-02（コミット `82aaa65` 時点）
 
 A〜V は決着した（N・O・S・U-1 は「対応しない」、P と Q は方針・文言を
-決めて決着）。**W は着手中**（W-1 は決着ずみ。W-2 以降が残り）。
+決めて決着）。**W も決着した**（W-1-4 と W-4-23 は「対応しない」）。
+**残っている項目は無い。**
 
 ---
 
 ## W. コード全体の見直し（リファクタリング）
 
-`src/` を一通り読んだ棚卸し。**W-1 は決着した**（4 は「対応しない」）。
-W-2 以降は未着手。
+`src/` を一通り読んだ棚卸し。**全項目が片付いた。**
 上から順に、放っておくと事故になるもの → 重複 → 使っていないもの →
 様式の順に並べてある。
 
@@ -49,70 +49,60 @@ W-2 以降は未着手。
   途中で落ちれば消し残る。→ 3 クラスとも `WebAppTestCase` に載せ替えた
   （`687e0ab`）。わざと落として実物が汚れないことも確認した
 
-### W-2. 同じものが 2 か所以上にある
+### W-2. 同じものが 2 か所以上にあった（済）
 
-6. サイズの文字列化 `f'{size:.1f} {unit}'` が 4 か所
-   （`handler1.py:286,367,405` と `storage.py:139`）。`storage.size_text()`
-   に寄せ、ついでに `StorganBaseHandler.get_filesize()`
-   （`tuple | None` を返して呼び出し側が `assert` している）を無くす
-7. `render()` の共通引数（title / author / version / copyright_year /
-   urlprefix / livereload / nav）が 3 ハンドラに散らばっている。
-   `StorganBaseHandler.render_page()` に集約する
-8. `_show_stored_svg()` と `_generate_from_stored()` の
-   「`resolve_in` → `is_file` → エラー描画」が同型（`handler1.py:346-382`）
-9. 「MIDI ファイルではないか、壊れている可能性があります」が 2 か所
-   （`handler1.py:300,394`）
-10. `Conf` の「機種名で線形探索」が 3 か所（`get` / `update_model` /
-    `delete_model`）。`load()` の 4 つの `except` も中身が同じ。
-    `update_model` と `add_model` の validate → coerce → save も同型
-11. **SVG の色と属性名が 2 モジュールに分かれている。**
-    `rollbook.META_PREFIX` と `storage._META_PREFIX`、`'#FF0000'` /
-    `'#000000'` の直書きと `storage` 側の正規表現。往復テストがあるので
-    黙ってはずれないが、意図としては 1 か所に置きたい
-12. `showAlert()` が `history.js` と `config_editor.js` に**1 文字違わず**
-    ある。`static/js/alert.js` に出す
-13. `'---'` が 3 か所（`storage.UNKNOWN` / `storgan.js:182` /
-    `storgan.html:74`）。サーバーから 1 か所で渡す
+- [x] 6. サイズの書式を `storage.size_text()` に集約。ついでに
+  `StorganBaseHandler.get_filesize()`（`tuple | None` を返して呼び出し側が
+  `assert` していた）を廃止（`4ba5b04`）
+- [x] 7. 全ページ共通の render 引数を
+  `StorganBaseHandler.render_page()` に集約（`b3c8fff`）
+- [x] 8/9. 置き場の引き方（`resolve_in` → `is_file` → エラー描画）を
+  `_stored_path()` に、失敗メッセージを `UNREADABLE_MSG` に（`119b65e`）
+- [x] 10. `Conf` の線形探索を `_index_of()`、機種名の取り出しを
+  `_model_names()`、`load()` の 4 つの except を 1 つに（`9b01157`）
+- [x] 11. 線の色と属性の接頭辞は **rollbook が持ち主**。storage は
+  import して使う（`a0f7679`）
+- [x] 12. `showAlert()` を `static/js/alert.js` に（`6655170`）
+- [x] 13. `'---'` はサーバーが `unknown` として渡す（`c960b00`）
 
-### W-3. 使っていないもの
+### W-3. 使っていなかったもの（済）
 
-14. `RollBook.svg()` と `HoleInfo.svg()` の色・線幅・破線の引数は、
-    実際には既定値のままか固定値でしか呼ばれていない（`rollbook.py:386-388`）
-15. `divide_length_by_max_len()` の戻り値のうち `n` と `unit_len` は
-    **どこからも読まれていない**（使うのは `segments` だけ）
-16. `RollBookApp._dbg` / `_version` は代入するだけ（`apps.py:32,43`）。
-    `end()` も両クラスで空
-17. `Conf.__init__(debug=...)` は使われていない（`conf.py:158`）
-18. `# pylint: disable=` が 3 か所（`apps.py:68,70`, `__main__.py:173`）。
-    **pylint は使っていない**（ruff / mypy / basedpyright）
+`0e6dbb8` でまとめて削除。**4 機種 × 3 曲で、変更前と SVG がバイト単位で
+一致することを確認した。**
 
-### W-4. 様式（先に決めること）
+- [x] 14. `RollBook.svg()` の色・線幅・破線の引数（既定値でしか
+  呼ばれていなかった）
+- [x] 15. `divide_length_by_max_len()` の `n` と `unit_len`
+  （`DivisionResult` ごと削除）
+- [x] 16. `RollBookApp` の `version` / `debug`。**`end()` は残した**
+  （`main()` と対の掛け金で、テストも呼び出しを見ている）
+- [x] 17. `Conf.__init__(debug=...)`
+- [x] 18. `# pylint: disable=` 3 か所
 
-19. **docstring の言語と様式がばらばら。** 英語（`conf.py` / `utils.py` /
-    `config_handler.py`）と日本語（新しいもの）が混在し、様式も
-    numpy 形式（`Parameters ----------`: `utils` / `handler1` / `webapp`）と
-    Google 形式（`Args:`）が混ざる。**どちらに寄せるか決める**
-    （「利用者に見える文字列は日本語」は決まっているが、docstring は未定）
-20. `logger.debug('app={}', app)`（`handler1.py:28`）と
-    `logger.debug(dir(self.request))`（`handler1.py:232`）は `-d` のとき
-    数百行出る。落とす
-21. ログの書式が `logger.debug('x={}', x)` と f-string で混在（`conf.py` は
-    f-string）。loguru は前者のほうがよい（出さないときに整形しない）
-22. ルーティングの形が不揃い（`webapp.py:94-97`）。`config.*` /
-    `history/?` / `download/(midi/)?(.*)`。`Download.get()` の
-    `kind: str | None` はこの省略可能グループの都合
-23. `RollBook.DEF_CONF_FILE = ''` の「空文字＝探索する」という約束。
-    `str | None` にするか、探索を別の関数に出す
+### W-4. 様式（済）
 
-### W-5. テストとフロント
+- [x] 19. docstring を**日本語 + Google 形式**に統一（`3419da3`）。
+  副産物として click の help も日本語になった
+- [x] 20/21. `-d` のとき tornado の Application や `dir(request)` を
+  丸ごと出していたのをやめ、ログの書式を `{}` 形式に揃えた（`5a1781b`）。
+  実測（起動 + リクエスト 1 回）で 3829 → 2226 文字、最長 843 → 134 字
+- [x] 22. ルーティングの形を揃えた（`401ab35`）。`/config.*` は
+  `/configXYZ` まで拾っていた。`download` の種別はルート定義の引数で
+  渡すようにして、`kind: str | None` という不自然な型を無くした
+- [x] 23. **`RollBook.DEF_CONF_FILE = ''` はこのままとする（対応しない）。**
+  「空文字＝`SEARCH_PATH` を探す」という約束は `Conf` の docstring に
+  書いてある。`str | None` に変えると `Conf` の引数・呼び出し・テストに
+  広く波及するわりに、得られるのは型の見た目だけ
 
-24. ブラウザテストのアップロード用ヘルパが 2 本ある
-    （`test_rollbook_page.upload` と `test_history_page._upload`）。
-    `tests/browser/conftest.py` に 1 本にまとめる
-25. `tests/test_webapp.py` と `tests/test_webapp_async.py` の役割の境目が
-    曖昧（前者は `WebServer` の組み立て、後者は HTTP）。名前で分かるようにする
-26. `storgan.js` が 386 行で、アップロード / 機種セレクタ / ビューアの
-    3 つが 1 ファイルに入っている。ビューアを `viewer.js` に分ける
+### W-5. テストとフロント（済）
+
+- [x] 24. ブラウザテストのアップロード用ヘルパを
+  `tests/browser/conftest.py` の `upload_midi()` に 1 本化（`48c4a74`）。
+  **2 本で完了待ちの有無が違っていた**ので、待つほうを既定にした
+- [x] 25. `test_webapp.py` → `test_webserver_init.py`、
+  `test_webapp_async.py` → `test_rollbook_page_http.py`（同上）
+- [x] 26. ビューアを `viewer.js` に分けた（`06ab09b`）。
+  storgan.js は 386 → 160 行
 
 ---
 
@@ -179,7 +169,7 @@ CDN も使わない（CLAUDE.md「フロントエンド」）。色は `.icon` �
 帯（ミニマップ）のドラッグ（U-2）だけ実施。**ホイールとピンチ（U-1）は
 対応しない**ことにした。
 
-いまの操作（`storgan.js` の後半）:
+いまの操作（`viewer.js`。当時は `storgan.js` の後半）:
 
 | 操作          | 挙動                                |
 | ----------- | --------------------------------- |
@@ -237,7 +227,10 @@ CDN も使わない（CLAUDE.md「フロントエンド」）。色は `.icon` �
 K で足した `tests/test_history.py` は一時ディレクトリに複製する形にして
 いたので、**同じ目的のテストが 2 通りのやり方で書かれていた**。
 
-`tests/webapp_base.py` に `WebAppTestCase` を切り出し、両方をそこに載せた。
+`tests/webapp_base.py` に `WebAppTestCase` を切り出した。
+
+**ただし `test_webapp_async.py` には実際には手が入っておらず、この説明は
+正しくなかった。** 積み残しは W-1-27 で片付けた（`687e0ab`）。
 
 - `webroot` をテストごとに一時ディレクトリへ複製し、後片付けは
   `addCleanup` に任せる（`tearDown` は不要になった）
