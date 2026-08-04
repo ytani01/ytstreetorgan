@@ -63,7 +63,7 @@
       ["トラック数", (m["notes"] || []).length, ""],
       ["ピッチ", num(m["pitch"], 1), " mm"],
       ["送り速度", num(m["1sec"], 0), " mm/秒"],
-      ["基準ノート番号", m["base note"], ""],
+      ["基準の音", m["base note"], ""],
     ];
     specs.replaceChildren(...items.map(([label, value, unit]) => {
       const div = document.createElement("div");
