@@ -56,7 +56,8 @@ class ConfigHandler(StorganBaseHandler):
             copyright_year=__copyright_year__,
             urlprefix=self._urlprefix,
             models=conf.models,
-            conf_data=json.dumps(conf.data, ensure_ascii=False)
+            conf_data=json.dumps(conf.data, ensure_ascii=False),
+            livereload=self._livereload,
         )
 
     def post(self):

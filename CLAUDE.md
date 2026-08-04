@@ -137,6 +137,28 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 `WebServer` はこの 2 つも `False` にしてある。**再起動は不要**。
 消すと元の落とし穴に戻る。
 
+### live reload（`webapp --debug` のときだけ）
+
+`--debug` を付けて起動すると、テンプレート / CSS / JS を直したときに
+**ブラウザが勝手に再読み込みされる**。`livereload.py` に置いてある。
+
+- `watch_webroot()` が `templates/` と `static/` を `tornado.autoreload` の
+  監視対象に足す。これで `.py` 以外でも**プロセスが再起動する**
+- `LiveReloadHandler` は繋がるだけの WebSocket。**何も送らない**
+- `static/js/livereload.js` は繋いだまま待ち、**切れたら**＝再起動が始まった
+  と見なして、繋ぎ直せるようになった時点で `location.reload()` する
+
+「切断そのものが更新の合図」なので、サーバー側にファイル監視のロジックは無い。
+
+注意点:
+
+- `<script>` の 1 行は**全ページに要る**。`storgan.html` と
+  `config_editor.html` は `<head>` も appbar も同じ内容をそれぞれ持っていて
+  （共通の親テンプレートが無い）、両方に書いてある。ページを増やすときは忘れずに
+- `tornado.autoreload.watch()` は**起動時にあるファイルしか見ない**。
+  テンプレートを新規に足したら一度手で再起動する
+- 生成結果の画面でリロードすると、表示中のブックは消えて作り直しになる
+
 ### フロントエンド
 
 Pico.css v2.1.1 を `webroot/static/css/pico.min.css` に**同梱**している。

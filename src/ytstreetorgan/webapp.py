@@ -12,6 +12,7 @@ from . import __version__
 from .conf import Conf
 from .config_handler import ConfigHandler
 from .handler1 import Download, Handler1
+from .livereload import LiveReloadHandler, watch_webroot
 from .mylog import exmsg
 
 
@@ -56,6 +57,10 @@ class WebServer:
             max upload size
         version: str
             version string
+        debug: bool
+            開発用。ブラウザの live reload を有効にする
+            （`/livereload` を生やし、テンプレートと静的ファイルも
+            autoreload の監視対象にする）。
         """
         # loggerInit(debug)
         logger.debug(
@@ -70,6 +75,7 @@ class WebServer:
         self._workdir = Path(workdir)
         self._size_limit = size_limit
         self._version = version
+        self._debug = debug
 
         self._models = Conf().models
         logger.info('_models={}', self._models)
@@ -80,14 +86,21 @@ class WebServer:
             logger.error(exmsg(ex))
             raise ex
 
+        handlers: list = [
+            (r'/', Handler1),
+            (rf'{self._urlprefix}', Handler1),
+            (rf'{self._urlprefix}/', Handler1),
+            (rf'{self._urlprefix}/config.*', ConfigHandler),
+            (rf'{self._urlprefix}/download/.*', Download),
+        ]
+        if self._debug:
+            # 開発用。ブラウザはこれが切れたのを合図に再読み込みする
+            handlers.append(
+                (rf'{self._urlprefix}/livereload', LiveReloadHandler)
+            )
+
         self._app = tornado.web.Application(
-            [
-                (r'/', Handler1),
-                (rf'{self._urlprefix}', Handler1),
-                (rf'{self._urlprefix}/', Handler1),
-                (rf'{self._urlprefix}/config.*', ConfigHandler),
-                (rf'{self._urlprefix}/download/.*', Download),
-            ],
+            handlers,
             static_path=self._webroot / 'static',
             static_url_prefix=self._urlprefix + '/static/',
             template_path=self._webroot / 'templates',
@@ -105,8 +118,15 @@ class WebServer:
             size_limit=self._size_limit,
             version=self._version,
             models=self._models,
+            # テンプレートが livereload.js を出すかどうかの判断に使う
+            livereload=self._debug,
         )
         logger.debug('app={}', self._app.__dict__)
+
+        if self._debug:
+            # autoreload だけでは .py しか見ていないので、テンプレートと
+            # 静的ファイルを直したときも再起動するようにする
+            watch_webroot(self._webroot)
 
         self._svr = tornado.httpserver.HTTPServer(
             self._app, max_buffer_size=self._size_limit

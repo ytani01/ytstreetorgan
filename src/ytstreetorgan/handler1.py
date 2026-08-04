@@ -42,6 +42,9 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
         self._version = app.settings.get('version')
 
+        # 開発用。True ならテンプレートが livereload.js を読み込む
+        self._livereload = app.settings.get('livereload', False)
+
         super().__init__(app, req)
 
     def get_filesize(self, file_path: Path) -> tuple[float, str] | None:
@@ -194,6 +197,7 @@ class Handler1(StorganBaseHandler):
                     msg_error=msg_error,
                     uploaded_names=self.uploaded_midi_names(),
                     reused=reused,
+                    livereload=self._livereload,
                     models=self._models,
                     models_data=self._conf_data,
                     svg_data=svg_data,

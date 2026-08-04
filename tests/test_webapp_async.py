@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import tornado.websocket
 from tornado.testing import AsyncHTTPTestCase
 
 from ytstreetorgan.webapp import WebServer
@@ -148,3 +149,57 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         self.assertTrue((self.webroot / 'midi' / 'dummy.mid').exists())
         # 前回のファイルは無かったので、その旨は出さない
         self.assertNotIn("前回アップロードしたファイル".encode(), response.body)
+
+
+class TestWebAppLiveReload(AsyncHTTPTestCase):
+    """``webapp --debug`` のときだけ live reload が有効になること。"""
+
+    def get_app(self):
+        self.server = WebServer(
+            port=10082,
+            urlprefix=TEST_URL_PREFIX,
+            webroot=Path('./webroot'),
+            workdir=Path('/tmp/storgan_test_workdir'),
+            debug=True,
+        )
+        return self.server._app
+
+    def test_script_is_included(self):
+        response = self.fetch(f'{TEST_URL_PREFIX}/')
+        self.assertIn(b'js/livereload.js', response.body)
+
+    def test_script_is_included_on_the_config_page(self):
+        # 全ページに要る（テンプレートは 2 本あって共通の親が無い）
+        response = self.fetch(f'{TEST_URL_PREFIX}/config')
+        self.assertIn(b'js/livereload.js', response.body)
+
+    def test_websocket_endpoint_accepts_a_connection(self):
+        url = self.get_url(f'{TEST_URL_PREFIX}/livereload').replace(
+            'http://', 'ws://'
+        )
+        conn = self.io_loop.run_sync(
+            lambda: tornado.websocket.websocket_connect(url)
+        )
+        self.assertIsNotNone(conn)
+        conn.close()
+
+
+class TestWebAppNoLiveReload(AsyncHTTPTestCase):
+    """既定（debug なし）では live reload を出さないこと。"""
+
+    def get_app(self):
+        self.server = WebServer(
+            port=10083,
+            urlprefix=TEST_URL_PREFIX,
+            webroot=Path('./webroot'),
+            workdir=Path('/tmp/storgan_test_workdir'),
+        )
+        return self.server._app
+
+    def test_script_is_not_included(self):
+        response = self.fetch(f'{TEST_URL_PREFIX}/')
+        self.assertNotIn(b'js/livereload.js', response.body)
+
+    def test_websocket_endpoint_is_absent(self):
+        response = self.fetch(f'{TEST_URL_PREFIX}/livereload')
+        self.assertEqual(response.code, 404)

@@ -211,6 +211,13 @@
       </div>
     </footer>
 
+    {% if livereload %}
+    <!-- 開発用（webapp --debug）。この 1 行は全ページに要る。
+         いま HTML は storgan.html と config_editor.html の 2 本あり、
+         <head> も appbar も同じ内容をそれぞれ持っている（共通の親
+         テンプレートが無い）。ページを増やすときはここも忘れないこと。 -->
+    <script src="{{ static_url('js/livereload.js') }}"></script>
+    {% end %}
     <script src="{{ static_url('js/model_store.js') }}"></script>
     <script src="{{ static_url('js/storgan.js') }}"></script>
   </body>
