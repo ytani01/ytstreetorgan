@@ -259,7 +259,10 @@ def test_same_name_cancelled_sends_nothing(
 def test_same_name_reuse_shows_the_previous_file(
     live_server: str, page: Page, tmp_path: Path
 ) -> None:
-    """「前回の結果を表示」なら、置き換えずに前回のファイルから作る。"""
+    """「前回のファイルで変換」なら、置き換えずに前回のファイルから作る。
+
+    どちらのボタンでも変換はする。違うのは使うファイルだけ。
+    """
     first = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
     second = REPO_ROOT / 'webroot' / 'midi' / 'd-kaeru.mid'
     same = tmp_path / 'reuse-me.mid'
@@ -270,7 +273,7 @@ def test_same_name_reuse_shows_the_previous_file(
     expect(page.locator('#svgbox svg')).to_be_visible()
     before = _book_size(page)
 
-    # 同じ名前で中身は別物。「前回の結果を表示」を選ぶ
+    # 同じ名前で中身は別物。「前回のファイルで変換」を選ぶ
     page.goto(f'{live_server}/')
     same.write_bytes(second.read_bytes())
     page.set_input_files('input[name="file1"]', str(same))

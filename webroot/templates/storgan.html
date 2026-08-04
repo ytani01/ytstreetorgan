@@ -175,7 +175,9 @@
 
 {% block dialogs %}
     <!-- 同じ名前のファイルを選んだとき。confirm() では 2 択にしかならず、
-         「前回の結果を表示」を足せない。Pico が <dialog> を素で面倒見る -->
+         3 つ目を足せない。Pico が <dialog> を素で面倒見る。
+         どちらのボタンも「変換する」ことは同じで、違うのは使うファイル。
+         ラベルもそう読めるように揃えてある -->
     <dialog id="same-name-modal">
       <article>
         <header>
@@ -189,9 +191,11 @@
             キャンセル
           </button>
           <button type="button" class="secondary outline" id="btn-same-reuse">
-            前回の結果を表示
+            前回のファイルで変換
           </button>
-          <button type="button" id="btn-same-replace">置き換える</button>
+          <button type="button" id="btn-same-replace">
+            置き換えて変換
+          </button>
         </footer>
       </article>
     </dialog>

@@ -54,8 +54,10 @@
     // ファイルなのか前のままなのかが画面から分からない。
     // 送るかどうかはダイアログのボタンが決める（下の close ハンドラ）。
     if (uploaded.includes(file.name)) {
+      // どちらを選んでも変換はする。違うのは「どちらのファイルを使うか」
       modalMsg.textContent =
-        `${file.name} は既にアップロードされています。どうしますか？`;
+        `${file.name} は既にアップロードされています。`
+        + 'どちらのファイルで変換しますか？';
       modal.showModal();
       return;
     }
