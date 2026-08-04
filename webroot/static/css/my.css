@@ -32,7 +32,7 @@
      音階に無い音が読めなくなる。 */
   --paper:     #e8d8b8;   /* 古紙っぽい茶 */
   --punch:     #1c1a17;   /* 開けた穴の中身。くり抜いたように見せる */
-  --off-scale: #8a7c66;   /* 音階に無い音。鳴らないので落として描く */
+  --off-scale: #8a7c66;   /* 音階に無い音。鳴らないので色を薄くする */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -296,8 +296,8 @@ footer.appfoot .spacer { margin-left: auto; }
   fill: var(--punch) !important;
 }
 /* 音階に無い音は鳴らない（穴も開けない）。黒のままだと、くり抜いた穴と
-   紛らわしいので落として描く。**消さないこと。** 演奏者が欠落を目視で
-   確認するために、わざと描いている。 */
+   紛らわしいので**色を薄くする**。**消してはいけない。** 演奏者が欠落を
+   目視で確認するために、わざと描いている。 */
 .svgbox > svg path[style*="stroke:#000000"] {
   stroke: var(--off-scale) !important;
 }

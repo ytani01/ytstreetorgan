@@ -45,7 +45,7 @@ Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書い
 .svgbox > svg path { stroke-width: 1 !important; }
 /* 実線の穴は、くり抜いたように黒く塗る。縁の赤は残す */
 .svgbox > svg path[style*="stroke:#FF0000"] { fill: var(--punch) !important; }
-/* 音階に無い音は、穴と紛れないよう落として描く */
+/* 音階に無い音は、穴と紛れないよう色を薄くする */
 .svgbox > svg path[style*="stroke:#000000"] { stroke: var(--off-scale) !important; }
 ```
 
@@ -63,8 +63,9 @@ Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書い
 - **縁の赤（カットライン）は残すこと。** 黒く塗るだけだと、音階に無い音
   （`#000000` の破線）と色で区別が付かなくなる。どの音が鳴らないかを
   目視するのは、この道具の主要な用途のひとつ
-- 音階に無い音は `--off-scale` に落とすが、**消さないこと。**
-  演奏者が欠落を目視するためにわざと描いている
+- 音階に無い音は `--off-scale` で**色を薄くする**（黒のままだと、
+   くり抜いた穴と紛らわしいため）。**消してはいけない。**
+   演奏者が欠落を目視するためにわざと描いている
 - **`stroke:#FF0000` は文字列の一致で選んでいる。** `rollbook.py` の
   `HOLE_COLOR` を変えたらここも直すこと（CSS からは import できない）。
   片方だけ変えると黙ってすり抜けるので、`tests/test_rollbook.py` の
