@@ -13,6 +13,8 @@ MIDIデータを解析して、手回しオルガン用のロール・ブック�
   生成結果をプレビューしてSVGをダウンロードする。
 * **オルガン設定の編集** — トラック数や寸法の異なる機種を「モデル」として登録し、
   ブラウザ上で編集できる。34音/20音の設定を同梱。
+* **履歴** — アップロードしたMIDIと生成したSVGを一覧し、
+  作り直し・再表示・ダウンロード・削除ができる。
 * **MIDIの解析・再生** — ロール・ブックにする前に、
   音の一覧表示や試聴ができる。
 
@@ -23,16 +25,46 @@ MIDIデータを解析して、手回しオルガン用のロール・ブック�
 ロール・ブックが切れてしまうのを防ぐため。
 
 
-## 2. 使い方
+## 2. 準備
+
+[uv](https://docs.astral.sh/uv/) で管理している。
+
+```bash
+$ git clone https://github.com/ytani01/ytstreetorgan.git
+$ cd ytstreetorgan
+$ uv sync
+```
+
+### 設定ファイルを置く
+
+**オルガンの機種を定義した `storgan-conf.json` が要る。**
+これが無いと、どのコマンドも「見つかりません」と言って終わる。
+
+同梱のテンプレートを、次のどれか1か所へコピーする。
+
+```bash
+$ mkdir -p ~/.config && cp conf/storgan-conf.json ~/.config/
+```
+
+探す順番は `.` → `~/.config` → `~/etc` → `/usr/local/etc` → `/etc`。
+最初に見つかったものを使う。中身はブラウザの「機種設定」から編集できる。
+
+
+## 3. 使い方
 
 コマンドラインとWebインターフェースの2通り。
 
 ```bash
-$ ytstreetorgan --help
-$ ytstreetorgan SUB_COMMAND --help
+$ uv run ytstreetorgan --help
+$ uv run ytstreetorgan SUB_COMMAND --help
+
+$ uv run ytstreetorgan rollbook FILE.mid -m 34notes   # SVGを作る
+$ uv run ytstreetorgan webapp -p 10081                # ブラウザで使う
 ```
 
-Webインターフェースは `webapp` サブコマンドで起動する。
+`webapp` を起動したら <http://localhost:10081/storgan2/> を開く。
+
+開発者向けの情報（テスト・lint・依存）は `docs/` にある。
 
 
 ## A. 手回しオルガン用ロール・ブック
