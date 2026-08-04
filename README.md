@@ -33,6 +33,17 @@ MIDIデータを解析して、手回しオルガン用のロール・ブック�
 $ git clone https://github.com/ytani01/ytstreetorgan.git
 $ cd ytstreetorgan
 $ uv sync
+$ uv tool install .        # ytstreetorgan コマンドを使えるようにする
+```
+
+`uv tool install` を使わず、`uv run ytstreetorgan ...` と打っても同じことが
+できる（そのときはリポジトリのディレクトリで実行する）。
+
+**コードを更新したら入れ直すこと。** `git pull` しただけでは、
+インストール済みのコマンドは古いままになる。
+
+```bash
+$ uv tool install . --reinstall
 ```
 
 ### 設定ファイルを置く
@@ -55,14 +66,27 @@ $ mkdir -p ~/.config && cp conf/storgan-conf.json ~/.config/
 コマンドラインとWebインターフェースの2通り。
 
 ```bash
-$ uv run ytstreetorgan --help
-$ uv run ytstreetorgan SUB_COMMAND --help
+$ ytstreetorgan --help
+$ ytstreetorgan SUB_COMMAND --help
 
-$ uv run ytstreetorgan rollbook FILE.mid -m 34notes   # SVGを作る
-$ uv run ytstreetorgan webapp -p 10081                # ブラウザで使う
+$ ytstreetorgan rollbook FILE.mid -m 34notes   # SVGを作る
+$ ytstreetorgan parse FILE.mid -v              # 解析結果を見る
+$ ytstreetorgan play FILE.mid                  # 試聴する
 ```
 
-`webapp` を起動したら <http://localhost:10081/storgan2/> を開く。
+`rollbook` は、出力先を省略すると `~/Desktop` に「MIDI名.svg」で書く。
+
+### Webインターフェース
+
+**リポジトリのディレクトリで**起動する。テンプレートや、アップロードした
+ファイルの置き場（`webroot/`）をそこから読み書きするため。
+
+```bash
+$ cd ytstreetorgan
+$ ytstreetorgan webapp -p 10081
+```
+
+起動したら <http://localhost:10081/storgan2/> を開く。
 
 開発者向けの情報（テスト・lint・依存）は `docs/` にある。
 
