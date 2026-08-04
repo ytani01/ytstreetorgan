@@ -14,8 +14,6 @@ CLI とブラウザ UI の 2 系統がある。
 ```bash
 uv run pytest -q                          # 通常テスト（browser マーカーは除外される）
 uv run pytest -m browser -q               # ブラウザテスト（実 Chromium を起動、要 playwright install）
-uv run pytest tests/test_conf.py -q       # ファイル単位
-uv run pytest tests/test_conf.py::TestValidateConfig::test_invalid_type   # 単体テスト
 uv run pytest --cov=ytstreetorgan --cov-report=term-missing -m ""         # カバレッジ
 
 uv run ruff check src tests               # lint（--fix で自動修正）
@@ -165,42 +163,10 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
   テンプレートを新規に足したら一度手で再起動する
 - 生成結果の画面でリロードすると、表示中のブックは消えて作り直しになる
 
-### フロントエンド
+### フロントエンド / 確認の出し方
 
-Pico.css v2.1.1 を `webroot/static/css/pico.min.css` に**同梱**している。
-CDN は 1 本も読まない（ローカルで動かす道具なので、ネットに繋がっていなくても
-レイアウトが崩れないこと）。jQuery / Bootstrap / Font Awesome への依存も無く、
-アイコンはインライン SVG、フォントはシステムフォント。
-
-`webroot/static/css/my.css` の**トークンは `:root:root` で定義している**。
-Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書いているため、
-素の `:root` では後から読み込んでも負ける。実際に負けて Pico 既定の水色のままに
-なっていた。同じ理由で、**Pico はボタン要素の中で `--pico-color` を上書きする**
-ので、自前のコントロールの色は `--hole` のような独自トークンから直接指定する。
-
-### 確認の出し方
-
-**Yes / No は `confirm()`、三択以上は `<dialog>` + `showModal()`**（Pico が
-素で面倒を見る）。`confirm()` は 2 択にしかならないので、選択肢が増えたら
-`<dialog>` にする。逆に、ただの確認に `<dialog>` を持ち出さない。
-
-| 場面 | 出し方 |
-|---|---|
-| 履歴の削除（個別 / 全部） | `confirm()` |
-| 機種の削除 | `confirm()` |
-| 同名アップロード（置き換えて変換 / 前回のファイルで変換 / キャンセル） | `<dialog>` |
-
-入力を伴うもの（機種の追加）は確認ではないので、選択肢の数によらず
-`<dialog>`。
-
-`<dialog>` で確認するときは、**ESC や ✕ で閉じた場合もキャンセルと同じ扱い**に
-すること（選んだものを覚えてから閉じ、`close` イベント 1 か所で処理する）。
-
-選択中の機種は `static/js/model_store.js`（`window.ModelStore`）が localStorage
-（キー `storgan.model`）で持ち、作成画面と機種設定の間で受け継ぐ。サーバーには
-持たせない（端末ごとの状態で、設定ファイルに書き戻すものではないため）。
-覚えている機種は設定画面で削除・改名され得るので、復元は必ず
-`ModelStore.pick(names, fallback)` を通す。
+`webroot/CLAUDE.md` にある（Pico.css の同梱と `:root:root` の話、
+`confirm()` と `<dialog>` の使い分け）。`webroot/` 配下を触ると読み込まれる。
 
 ### ロールブックのビューア
 
@@ -248,24 +214,15 @@ Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書い
 つまり**分割後の数は `<path>` を数えれば分かるが、分割前の音符の数は
 逆算できない**（多対一のため）。前者は数え、後者は属性に埋めてある。
 
-### ブラウザテスト
+### テスト
 
-`tests/browser/` に Playwright で書いてある。`conftest.py` の `live_server`
-fixture が実サーバーを空きポートで起動する。
+書き方は `tests/CLAUDE.md` にある（`tests/browser/` の `live_server`、
+`WebAppTestCase` が `webroot` を複製すること）。`tests/` 配下を触ると
+読み込まれる。
 
 **`tests/conftest.py` の `isolate_user_config` は消さないこと。** `WebServer` と
 `ConfigHandler` は `Conf()` を引数なしで生成するため、これが無いとテストが
 `~/etc/storgan-conf.json`（利用者の実設定）を書き換える。実際に書き換えていた。
-
-### HTTP テスト
-
-`tests/webapp_base.py` の `WebAppTestCase` を継承する。**`webroot` を
-テストごとに一時ディレクトリへ複製する**ので、リポジトリの `webroot/` は
-汚れない（アップロードや削除を試すため。実際に汚していた）。
-
-- 置き場に何か置きたいときは `setup_files()` を上書きする
-- `PORT` と `SERVER_KWARGS`（`debug` / `size_limit`）は subclass が決める
-- 後片付けは `addCleanup` 任せ。`tearDown` を書かない
 
 ### ロギング
 
