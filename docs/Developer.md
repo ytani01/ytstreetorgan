@@ -66,7 +66,7 @@ uv run pytest -m browser --tracing on                   # トレースを記録
 - **`--headed --slowmo 1000`** — 各操作の間に 1 秒待つ。通しの動きを眺めたいとき向け。
 - **`--tracing on`** — 実行後に `test-results/` へトレースが残る。
   `uv run playwright show-trace <trace.zip>` でタイムライン・スクリーンショット・
-  DOM スナップショットを後から確認できる。CI の失敗調査向け。
+  DOM スナップショットを後から確認できる。あとから落ちた原因を追うとき向け。
 
 失敗の原因がセレクタなら `PWDEBUG=1`、タイミングなら `--tracing on` が早い。
 
