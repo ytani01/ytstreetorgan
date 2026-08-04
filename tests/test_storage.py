@@ -96,12 +96,27 @@ class TestBookFromSvg:
         assert book['width'] == 4133.2
         assert book['height'] == 126.0
 
-    def test_the_rest_is_unknown(self):
-        """穴の数と mm_per_sec は SVG に無い。画面では '---' と出る。"""
+    def test_counts_the_drawn_holes(self):
+        """描かれている穴と破線は数えられる（＝分割したあとの数）。"""
+        svg = self.SVG.replace('</svg>', (
+            '<path style="stroke:#FF0000;" />\n'
+            '<path style="stroke:#FF0000;" />\n'
+            '<path style="stroke:#000000;stroke-dasharray:3 1;" />\n'
+            '</svg>'
+        ))
+        book = book_from_svg(svg)
+
+        assert book['holes'] == 2
+        assert book['off_scale'] == 1
+
+    def test_note_counts_and_speed_are_unknown(self):
+        """分割**前**の音符の数と mm_per_sec は読めない。画面では '---'。
+
+        分割は多対一なので、描かれた穴から音符の数は逆算できない。
+        """
         book = book_from_svg(self.SVG)
 
-        for key in ('mm_per_sec', 'notes', 'hole_notes', 'holes',
-                    'off_scale_notes', 'off_scale'):
+        for key in ('mm_per_sec', 'notes', 'hole_notes', 'off_scale_notes'):
             assert book[key] is None, key
 
     def test_size_is_none_when_missing(self):
@@ -109,6 +124,11 @@ class TestBookFromSvg:
 
         assert book['width'] is None
         assert book['height'] is None
+
+    def test_everything_is_unknown_when_not_an_svg(self):
+        book = book_from_svg('これは SVG ではない')
+
+        assert all(v is None for v in book.values())
 
 
 class TestContentDisposition:
@@ -146,3 +166,31 @@ class TestContentDisposition:
     def test_the_whole_value_is_latin_1_safe(self):
         """組み立てた値がヘッダに載ること（載らないと 500 になる）。"""
         content_disposition('テスト曲.mid').encode('latin-1')
+
+
+class TestBookFromSvgMatchesRollBook:
+    """生成した SVG を読み直して、`RollBook` の数え上げと合うこと。
+
+    **穴と破線を線の色で数えているので、色を変えるとここが落ちる。**
+    落ちたら `storage.py` の正規表現を `rollbook.svg()` に合わせ直すこと。
+    """
+
+    def test_round_trip(self):
+        from pathlib import Path
+
+        from ytstreetorgan.rollbook import RollBook
+
+        midi = Path('webroot/midi/d-kaeru.mid')
+        if not midi.exists():
+            return
+
+        for model in ('34notes', '20notes a'):
+            rb = RollBook(model)
+            svg = rb.parse(midi)
+
+            book = book_from_svg(svg)
+
+            assert book['width'] == round(rb.width, 2), model
+            assert book['height'] == round(rb.height, 2), model
+            assert book['holes'] == rb.hole_count, model
+            assert book['off_scale'] == rb.off_scale_count, model

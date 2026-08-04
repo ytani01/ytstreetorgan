@@ -29,6 +29,12 @@ _SVG_SIZE_RE = re.compile(
     r'<svg\b[^>]*?\bwidth="([\d.]+)mm"[^>]*?\bheight="([\d.]+)mm"'
 )
 
+# 穴と破線は線の色で見分ける（`RollBook.svg()` / `HoleInfo.svg()` の既定色）。
+# **色を変えるならここも合わせること。** `tests/test_storage.py` が
+# `RollBook` の数え上げと突き合わせているので、ずれれば落ちる。
+_HOLE_COLOR_RE = re.compile(r'stroke:#FF0000')
+_OFF_SCALE_COLOR_RE = re.compile(r'stroke:#000000')
+
 
 class FileInfo(TypedDict):
     """一覧の 1 行。"""
@@ -112,15 +118,25 @@ def list_files(dir_path: Path) -> list[FileInfo]:
 def book_from_svg(svg: str) -> dict:
     """保存済みの SVG から、ビューアに渡す諸元を読めるだけ読む。
 
-    `width` / `height` は `<svg width="…mm" height="…mm">` に出ているので
-    読める。**穴の数と `mm_per_sec` は SVG に無い**ので None にする
-    （画面では `---` と出す）。穴は長いものがブリッジで分割されて
-    1 音符が `<path>` 複数本になるため、数えても求まらない。
+    読めるもの:
+
+    - `width` / `height` — `<svg width="…mm" height="…mm">` にある
+    - `holes` / `off_scale` — **描かれている穴と破線をそのまま数える**。
+      これは「ブリッジで分割したあとの数」で、`RollBook` の同名の
+      プロパティと同じ意味になる
+
+    読めないもの（None にする。画面では `---`）:
+
+    - `notes` / `hole_notes` / `off_scale_notes` — 分割**前**の音符の数。
+      長い穴は 1 音符が `<path>` 複数本になり、**分割は多対一なので
+      逆算できない**
+    - `mm_per_sec` — そもそも SVG に書かれていない
 
     Returns:
-        dict: `width` / `height` は float か None。ほかは None。
+        dict: 読めたものは数値、読めないものは None。
     """
     m = _SVG_SIZE_RE.search(svg)
+    has_svg = '<svg' in svg
 
     book: dict = {
         'width': float(m.group(1)) if m else None,
@@ -128,9 +144,13 @@ def book_from_svg(svg: str) -> dict:
         'mm_per_sec': None,
         'notes': None,
         'hole_notes': None,
-        'holes': None,
+        'holes': (
+            len(_HOLE_COLOR_RE.findall(svg)) if has_svg else None
+        ),
         'off_scale_notes': None,
-        'off_scale': None,
+        'off_scale': (
+            len(_OFF_SCALE_COLOR_RE.findall(svg)) if has_svg else None
+        ),
     }
     logger.debug('book={}', book)
     return book
