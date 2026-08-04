@@ -1,33 +1,17 @@
-from pathlib import Path
+"""ロールブック作成（`/`）とダウンロードの HTTP テスト。
 
+`webroot` の複製は `WebAppTestCase` が用意する。**実物を渡してはいけない**
+（アップロードのテストが `webroot/midi/` と `webroot/svg/` に実際に書く。
+途中で落ちれば消し残るし、一覧を読むテストが実ファイルの影響を受ける）。
+"""
 import tornado.websocket
-from tornado.testing import AsyncHTTPTestCase
-
-from ytstreetorgan.webapp import WebServer
 
 from .conftest import TEST_URL_PREFIX
+from .webapp_base import REPO_ROOT, WebAppTestCase
 
 
-class TestWebAppAsync(AsyncHTTPTestCase):
-    def get_app(self):
-        # Create web server instance and extract the tornado Application
-        self.workdir = Path('/tmp/storgan_test_workdir')
-        self.webroot = Path('./webroot')
-        self.server = WebServer(
-            port=10081,
-            urlprefix=TEST_URL_PREFIX,
-            webroot=self.webroot,
-            workdir=self.workdir,
-            size_limit=1024*1024
-        )
-        return self.server._app
-
-    def tearDown(self):
-        # Cleanup dummy files
-        for dummy in (self.webroot / 'midi' / 'dummy.mid',
-                      self.webroot / 'svg' / 'dummy.mid.svg'):
-            dummy.unlink(missing_ok=True)
-        super().tearDown()
+class TestWebAppAsync(WebAppTestCase):
+    SERVER_KWARGS = {'size_limit': 1024 * 1024}
 
     def test_homepage_redirect(self):
         # The homepage should respond 200 for missing trailing slash
@@ -45,7 +29,8 @@ class TestWebAppAsync(AsyncHTTPTestCase):
     def _upload(self, fname='dummy.mid', overwrite=False, src='d-kaeru.mid',
                 reuse=False, model='34notes'):
         """MIDI を 1 本アップロードする（multipart を手で組み立てる）。"""
-        midi_data = (self.webroot / 'midi' / src).read_bytes()
+        # 送る中身はリポジトリの実ファイルから読む。書き込む先は複製のほう
+        midi_data = (REPO_ROOT / 'webroot' / 'midi' / src).read_bytes()
 
         boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
         fields = f'--{boundary}\r\n' \
@@ -125,7 +110,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         self.assertIn(b"<svg ", response.body)
         self.assertEqual(
             (self.webroot / 'midi' / 'dummy.mid').read_bytes(),
-            (self.webroot / 'midi' / 'holy.mid').read_bytes(),
+            (REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes(),
         )
 
     def test_download(self):
@@ -168,18 +153,11 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         self.assertNotIn("前回アップロードした".encode(), response.body)
 
 
-class TestWebAppLiveReload(AsyncHTTPTestCase):
+class TestWebAppLiveReload(WebAppTestCase):
     """``webapp --debug`` のときだけ live reload が有効になること。"""
 
-    def get_app(self):
-        self.server = WebServer(
-            port=10082,
-            urlprefix=TEST_URL_PREFIX,
-            webroot=Path('./webroot'),
-            workdir=Path('/tmp/storgan_test_workdir'),
-            debug=True,
-        )
-        return self.server._app
+    PORT = 10082
+    SERVER_KWARGS = {'debug': True}
 
     def test_script_is_included(self):
         response = self.fetch(f'{TEST_URL_PREFIX}/')
@@ -202,17 +180,10 @@ class TestWebAppLiveReload(AsyncHTTPTestCase):
         conn.close()
 
 
-class TestWebAppNoLiveReload(AsyncHTTPTestCase):
+class TestWebAppNoLiveReload(WebAppTestCase):
     """既定（debug なし）では live reload を出さないこと。"""
 
-    def get_app(self):
-        self.server = WebServer(
-            port=10083,
-            urlprefix=TEST_URL_PREFIX,
-            webroot=Path('./webroot'),
-            workdir=Path('/tmp/storgan_test_workdir'),
-        )
-        return self.server._app
+    PORT = 10083
 
     def test_script_is_not_included(self):
         response = self.fetch(f'{TEST_URL_PREFIX}/')
