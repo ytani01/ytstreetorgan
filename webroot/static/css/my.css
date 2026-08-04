@@ -416,7 +416,7 @@ table.notes td.track-num {
    説明は title と aria-label に持たせること */
 .btn-row.btn-icon {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 1.8rem; min-height: 1.6rem; padding: .2rem;
+  min-width: 1.45rem; min-height: 1.45rem; padding: .2rem;
 }
 /* アイコンの実体は history.html の <symbol>。stroke は継承で決まる */
 .icon-defs { display: none; }
@@ -481,8 +481,14 @@ table.hist thead th {
   border-bottom: 1px solid var(--rule);
   font-size: .7rem; letter-spacing: .06em; color: var(--pico-muted-color);
   padding: .45rem .5rem; text-align: left;
+  /* 列を詰めたので、見出しが「サイ / ズ」と折れないようにする */
+  white-space: nowrap;
 }
 table.hist td { padding: .25rem .5rem; border-bottom: 1px solid var(--rule); }
+/* ファイル名にできるだけ幅を回す。列の間は詰め、表の左右端だけ余白を残す */
+table.hist th, table.hist td { padding-inline: .3rem; }
+table.hist th:first-child, table.hist td:first-child { padding-left: .7rem; }
+table.hist th:last-child, table.hist td:last-child { padding-right: .7rem; }
 /* 長いファイル名で表がはみ出さないように、名前だけ詰める */
 .hist__name { max-width: 0; width: 100%; }
 /* 名前そのものが操作（MIDI = 再生成 / SVG = 表示）。押せると分かるように
@@ -495,6 +501,9 @@ table.hist td { padding: .25rem .5rem; border-bottom: 1px solid var(--rule); }
 }
 .hist__open:hover { text-decoration: underline solid; }
 .hist__open:focus-visible { outline: 2px solid var(--cut); outline-offset: 1px; }
-.hist__act { white-space: nowrap; text-align: right; }
-.hist__act > * { margin-left: .25rem; }
-table.hist .num { white-space: nowrap; color: var(--pico-muted-color); }
+.hist__act { white-space: nowrap; text-align: right; font-size: 0; }
+.hist__act > * { margin-left: .15rem; }
+/* 数字は等幅なので、少し小さくすると見た目を保ったまま幅が空く */
+table.hist .num {
+  white-space: nowrap; color: var(--pico-muted-color); font-size: .74rem;
+}

@@ -71,7 +71,7 @@
                     <td class="hist__name">
                       <button type="button" class="hist__open"
                         data-regen="{{ f['name'] }}"
-                        title="この MIDI から、選んだ機種で作り直す"
+                        title="{{ f['name'] }} — この MIDI から、選んだ機種で作り直す"
                         aria-label="{{ f['name'] }} から作り直す"
                         >{{ f['name'] }}</button>
                     </td>
@@ -128,7 +128,7 @@
                     <td class="hist__name">
                       <button type="button" class="hist__open"
                         data-show="{{ f['name'] }}"
-                        title="生成し直さず、この SVG をそのまま表示する"
+                        title="{{ f['name'] }} — 生成し直さず、そのまま表示する"
                         aria-label="{{ f['name'] }} をそのまま表示"
                         >{{ f['name'] }}</button>
                     </td>
