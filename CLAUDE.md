@@ -191,9 +191,23 @@ Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書い
 
 - **初期表示は右端**（`viewBox` が負で、曲の先頭が x=0 側 = 右端にあるため）。
   既定の倍率は「高さ合わせ」。「全体」だと 7% になって何も読めない
-- ブックの寸法は `RollBook` の `width` / `height` / `hole_count` / `mm_per_sec`
-  から取る。**SVG 文字列からは取り出せない**ので `Handler1._render()` が
-  `book` として別に渡し、テンプレートが `window.BOOK_DATA` に出している
+- ブックの諸元は `RollBook` のプロパティから取り、`Handler1._render()` が
+  `book` として渡して、テンプレートが `window.BOOK_DATA` に出している。
+  `width` / `height` は SVG の属性にも出ているが、**穴の数と
+  `mm_per_sec` は SVG からは取り出せない**ので、まとめてここで渡す
+
+穴の数は 2 段階 × 2 種類で数える。**`<path>` を数えても求まらない。**
+
+| プロパティ | 意味 |
+|---|---|
+| `note_count` | MIDI から読んだ音符の数（実線と破線の合計） |
+| `hole_note_count` / `hole_count` | 実線（音階にある音）の音符 → 分割後 |
+| `off_scale_note_count` / `off_scale_count` | 破線（音階に無い音）の音符 → 分割後 |
+
+長い穴は `divide_length_by_max_len()` が `'bridge_threshold'` ごとに分割するので、
+**音符 1 個が `<path>` 複数本になる**。`'20notes'` と `'20notes a'` は音階の
+定義が同じで `'bridge_threshold'` だけ違い（50.0 と 2.7）、同じ MIDI で音符
+1033・実線 339 は変わらないのに、分割後は 339 と 967 になる。逆算はできない。
 
 ### ブラウザテスト
 

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -100,7 +101,8 @@ def test_rollbook_parse_real_midi():
 def test_rollbook_dimension_properties():
     """Web のビューアは寸法をこのプロパティ経由で受け取る。
 
-    SVG 文字列からは取り出せないので、値が SVG の viewBox と一致すること。
+    width / height は SVG にも出るので、値が食い違わないこと。
+    穴の数と mm_per_sec は SVG から取り出せない。
     """
     midi_file = Path('webroot/midi/d-kaeru.mid')
     if not midi_file.exists():
@@ -111,11 +113,75 @@ def test_rollbook_dimension_properties():
     # parse() する前は全長が決まらない
     assert rb.width == 0.0
     assert rb.height > 0
+    assert rb.note_count == 0
     assert rb.hole_count == 0
 
     svg = rb.parse(midi_file)
 
     assert rb.width > 0
-    assert rb.hole_count == len(rb._holes)
     assert rb.mm_per_sec > 0
     assert f'width="{rb.width:.2f}mm" height="{rb.height:.2f}mm"' in svg
+
+
+def test_hole_counts_are_split_into_solid_and_dashed():
+    """穴の数は「音符の数」と「分割後の数」を、実線と破線で分けて数える。
+
+    合計と、実際に描かれる `<path>` の数が合うこと。
+    """
+    midi_file = Path('webroot/midi/d-kaeru.mid')
+    if not midi_file.exists():
+        return
+
+    rb = RollBook('34notes')
+    svg = rb.parse(midi_file)
+
+    # 音符は実線と破線に分かれる
+    assert rb.hole_note_count + rb.off_scale_note_count == rb.note_count
+    assert rb.hole_note_count > 0
+    assert rb.off_scale_note_count > 0
+
+    # 分割されるぶん、音符より多くなる（減ることはない）
+    assert rb.hole_count >= rb.hole_note_count
+    assert rb.off_scale_count >= rb.off_scale_note_count
+    assert rb.hole_count > rb.hole_note_count   # この曲では実際に分割される
+
+    # 描かれる path と一致する（外枠の 1 本を除く）
+    drawn = len(re.findall(r'<path ', svg)) - 1
+    assert rb.hole_count + rb.off_scale_count == drawn
+
+
+def test_hole_count_counts_only_the_solid_ones():
+    """穴の数は実線だけ。破線は音階に無い音なので穴を開けない。"""
+    midi_file = Path('webroot/midi/d-kaeru.mid')
+    if not midi_file.exists():
+        return
+
+    rb = RollBook('34notes')
+    rb.parse(midi_file)
+
+    solid = [h for h in rb._holes if h.scale >= 0]
+    assert rb.hole_note_count == len(solid)
+    assert rb.hole_count == sum(len(h.segments) for h in solid)
+
+
+def test_hole_count_grows_when_holes_are_divided_more():
+    """`bridge_threshold` が小さいほど、分割されて穴が増える。
+
+    '20notes' と '20notes a' は音階の定義が同じで、違うのは
+    `bridge_threshold`（50.0 と 2.7）だけ。**音符の数は変わらないのに
+    穴の数だけ増える**ので、SVG から逆算できないことがこれで分かる。
+    """
+    midi_file = Path('webroot/midi/d-kaeru.mid')
+    if not midi_file.exists():
+        return
+
+    coarse = RollBook('20notes')      # bridge_threshold = 50.0
+    coarse.parse(midi_file)
+    fine = RollBook('20notes a')      # bridge_threshold = 2.7
+    fine.parse(midi_file)
+
+    # 音符の数は同じ
+    assert coarse.note_count == fine.note_count
+    assert coarse.hole_note_count == fine.hole_note_count
+    # 分割後は大きく違う
+    assert fine.hole_count > coarse.hole_count * 2

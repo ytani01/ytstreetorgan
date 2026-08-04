@@ -165,8 +165,12 @@ Ctrl + ホイールでの拡縮、ドラッグでのパンまで。実装は `st
 - `1sec` = 50mm なので、スクロール位置がそのまま演奏時間になる
 
 `RollBook` に `width` / `height` / `hole_count` / `mm_per_sec` を足した。
-**寸法は SVG 文字列からは取り出せない**ので、`Handler1._render()` が `book`
-として別に渡し、テンプレートが `window.BOOK_DATA` に出している。
+`Handler1._render()` が `book` として別に渡し、テンプレートが
+`window.BOOK_DATA` に出している。
+
+（**追記**: このとき「寸法は SVG からは取り出せない」と書いたが、
+`width` / `height` は `<svg width="…mm" height="…mm">` に出ている。
+取り出せないのは穴の数と `mm_per_sec` のほう。）
 
 `Handler1` は `post()` が `get(svg_data=...)` を呼ぶ形をやめて、描画を
 `_render()` に分けた。GET ハンドラを描画関数として使い回すのは分かりにくく、

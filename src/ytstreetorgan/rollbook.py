@@ -183,6 +183,12 @@ class HoleInfo:
         self.bridge_width = self.conf.get('bridge_width')
         self.bridge_threshold = self.conf.get('bridge_threshold')
 
+        # 長い穴はブリッジ（紙のつなぎ）を挟んで分割する。
+        # ここで一度だけ求めて svg() と hole_count が同じものを見る。
+        self.segments = divide_length_by_max_len(
+            self.w, self.bridge_threshold, self.bridge_width
+        )['segments']
+
     def __str__(self) -> str:
         """オブジェクトの文字列表現を取得する。
 
@@ -211,11 +217,8 @@ class HoleInfo:
         Returns:
             str: 生成されたSVGパス要素の文字列。
         """
-        # ホールの長さが bridge_threshold より長い場合は、分割
-        di = divide_length_by_max_len(self.w, self.bridge_threshold, self.bridge_width)
-
         svg = ''
-        for (x1, x2) in di['segments']:
+        for (x1, x2) in self.segments:
             logger.debug("({}, {})", x1, x2)
 
             svg += svg_square(
@@ -277,10 +280,40 @@ class RollBook:
         """ブックの高さ [mm]（設定の ``'book_height'``）。"""
         return self._height
 
+    # 穴の数は 2 段階で数える。
+    #
+    # 1. 音符の数 — MIDI から読んだそのままの数
+    # 2. 分割後の数 — 長い穴は `divide_length_by_max_len()` が
+    #    `'bridge_threshold'` ごとに分割するので、音符 1 個が穴 2 個以上になる。
+    #    実際に開ける数はこちら。同じ MIDI でも機種によって変わる
+    #
+    # さらに、オルガンの音階に無い音（`scale < 0`）は破線で描くだけで
+    # **穴は開けない**ので、実線とは分けて数える。
+
+    @property
+    def note_count(self) -> int:
+        """MIDI から読んだ音符の数（実線と破線の合計）。"""
+        return len(self._holes)
+
+    @property
+    def hole_note_count(self) -> int:
+        """実線で描く音符の数（オルガンの音階にあるもの）。"""
+        return sum(1 for hi in self._holes if hi.scale >= 0)
+
     @property
     def hole_count(self) -> int:
-        """穴の数。音階に無くて破線で描かれるものも含む。"""
-        return len(self._holes)
+        """実際に開ける穴の数（実線をブリッジで分割したあと）。"""
+        return sum(len(hi.segments) for hi in self._holes if hi.scale >= 0)
+
+    @property
+    def off_scale_note_count(self) -> int:
+        """破線で描く音符の数（オルガンの音階に無いもの）。"""
+        return sum(1 for hi in self._holes if hi.scale < 0)
+
+    @property
+    def off_scale_count(self) -> int:
+        """破線を分割したあとの数。穴は開けないので、参考の値。"""
+        return sum(len(hi.segments) for hi in self._holes if hi.scale < 0)
 
     @property
     def mm_per_sec(self) -> float:

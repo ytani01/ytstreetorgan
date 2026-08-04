@@ -283,7 +283,14 @@ class Handler1(StorganBaseHandler):
             book={
                 'width': round(rollbook.width, 2),
                 'height': round(rollbook.height, 2),
-                'holes': rollbook.hole_count,
                 'mm_per_sec': rollbook.mm_per_sec,
+                # 穴の数は「音符の数」と「ブリッジで分割したあとの数」の
+                # 2 段階あり、さらに実線（穴を開ける）と破線（開けない）で
+                # 分かれる。どれも SVG からは逆算できないので全部渡す。
+                'notes': rollbook.note_count,
+                'hole_notes': rollbook.hole_note_count,
+                'holes': rollbook.hole_count,
+                'off_scale_notes': rollbook.off_scale_note_count,
+                'off_scale': rollbook.off_scale_count,
             },
         )

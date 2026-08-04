@@ -23,7 +23,8 @@
       // 同じ名前で上げ直すと中身が置き換わるので、送る前に確認する
       window.UPLOADED_NAMES = {% raw json_encode(uploaded_names) %};
       // ビューアが初期倍率とスクロール位置を決めるのに使う。
-      // SVG 文字列からは寸法が取り出せないのでサーバーから渡している。
+      // width/height は SVG にもあるが、穴の数と mm_per_sec は
+      // SVG から取り出せないので、まとめてサーバーから渡している。
       window.BOOK_DATA = {% raw json_encode(book) %};
     </script>
   </head>
@@ -157,7 +158,18 @@
             <span>全長 <b>{{ '%.1f' % book['width'] }}</b> mm</span>
             <span>演奏時間 <b id="dur-t">0:00</b></span>
             <span>高さ <b>{{ '%.1f' % book['height'] }}</b> mm</span>
-            <span>穴 <b>{{ book['holes'] }}</b> 個</span>
+            <!-- 「音符の数 → ブリッジで分割したあとの数」。実線は実際に開ける
+                 穴、破線は音階に無くて開けない音。分割後の数は SVG から
+                 数えられない（穴 1 個が path 複数本になるため）ので、
+                 サーバーが数えて渡している。 -->
+            <span>音符 <b>{{ book['notes'] }}</b></span>
+            <span title="ブリッジで分割する前 → 分割したあと">
+              穴 <b>{{ book['hole_notes'] }}</b> → <b>{{ book['holes'] }}</b> 個
+            </span>
+            <span title="オルガンの音階に無い音。破線で描くだけで穴は開けない">
+              破線 <b>{{ book['off_scale_notes'] }}</b>
+              → <b>{{ book['off_scale'] }}</b> 個
+            </span>
             <span>1 秒 = <b>{{ '%.0f' % book['mm_per_sec'] }}</b> mm</span>
             <a class="dlbtn spacer" role="button" download
               href="{{urlprefix}}/download/{{ svg_filename }}">
