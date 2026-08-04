@@ -251,7 +251,9 @@ class Handler1(StorganBaseHandler):
         self._model = self.get_argument('model')
         logger.debug('model=\'{}\'', self._model)
 
-        rollbook = RollBook(self._model, self._conf_file)
+        rollbook = self._rollbook_of(self._model)
+        if rollbook is None:
+            return
 
         # 同じ名前が既にあるときの扱いは、画面 (storgan.js) が先に訊いて
         # overwrite / reuse のどちらかを立ててくる。
@@ -312,6 +314,23 @@ class Handler1(StorganBaseHandler):
             reused_name=file1_fname if reuse else '',
             book=self._book_of(rollbook, svg1_path),
         )
+
+    def _rollbook_of(self, model: str) -> RollBook | None:
+        """機種名から `RollBook` を作る。作れなければ画面に理由を出す。
+
+        `RollBook` は知らない機種名や項目の足りない設定を `ValueError` で
+        断る。捕まえないと tornado 既定の 500 ページに置き換わり、
+        選び直すこともできなくなる。
+
+        Returns:
+            RollBook | None: 作れなければ None（描画はここで済ませてある）。
+        """
+        try:
+            return RollBook(model, self._conf_file)
+        except ValueError as e:
+            logger.error(exmsg(e))
+            self._render(msg=str(e), msg_error=True)
+            return None
 
     def _book_of(self, rollbook: RollBook, svg_path: Path) -> dict:
         """ビューアに渡す諸元を組み立てる。
@@ -383,7 +402,10 @@ class Handler1(StorganBaseHandler):
             return
 
         self._model = self.get_argument('model')
-        rollbook = RollBook(self._model, self._conf_file)
+        rollbook = self._rollbook_of(self._model)
+        if rollbook is None:
+            return
+
         svg_path = self._webroot / 'svg' / f'{midi_path.name}.svg'
 
         try:

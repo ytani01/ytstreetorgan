@@ -10,7 +10,7 @@ from xml.sax.saxutils import quoteattr
 from loguru import logger
 from ytmidilib import NoteInfo, Parser
 
-from .conf import Conf, ModelConf, NoteConf
+from .conf import Conf, ModelConf, NoteConf, validate_config
 
 DEF_LINE_WIDTH = 0.2
 
@@ -161,6 +161,8 @@ class HoleInfo:
             note_info (NoteInfo): MIDIノート情報。
             conf (ModelConf): モデル設定情報。
         """
+        # 項目が揃っていることは RollBook.__init__ が確かめている。
+        # ここの既定値は、単体で使われたときの保険にすぎない
         self.note_info = note_info
         self.conf = conf
 
@@ -252,6 +254,15 @@ class RollBook:
                 デフォルトは DEF_MODEL_NAME。
             conf_file (str, optional): 設定ファイルのパス。
                 デフォルトは DEF_CONF_FILE。
+
+        Raises:
+            ValueError: 機種が設定に無い、または設定の項目が足りないとき。
+
+        Note:
+            **ここで弾かないと、静かに壊れた図が出る。** `Conf.get()` は
+            知らない機種名に `{}` を返し、`HoleInfo` は足りない項目を
+            既定値 0 で読むので、機種名を打ち間違えるだけで「高さ 0 の
+            空のブック」が何事もなかったように生成されていた。
         """
         logger.info('model={}', model)
 
@@ -261,6 +272,13 @@ class RollBook:
 
         self._conf: ModelConf = Conf(self._conf_file).get(self._model)
         logger.debug('conf={}', json.dumps(self._conf))
+
+        if not self._conf:
+            raise ValueError(f"機種 '{model}' は設定にありません")
+
+        valid, msg = validate_config(self._conf)
+        if not valid:
+            raise ValueError(f"機種 '{model}' の設定が不正です: {msg}")
 
         self._width = 0.0
         self._height = float(self._conf.get('book_height', 0.0))

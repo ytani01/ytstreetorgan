@@ -1,6 +1,9 @@
+import json
 import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from ytstreetorgan.rollbook import HoleInfo, RollBook, note2scale, svg_square
 
@@ -121,6 +124,31 @@ def test_rollbook_dimension_properties():
     assert rb.width > 0
     assert rb.mm_per_sec > 0
     assert f'width="{rb.width:.2f}mm" height="{rb.height:.2f}mm"' in svg
+
+
+def test_unknown_model_is_refused():
+    """知らない機種名は断る。
+
+    `Conf.get()` が `{}` を返し、`HoleInfo` が足りない項目を 0 で読むので、
+    かつては「高さ 0 の空のブック」が何事もなく生成されていた。
+    """
+    with pytest.raises(ValueError, match='no-such-model'):
+        RollBook('no-such-model')
+
+
+def test_incomplete_config_is_refused(tmp_path):
+    """項目の足りない設定も断る（黙って 0 で描かない）。"""
+    conf = json.loads(
+        (Path('conf') / 'storgan-conf.json').read_text(encoding='utf-8')
+    )
+    broken = next(d for d in conf if d['model'] == '34notes')
+    del broken['pitch']
+
+    conf_file = tmp_path / 'storgan-conf.json'
+    conf_file.write_text(json.dumps([broken]), encoding='utf-8')
+
+    with pytest.raises(ValueError, match='pitch'):
+        RollBook('34notes', str(conf_file))
 
 
 def test_parse_twice_gives_the_same_book():

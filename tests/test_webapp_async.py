@@ -43,14 +43,14 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         self.assertIn("MIDI ファイルを選んでください".encode(), response.body)
 
     def _upload(self, fname='dummy.mid', overwrite=False, src='d-kaeru.mid',
-                reuse=False):
+                reuse=False, model='34notes'):
         """MIDI を 1 本アップロードする（multipart を手で組み立てる）。"""
         midi_data = (self.webroot / 'midi' / src).read_bytes()
 
         boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
         fields = f'--{boundary}\r\n' \
             'Content-Disposition: form-data; name="model"\r\n\r\n' \
-            '34notes\r\n'
+            f'{model}\r\n'
         for name, on in (('overwrite', overwrite), ('reuse', reuse)):
             if on:
                 fields += (
@@ -77,6 +77,21 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         # It should render the SVG data variable injected into HTML
         self.assertIn(b"<svg ", response.body)
+
+    def test_post_unknown_model_shows_a_message(self):
+        """知らない機種名は 500 にせず、理由を画面に出す。
+
+        `RollBook` が断るようになる前は、`Conf.get()` が `{}` を返して
+        「高さ 0 の空のブック」が何事もなく出ていた。
+        """
+        response = self._upload(model='no-such-model')
+
+        self.assertEqual(response.code, 200)
+        self.assertIn(b"no-such-model", response.body)
+        self.assertIn("設定にありません".encode(), response.body)
+        # ロールブックは作らないし、MIDI も残さない
+        self.assertNotIn(b'id="svgbox"', response.body)
+        self.assertFalse((self.webroot / 'midi' / 'dummy.mid').exists())
 
     def test_post_same_name_without_overwrite_is_refused(self):
         """overwrite が無い同名の POST は、置き換えずに断る。
