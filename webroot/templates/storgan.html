@@ -16,6 +16,10 @@
     <script>
       window.URL_PREFIX = "{{ urlprefix }}";
       window.MODELS_DATA = {% raw json_encode(models_data) %};
+      // 上限を超えたファイルは送る前に止める。送ってしまうと tornado が
+      // 本文を読まずに接続を切るので、ブラウザには真っ白なページが残る。
+      window.SIZE_LIMIT = {{ size_limit_bytes }};
+      window.SIZE_LIMIT_TEXT = "{{ size_limit }} {{ size_unit }}";
       // ビューアが初期倍率とスクロール位置を決めるのに使う。
       // SVG 文字列からは寸法が取り出せないのでサーバーから渡している。
       window.BOOK_DATA = {% raw json_encode(book) %};
@@ -83,11 +87,12 @@
                 .mid / .midi — <span class="num">{{ size_limit }}</span>
                 {{ size_unit }} まで
               </p>
-              <input type="file" id="file1" name="file1" accept=".mid,.midi"
-                onchange="this.form.submit();">
+              <!-- 送信は storgan.js が行う（大きさを確かめてから submit する） -->
+              <input type="file" id="file1" name="file1" accept=".mid,.midi">
             </label>
           </form>
-          <p class="drop__status">{{ msg }}</p>
+          <p class="drop__status{% if msg_error %} drop__status--error{% end %}"
+            id="drop-status">{{ msg }}</p>
         </article>
       </section>
 

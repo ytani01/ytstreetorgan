@@ -168,6 +168,9 @@ footer.appfoot .spacer { margin-left: auto; }
   font-size: .78rem; color: var(--pico-muted-color);
   margin: .55rem 0 0; text-align: center;
 }
+/* 読み込めなかった / 大きすぎた、の知らせ。見落とされると
+   「押したのに何も起きない」に見えるので、色と太さで区別する */
+.drop__status--error { color: var(--hole); font-weight: 600; }
 
 /* 選んだ機種の寸法を先に見せる。生成してから気づくのを避けるため */
 .specs { display: flex; flex-wrap: wrap; gap: 0 1.75rem; margin: 0; }

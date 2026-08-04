@@ -8,6 +8,7 @@ from loguru import logger
 
 from . import __author__, __copyright_year__
 from .conf import Conf
+from .mylog import exmsg
 from .rollbook import RollBook
 from .utils import get_size_unit
 
@@ -137,7 +138,7 @@ class Handler1(StorganBaseHandler):
         self._render()
 
     def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None,
-                src_size=''):
+                src_size='', msg_error=False):
         """テンプレートを描画する。
 
         ``svg_data`` が空なら「ファイル選択」、そうでなければ「生成結果」の
@@ -156,6 +157,8 @@ class Handler1(StorganBaseHandler):
         src_size: str
             元 MIDI のサイズ（'12.3 KB'）。ファイル名は SVG 名
             （＝ MIDI 名 + '.svg'）に含まれるので渡さない。
+        msg_error: bool
+            ``msg`` が失敗の知らせなら True（画面上で赤くする）。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
@@ -167,6 +170,10 @@ class Handler1(StorganBaseHandler):
                     urlprefix=self._urlprefix,
                     size_limit=size_limit,
                     size_unit=size_unit,
+                    # 表示用に丸めた値とは別に、素のバイト数も渡す。
+                    # JS が送信前に大きさを比べるのに使う。
+                    size_limit_bytes=self._size_limit,
+                    msg_error=msg_error,
                     models=self._models,
                     models_data=self._conf_data,
                     svg_data=svg_data,
@@ -192,7 +199,8 @@ class Handler1(StorganBaseHandler):
 
         rollbook = RollBook(self._model, self._conf_file)
 
-        if not file1_path.exists():
+        wrote_file = not file1_path.exists()
+        if wrote_file:
             file1_path.write_bytes(file1['body'])
 
         result = self.get_filesize(file1_path)
@@ -200,7 +208,25 @@ class Handler1(StorganBaseHandler):
         f_size, unit = result
         src_size = f'{f_size:.1f} {unit}'
 
-        svg_data = rollbook.parse_to_file(file1_path, svg1_path)
+        try:
+            svg_data = rollbook.parse_to_file(file1_path, svg1_path)
+        except Exception as e:
+            # 捕まえないと tornado 既定の 500 ページに置き換わり、
+            # 画面ごと失われて選び直すこともできなくなる。
+            logger.error(exmsg(e))
+
+            # 今回書いたものは消す。残すと、次に同じ名前で正しい
+            # ファイルを送っても上の exists() に弾かれ、壊れたほうが使われる。
+            if wrote_file:
+                file1_path.unlink(missing_ok=True)
+
+            self._render(
+                msg=f'{file1_fname} を読み込めませんでした。'
+                    'MIDI ファイルではないか、壊れている可能性があります。',
+                msg_error=True,
+            )
+            return
+
         logger.debug('len(svg_data)={}', len(svg_data))
 
         self._render(

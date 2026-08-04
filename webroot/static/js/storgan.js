@@ -4,6 +4,40 @@
 //
 "use strict";
 
+/* ---- アップロード ------------------------------------------------------ */
+// 機種セレクタとは別に持つ。機種が 1 つも無いとセレクタは描画されないが、
+// ファイル選択はできてしまうため。
+(function () {
+  const input = document.getElementById("file1");
+  if (!input) {
+    return;  // 生成結果の画面にはフォームが無い
+  }
+
+  const status = document.getElementById("drop-status");
+  const limit = window.SIZE_LIMIT || 0;
+
+  // 上限を超えたら送らない。送ると tornado が本文を読まずに接続を切るので、
+  // ブラウザには真っ白なページが残り、理由が何も伝わらない。
+  input.addEventListener("change", () => {
+    const file = input.files && input.files[0];
+    if (!file) {
+      return;
+    }
+
+    if (limit && file.size > limit) {
+      if (status) {
+        status.textContent =
+          `${file.name} は大きすぎます（上限 ${window.SIZE_LIMIT_TEXT}）。`;
+        status.classList.add("drop__status--error");
+      }
+      input.value = "";  // 選び直せるように戻す（同じファイルでも change が出る）
+      return;
+    }
+
+    input.form.submit();
+  });
+})();
+
 (function () {
   const select = document.getElementById("model");
   const specs = document.getElementById("specs");
