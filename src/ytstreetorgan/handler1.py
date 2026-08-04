@@ -27,8 +27,12 @@ class StorganBaseHandler(tornado.web.RequestHandler):
     `webroot` / `workdir` は `WebServer` が `Path` に正規化して渡している。
     """
 
-    def __init__(self, app, req):
-        """設定を取り出してから、tornado の初期化を呼ぶ。"""
+    def __init__(self, app, req, **kwargs):
+        """設定を取り出してから、tornado の初期化を呼ぶ。
+
+        `**kwargs` はルート定義の 3 要素目（`Download` の `kind` など）。
+        tornado がそのまま渡してくるので、受けて `initialize()` へ流す。
+        """
         self._urlprefix = app.settings.get('urlprefix')
 
         # WebServer が Path に正規化して渡している
@@ -53,7 +57,7 @@ class StorganBaseHandler(tornado.web.RequestHandler):
         # 開発用。True ならテンプレートが livereload.js を読み込む
         self._livereload = app.settings.get('livereload', False)
 
-        super().__init__(app, req)
+        super().__init__(app, req, **kwargs)
 
     def render_page(self, html_file: str, title: str, nav: str, **kwargs):
         """テンプレートを描画する。**全ページ共通の引数はここで足す。**
@@ -100,24 +104,29 @@ class Download(StorganBaseHandler):
 
     URL は `/download/<name>`（SVG）と `/download/midi/<name>`。
     SVG 側に種別が入っていないのは、生成結果の画面のリンクが
-    元からこの形だったため。
+    元からこの形だったため。**どちらの置き場かはルートが
+    `kind` で渡す**（URL から読み取らない）。
     """
 
-    def get(self, kind: str | None = None, fname: str = ''):
+    def initialize(self, kind: str = 'svg') -> None:
+        """置き場の種別を受け取る（`WebServer` のルート定義から）。
+
+        Args:
+            kind (str): 'midi' か 'svg'。
+        """
+        self._kind = kind
+
+    def get(self, fname: str = ''):
         """ファイルを返す。
 
         Args:
-            kind (str | None): 'midi/' か None（省略されたら SVG）。
-                ルートの省略可能グループから来る。
-            fname (str): ファイル名。同上。
+            fname (str): ファイル名。URL から来る。
         """
-        logger.debug('kind={}, fname={}', kind, fname)
-
-        subdir = 'midi' if kind else 'svg'
+        logger.debug('kind={}, fname={}', self._kind, fname)
 
         try:
             # 名前は URL から来る。置き場の外を指していないか必ず確かめる
-            path_name = resolve_in(self._webroot / subdir, fname)
+            path_name = resolve_in(self._webroot / self._kind, fname)
         except ValueError as e:
             logger.error(exmsg(e))
             raise tornado.web.HTTPError(400, reason='bad file name') from e
@@ -153,7 +162,7 @@ class Handler1(StorganBaseHandler):
 
     HTML_FILE = 'storgan.html'
 
-    def __init__(self, app, req):
+    def __init__(self, app, req, **kwargs):
         """設定を読む（機種の一覧と、画面に出す寸法に使う）。"""
         self._conf_file = RollBook.DEF_CONF_FILE
         self._model_name = RollBook.DEF_MODEL_NAME
@@ -164,7 +173,7 @@ class Handler1(StorganBaseHandler):
         self._models = conf.models
         self._model = ''
 
-        super().__init__(app, req)
+        super().__init__(app, req, **kwargs)
 
         logger.debug(
             "conf_file={}, model_name={}", self._conf_file, self._model_name

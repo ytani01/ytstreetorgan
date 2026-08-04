@@ -23,10 +23,10 @@ class HistoryHandler(StorganBaseHandler):
     HTML_FILE = 'history.html'
     TITLE = 'Roll Book History'
 
-    def __init__(self, app, req):
+    def __init__(self, app, req, **kwargs):
         """設定ファイルの位置を決めてから、土台の初期化を呼ぶ。"""
         self._conf_file = RollBook.DEF_CONF_FILE
-        super().__init__(app, req)
+        super().__init__(app, req, **kwargs)
 
     def _dir(self, kind: str) -> Path:
         """種別（'midi' / 'svg'）に対応する置き場。"""

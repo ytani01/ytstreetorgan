@@ -20,10 +20,10 @@ class ConfigHandler(StorganBaseHandler):
     HTML_FILE = 'config_editor.html'
     TITLE = 'Organ Model Config Editor'
 
-    def __init__(self, app, req):
+    def __init__(self, app, req, **kwargs):
         """設定ファイルの位置を決めてから、土台の初期化を呼ぶ。"""
         self._conf_file = RollBook.DEF_CONF_FILE
-        super().__init__(app, req)
+        super().__init__(app, req, **kwargs)
 
     def get(self):
         """エディタの画面を出す。API として呼ばれたら JSON を返す。"""

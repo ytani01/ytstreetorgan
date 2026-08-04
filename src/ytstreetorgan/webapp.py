@@ -82,14 +82,19 @@ class WebServer:
             logger.error(exmsg(ex))
             raise ex
 
+        # 形を揃える。`/config.*` は `/configXYZ` まで拾っていた
         handlers: list = [
             (r'/', Handler1),
             (rf'{self._urlprefix}', Handler1),
             (rf'{self._urlprefix}/', Handler1),
-            (rf'{self._urlprefix}/config.*', ConfigHandler),
+            # /config, /config/, /config/api/data, /config/save
+            (rf'{self._urlprefix}/config(?:/.*)?', ConfigHandler),
             (rf'{self._urlprefix}/history/?', HistoryHandler),
-            # 種別つき（midi/）と、SVG 用の従来の形の両方を受ける
-            (rf'{self._urlprefix}/download/(midi/)?(.*)', Download),
+            # 種別は URL ではなく初期化引数で渡す（並び順が意味を持つので、
+            # midi のほうを先に置くこと）。SVG は種別なしの従来の形
+            (rf'{self._urlprefix}/download/midi/(.*)', Download,
+             {'kind': 'midi'}),
+            (rf'{self._urlprefix}/download/(.*)', Download, {'kind': 'svg'}),
         ]
         if self._debug:
             # 開発用。ブラウザはこれが切れたのを合図に再読み込みする
