@@ -58,7 +58,7 @@ def cli(ctx, debug):
 def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
     """Web サーバーを起動する（--debug でブラウザの live reload も有効）。"""
     loggerInit(debug)
-    logger.debug(f"command='{ctx.command.name}'")
+    logger.debug('command={!r}', ctx.command.name)
     logger.debug("__version__={}", __version__)
 
     app = WebServer(port, urlprefix, webroot, workdir, size_limit, debug=debug)
@@ -98,7 +98,7 @@ def rollbook(
 ) -> None:
     """MIDI からロールブックの SVG を作る（-o 省略時は ~/Desktop）。"""
     loggerInit(debug)
-    logger.debug(f"command='{ctx.command.name}'")
+    logger.debug('command={!r}', ctx.command.name)
 
     app = RollBookApp(midi_file, conf_file, model_name, channel, out_file)
     try:
@@ -123,7 +123,7 @@ def rollbook(
 def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     """MIDI を解析して中身を表示する（-v で図にする）。"""
     loggerInit(debug)
-    logger.debug(f"command='{ctx.command.name}'")
+    logger.debug('command={!r}', ctx.command.name)
 
     app = MidiApp(
         midi_file, channel, parse_only=True, visual_flag=visual_flag,
@@ -167,7 +167,7 @@ def play(
 ) -> None:
     """MIDI を再生する。"""
     loggerInit(debug)
-    logger.debug(f"command='{ctx.command.name}'")
+    logger.debug('command={!r}', ctx.command.name)
 
     app = MidiApp(
         midi_file, channel, parse_only=False,

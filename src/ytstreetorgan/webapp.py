@@ -118,17 +118,17 @@ class WebServer:
             # テンプレートが livereload.js を出すかどうかの判断に使う
             livereload=self._debug,
         )
-        logger.debug('app={}', self._app.__dict__)
 
         if self._debug:
             # autoreload だけでは .py しか見ていないので、テンプレートと
             # 静的ファイルを直したときも再起動するようにする
             watch_webroot(self._webroot)
 
+        # app と svr の __dict__ を丸ごと出していたが、-d のとき
+        # 数百行になるだけで読めたものではなかったので出さない
         self._svr = tornado.httpserver.HTTPServer(
             self._app, max_buffer_size=self._size_limit
         )
-        logger.debug('svr={}', self._svr.__dict__)
 
     def main(self):
         """待ち受けを始めて、イベントループを回す（戻らない）。"""

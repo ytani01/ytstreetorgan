@@ -29,21 +29,19 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
     def __init__(self, app, req):
         """設定を取り出してから、tornado の初期化を呼ぶ。"""
-        logger.debug('app={}', app)
-        logger.debug('req={}', req)
-
         self._urlprefix = app.settings.get('urlprefix')
-        logger.debug('urlprefix={}', self._urlprefix)
 
         # WebServer が Path に正規化して渡している
         self._webroot: Path = app.settings['webroot']
-        logger.debug('webroot={}', self._webroot)
-
         self._workdir: Path = app.settings['workdir']
-        logger.debug('workdir={}', self._workdir)
-
         self._size_limit = app.settings.get('size_limit')
-        logger.debug('size_limit={}', self._size_limit)
+
+        # app や request を丸ごと出すと -d のとき数百行になるので、
+        # 使う値だけ 1 行にまとめる
+        logger.debug(
+            'urlprefix={}, webroot={}, workdir={}, size_limit={}',
+            self._urlprefix, self._webroot, self._workdir, self._size_limit
+        )
 
         # [!! 重要 !!] 末尾の「/」
         # Handler1.get() がリクエスト URI とこれを突き合わせ、
@@ -183,6 +181,7 @@ class Handler1(StorganBaseHandler):
 
         末尾のスラッシュが無ければ、付けた URL へリダイレクトする。
         """
+        logger.debug('uri={}', self.request.uri)
 
         if self.request.uri != self._url_path:
             self.redirect(self._url_path, permanent=True)

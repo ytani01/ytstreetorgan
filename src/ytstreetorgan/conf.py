@@ -188,7 +188,7 @@ class Conf:
             FileNotFoundError: どこにも見つからないとき（探した場所を
                 メッセージに並べる）。
         """
-        logger.debug(f'config_file=\'{config_file}\'')
+        logger.debug('config_file={!r}', config_file)
 
         self.config_file = Path(config_file).expanduser()
 
@@ -203,10 +203,10 @@ class Conf:
             for dir in self.SEARCH_PATH:
                 candidate = (dir / self.CONF_FNAME).expanduser()
                 searched.append(candidate)
-                logger.debug(f'search config_file=\'{candidate}\'')
+                logger.debug('search config_file={!r}', candidate)
 
                 if candidate.is_file():
-                    logger.debug(f'find: \'{candidate}\'')
+                    logger.debug('find: {!r}', candidate)
                     self.config_file = candidate
                     break
             else:
@@ -235,7 +235,7 @@ class Conf:
             list[ModelConf]: 読めた設定。読めなければ空のリスト
                 （理由はログに出す。**例外にはしない**）。
         """
-        logger.debug(f'config_file=\'{self.config_file}\'')
+        logger.debug('config_file={!r}', self.config_file)
 
         # 読めない理由（文字コード / JSON / 'model' が無い）で扱いを
         # 変えていないので、まとめて捕まえる
@@ -285,11 +285,11 @@ class Conf:
                 呼ぶ側が空かどうか確かめること（`RollBook.__init__` は
                 空なら `ValueError` にする）。
         """
-        logger.debug(f'model_name=\'{model_name}\'')
+        logger.debug('model_name={!r}', model_name)
 
         idx = self._index_of(model_name)
         if idx is None:
-            logger.error(f'model:\'{model_name}\' not found')
+            logger.error('model={!r}: not found', model_name)
             return {}
 
         return self.data[idx]
@@ -313,7 +313,7 @@ class Conf:
             if self.config_file.exists():
                 bak_file = self.config_file.with_name(self.config_file.name + '.bak')
                 shutil.copy2(self.config_file, bak_file)
-                logger.debug(f"Created backup: {bak_file}")
+                logger.debug('created backup: {}', bak_file)
 
             # Atomic save via temporary file
             tmp_file = self.config_file.with_name(self.config_file.name + '.tmp')
@@ -323,7 +323,7 @@ class Conf:
 
             tmp_file.replace(self.config_file)
             self.models = self._model_names()  # 壊れていれば下の except へ
-            logger.info(f"Saved configuration to {self.config_file}")
+            logger.info('saved: {}', self.config_file)
             return True, "設定を保存しました"
 
         except Exception as e:

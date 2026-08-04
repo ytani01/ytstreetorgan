@@ -7,6 +7,7 @@ from loguru import logger
 
 from .conf import Conf
 from .handler1 import StorganBaseHandler
+from .mylog import exmsg
 from .rollbook import RollBook
 
 
@@ -74,7 +75,7 @@ class ConfigHandler(StorganBaseHandler):
                     'config': json.loads(self.get_argument('config', '{}'))
                 }
         except Exception as ex:
-            logger.error(f"Failed to parse request data: {ex}")
+            logger.error('リクエストを読めません: {}', exmsg(ex))
             self.set_status(400)
             self.write(json.dumps({
                 'status': 'error',
