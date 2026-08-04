@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const tdOffset = document.createElement("td");
     tdOffset.append(
       makeInput(
-        "note-offset-input", "number", offset, `トラック ${idx} のオフセット`
+        "note-offset-input", "number", offset, `トラック ${idx} の半音`
       )
     );
 

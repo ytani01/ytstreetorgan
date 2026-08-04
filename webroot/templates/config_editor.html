@@ -156,17 +156,18 @@
                   音階マッピング
                   <span class="count" id="note-count-badge">0 トラック</span>
                 </h2>
-                <!-- 各トラックのオフセットはこの番号からの半音数なので、
+                <!-- 各トラックの音はこの番号を基準にした半音数で決まるので、
                      表の真上に置く。基本寸法（mm の話）とは別物。 -->
                 <div class="panel__body"
                   style="border-bottom:1px solid var(--rule);">
                   <div class="field">
-                    <label for="field-base-note">基準ノート番号<small>base note</small></label>
+                    <label for="field-base-note">基準の MIDI ノート番号<small>base note</small></label>
                     <input type="number" id="field-base-note"
                       name="base note" required>
                     <span class="field__unit"></span>
                   </div>
                   <p class="field__hint" style="margin-bottom:0;">
+                    各トラックの音は「この番号 ＋ 半音」で決まります。
                     41 = F2、43 = G2、60 = C4
                   </p>
                 </div>
@@ -176,7 +177,7 @@
                       <tr>
                         <th>#</th>
                         <th>音名</th>
-                        <th>オフセット</th>
+                        <th>半音</th>
                         <th style="width:2.5rem;"></th>
                       </tr>
                     </thead>
@@ -190,6 +191,11 @@
                     style="width:auto; margin:0; padding:.35rem .8rem; font-size:.84rem;">
                     ＋ トラックを追加
                   </button>
+                  <!-- 何度か「音名を直したのに穴が動かない」と迷うので明記する -->
+                  <p class="field__hint" style="margin:.5rem 0 0;">
+                    音名は表示用のラベルです。穴の位置を決めるのは
+                    「基準の MIDI ノート番号 ＋ 半音」だけで、音名は使いません。
+                  </p>
                 </div>
               </section>
             </div>

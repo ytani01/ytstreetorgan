@@ -90,45 +90,45 @@ def validate_config(conf: object) -> tuple[bool, str]:
     """
 
     if not isinstance(conf, dict):
-        return False, "Configuration must be a dictionary"
+        return False, "設定はオブジェクト（辞書）である必要があります"
 
     model_name = conf.get('model')
     if not model_name or not isinstance(model_name, str) or not model_name.strip():
-        return False, "Model name is required and must be a non-empty string"
+        return False, "機種名は必須です（空でない文字列）"
 
     for field, cast in NUMERIC_FIELDS.items():
         val = conf.get(field)
         if val is None:
-            return False, f"Missing required field: '{field}'"
+            return False, f"必須項目 '{field}' がありません"
         try:
             # 変換そのものを検証に使う。float() で検証して int() で変換すると
             # "60.5" のような値が検証を通ったあとで例外になる。
             cast(val)
         except (ValueError, TypeError):
-            return False, f"Field '{field}' must be a valid number"
+            return False, f"項目 '{field}' は数値である必要があります"
 
     notes = conf.get('notes')
 
     if not isinstance(notes, list):
-        return False, "'notes' must be a list of {'name', 'offset'} objects"
+        return False, "'notes' は {'name', 'offset'} のリストである必要があります"
 
     for idx, note in enumerate(notes):
         if not isinstance(note, dict):
             return False, (
-                f"Item at index {idx} in 'notes' must be an object"
-                " with 'name' and 'offset'"
+                f"{idx + 1} 番目のトラックは"
+                " 'name' と 'offset' を持つオブジェクトである必要があります"
             )
 
         if not isinstance(note.get('name'), str):
             return False, (
-                f"Item at index {idx} in 'notes' must have a string 'name'"
+                f"{idx + 1} 番目のトラックの 'name' は文字列である必要があります"
             )
 
         try:
             int(note.get('offset'))  # type: ignore[arg-type]
         except (ValueError, TypeError):
             return False, (
-                f"Item at index {idx} in 'notes' must have an integer 'offset'"
+                f"{idx + 1} 番目のトラックの 'offset' は整数である必要があります"
             )
 
     return True, ""
@@ -220,7 +220,7 @@ class Conf:
     def save(self) -> tuple[bool, str]:
         """Save configuration to JSON file atomically with backup."""
         if not self.config_file:
-            msg = "config_file path is not set"
+            msg = "設定ファイルのパスが設定されていません"
             logger.error(msg)
             return False, msg
 
@@ -243,10 +243,10 @@ class Conf:
                 if isinstance(d, dict) and 'model' in d
             ]
             logger.info(f"Saved configuration to {self.config_file}")
-            return True, "Configuration saved successfully"
+            return True, "設定を保存しました"
 
         except Exception as e:
-            msg = f"Failed to save configuration: {exmsg(e)}"
+            msg = f"設定の保存に失敗しました: {exmsg(e)}"
             logger.error(msg)
             return False, msg
 
@@ -263,7 +263,7 @@ class Conf:
                 break
 
         if target_idx is None:
-            msg = f"Model '{model_name}' not found"
+            msg = f"機種 '{model_name}' が見つかりません"
             logger.error(msg)
             return False, msg
 
@@ -278,7 +278,7 @@ class Conf:
 
         model_name = new_conf['model']
         if model_name in self.models:
-            msg = f"Model '{model_name}' already exists"
+            msg = f"機種 '{model_name}' は既に存在します"
             logger.error(msg)
             return False, msg
 
@@ -294,7 +294,7 @@ class Conf:
                 break
 
         if target_idx is None:
-            msg = f"Model '{model_name}' not found"
+            msg = f"機種 '{model_name}' が見つかりません"
             logger.error(msg)
             return False, msg
 

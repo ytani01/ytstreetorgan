@@ -39,7 +39,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         response = self.fetch(f'{TEST_URL_PREFIX}/')
         self.assertEqual(response.code, 200)
         # Should contain the default message
-        self.assertIn(b"Please select a MIDI file", response.body)
+        self.assertIn("MIDI ファイルを選んでください".encode(), response.body)
 
     def test_post_upload(self):
         # Simulate an upload of a small real midi file

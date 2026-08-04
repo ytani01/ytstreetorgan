@@ -376,13 +376,13 @@ class TestValidateConfig:
     def test_invalid_type(self):
         valid, msg = validate_config("not a dict")
         assert valid is False
-        assert "must be a dictionary" in msg
+        assert "オブジェクト" in msg
 
     def test_missing_model(self):
         sample = {"book height": 100}
         valid, msg = validate_config(sample)
         assert valid is False
-        assert "Model name is required" in msg
+        assert "機種名は必須" in msg
 
     def test_missing_numeric_field(self):
         sample = {
@@ -391,7 +391,7 @@ class TestValidateConfig:
         }
         valid, msg = validate_config(sample)
         assert valid is False
-        assert "Missing required field" in msg
+        assert "必須項目" in msg
 
     def test_invalid_numeric_field(self):
         sample = {
@@ -405,7 +405,7 @@ class TestValidateConfig:
         }
         valid, msg = validate_config(sample)
         assert valid is False
-        assert "must be a valid number" in msg
+        assert "数値である必要" in msg
 
     def test_int_field_rejects_non_integer_string(self):
         # 'base note' は int で変換される。float() で検証していた頃は
@@ -426,11 +426,11 @@ class TestValidateConfig:
     # 'notes' の各要素は {'name': str, 'offset': int}。
     # 壊れ方ごとに、どの要素が悪いのか（index）が分かること。
     @pytest.mark.parametrize("bad_note, expected", [
-        ("C", "must be an object"),
-        ({"offset": 0}, "must have a string 'name'"),
-        ({"name": 60, "offset": 0}, "must have a string 'name'"),
-        ({"name": "C"}, "must have an integer 'offset'"),
-        ({"name": "C", "offset": "abc"}, "must have an integer 'offset'"),
+        ("C", "オブジェクトである必要"),
+        ({"offset": 0}, "'name' は文字列"),
+        ({"name": 60, "offset": 0}, "'name' は文字列"),
+        ({"name": "C"}, "'offset' は整数"),
+        ({"name": "C", "offset": "abc"}, "'offset' は整数"),
     ])
     def test_invalid_note_item(self, bad_note, expected):
         sample = {
@@ -447,7 +447,7 @@ class TestValidateConfig:
         }
         valid, msg = validate_config(sample)
         assert valid is False
-        assert "index 1" in msg
+        assert "2 番目" in msg
         assert expected in msg
 
     def test_notes_must_be_a_list(self):
@@ -465,7 +465,7 @@ class TestValidateConfig:
         }
         valid, msg = validate_config(sample)
         assert valid is False
-        assert "'notes' must be a list" in msg
+        assert "'notes' は" in msg
 
 
 # ---------------------------------------------------------------------
@@ -522,7 +522,7 @@ class TestConfMutations:
         ok, msg = conf.update_model("non_existent", updated)
 
         assert ok is False
-        assert "not found" in msg
+        assert "見つかりません" in msg
 
     def test_add_model_success(self, sample_conf_file):
         conf = Conf(config_file=str(sample_conf_file))
@@ -550,7 +550,7 @@ class TestConfMutations:
         ok, msg = conf.add_model(duplicate)
 
         assert ok is False
-        assert "already exists" in msg
+        assert "既に存在" in msg
 
     def test_delete_model_success(self, sample_conf_file):
         conf = Conf(config_file=str(sample_conf_file))
@@ -565,7 +565,7 @@ class TestConfMutations:
         ok, msg = conf.delete_model("not_found")
 
         assert ok is False
-        assert "not found" in msg
+        assert "見つかりません" in msg
 
 
 

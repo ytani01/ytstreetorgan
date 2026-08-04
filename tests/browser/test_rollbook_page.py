@@ -15,7 +15,7 @@ def test_upload_midi_renders_svg_preview(
     """MIDI を選ぶとフォームが自動送信され、SVG とダウンロードリンクが出る。"""
     page.goto(f'{live_server}/')
 
-    expect(page.locator('text=Please select a MIDI file')).to_be_visible()
+    expect(page.locator('text=MIDI ファイルを選んでください')).to_be_visible()
 
     # ファイル選択で onchange -> form.submit() が走る
     page.set_input_files('input[name="file1"]', str(sample_midi))

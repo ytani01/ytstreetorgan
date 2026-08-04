@@ -240,7 +240,7 @@ def test_save_shows_server_side_error(live_server: str, page: Page) -> None:
 
     alert = page.locator('#alert-container .alert--error')
     expect(alert).to_be_visible()
-    expect(alert).to_contain_text("Missing required field: 'book height'")
+    expect(alert).to_contain_text("必須項目 'book height' がありません")
 
     # 「保存中...」のまま固まらず、押せる状態に戻る
     save = page.locator('#btn-save-config')

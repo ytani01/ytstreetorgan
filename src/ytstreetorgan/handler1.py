@@ -123,7 +123,7 @@ class Handler1(StorganBaseHandler):
             "conf_file={}, model_name={}", self._conf_file, self._model_name
         )
 
-    DEF_MSG = 'Please select a MIDI file'
+    DEF_MSG = 'MIDI ファイルを選んでください'
 
     def get(self):
         """

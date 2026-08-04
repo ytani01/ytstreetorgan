@@ -82,7 +82,7 @@ class ConfigHandler(StorganBaseHandler):
             self.set_status(400)
             self.write(json.dumps({
                 'status': 'error',
-                'message': 'Invalid JSON request format'
+                'message': 'リクエストの形式が不正です（JSON として読めません）'
             }))
             return
 
@@ -99,7 +99,7 @@ class ConfigHandler(StorganBaseHandler):
         elif action == 'delete':
             ok, msg = conf.delete_model(model_name)
         else:
-            ok, msg = False, f"Unknown action: '{action}'"
+            ok, msg = False, f"不明な操作です: '{action}'"
 
         if ok:
             self.write(json.dumps({
