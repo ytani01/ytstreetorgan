@@ -6,23 +6,9 @@ from urllib.parse import urljoin
 import pytest
 from playwright.sync_api import Page, expect
 
-from .conftest import REPO_ROOT
+from .conftest import REPO_ROOT, upload_midi
 
 pytestmark = pytest.mark.browser
-
-
-def upload(page: Page, midi: Path, choice: str = 'btn-same-replace') -> None:
-    """MIDI を選んで送る。
-
-    ``live_server`` はセッション全体で 1 個なので、同じ名前のファイルを
-    先に別のテストが送っていると同名ダイアログが出る。既定では
-    「置き換える」を押す。
-    """
-    page.set_input_files('input[name="file1"]', str(midi))
-
-    modal = page.locator('#same-name-modal')
-    if modal.is_visible():
-        page.click(f'#{choice}')
 
 
 def test_upload_midi_renders_svg_preview(
@@ -30,11 +16,10 @@ def test_upload_midi_renders_svg_preview(
 ) -> None:
     """MIDI を選ぶとフォームが自動送信され、SVG とダウンロードリンクが出る。"""
     page.goto(f'{live_server}/')
-
     expect(page.locator('text=MIDI ファイルを選んでください')).to_be_visible()
 
     # ファイル選択で onchange -> form.submit() が走る
-    upload(page, sample_midi)
+    upload_midi(page, live_server, sample_midi)
 
     # 生成された SVG がページに埋め込まれる
     # （ロゴなどの装飾 SVG と区別するため、置き場を明示して選ぶ）
@@ -59,8 +44,7 @@ def test_viewer_starts_at_the_beginning_of_the_song(
 
     viewBox が負で、曲の先頭が x=0 側 = ブックの右端にあるため。
     """
-    page.goto(f'{live_server}/')
-    upload(page, sample_midi)
+    upload_midi(page, live_server, sample_midi)
 
     expect(page.locator('#svgbox svg')).to_be_visible()
 
@@ -76,8 +60,7 @@ def test_viewer_zoom_controls(
     live_server: str, page: Page, sample_midi: Path
 ) -> None:
     """倍率のボタンが SVG の描画サイズを変える。"""
-    page.goto(f'{live_server}/')
-    upload(page, sample_midi)
+    upload_midi(page, live_server, sample_midi)
 
     expect(page.locator('#svgbox svg')).to_be_visible()
 
@@ -102,8 +85,7 @@ def scroll_left(page: Page) -> float:
 
 def open_viewer(page: Page, live_server: str, midi: Path) -> None:
     """SVG を出して、帯が使える状態にする。"""
-    page.goto(f'{live_server}/')
-    upload(page, midi)
+    upload_midi(page, live_server, midi)
     expect(page.locator('#svgbox svg')).to_be_visible()
 
     # 既定の「高さ合わせ」では横にはみ出しているので、帯に動く余地がある
@@ -264,7 +246,7 @@ def test_upload_over_size_limit_is_stopped_before_sending(
         sent.append(r.url) if r.method == 'POST' else None
     ))
 
-    upload(page, sample_midi)
+    upload_midi(page, small_limit_server, sample_midi, wait_result=False)
 
     status = page.locator('#drop-status')
     expect(status).to_contain_text('大きすぎます')

@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 import tornado.ioloop
+from playwright.sync_api import expect
 
 from ytstreetorgan.conf import Conf
 from ytstreetorgan.webapp import WebServer
@@ -156,3 +157,34 @@ def restore_conf(live_server: str, conf_file: Path) -> Iterator[None]:
     saved = conf_file.read_text(encoding='utf-8')
     yield
     conf_file.write_text(saved, encoding='utf-8')
+
+
+def upload_midi(page, live_server: str, midi: Path,
+                choice: str = 'btn-same-replace',
+                wait_result: bool = True) -> None:
+    """MIDI を 1 本アップロードして、生成結果の画面まで進む。
+
+    `live_server` はセッション全体で 1 個なので、同じ名前のファイルを
+    先に別のテストが送っていると同名ダイアログが出る。既定では
+    「置き換えて変換」を押す。
+
+    **既定では生成結果が出るまで待つ。** 待たずに次へ進むと、
+    書き終える前に履歴を読みにいって落ちることがある。
+
+    Args:
+        page: Playwright のページ。
+        live_server (str): サーバーの URL（prefix 込み）。
+        midi (Path): 送る MIDI ファイル。
+        choice (str): 同名だったときに押すボタンの id。
+        wait_result (bool): 生成結果を待つか。送信そのものが止まる場合
+            （上限超えなど）は False にする。
+    """
+    page.goto(f'{live_server}/')
+    page.set_input_files('input[name="file1"]', str(midi))
+
+    modal = page.locator('#same-name-modal')
+    if modal.is_visible():
+        page.click(f'#{choice}')
+
+    if wait_result:
+        expect(page.locator('#svgbox svg')).to_be_visible()

@@ -10,7 +10,10 @@ from .conftest import TEST_URL_PREFIX
 from .webapp_base import REPO_ROOT, WebAppTestCase
 
 
-class TestWebAppAsync(WebAppTestCase):
+class TestRollBookPage(WebAppTestCase):
+    """アップロードと生成結果の画面。"""
+
+
     SERVER_KWARGS = {'size_limit': 1024 * 1024}
 
     def test_homepage_redirect(self):
@@ -153,7 +156,7 @@ class TestWebAppAsync(WebAppTestCase):
         self.assertNotIn("前回アップロードした".encode(), response.body)
 
 
-class TestWebAppLiveReload(WebAppTestCase):
+class TestLiveReload(WebAppTestCase):
     """``webapp --debug`` のときだけ live reload が有効になること。"""
 
     PORT = 10082
@@ -180,7 +183,7 @@ class TestWebAppLiveReload(WebAppTestCase):
         conn.close()
 
 
-class TestWebAppNoLiveReload(WebAppTestCase):
+class TestNoLiveReload(WebAppTestCase):
     """既定（debug なし）では live reload を出さないこと。"""
 
     PORT = 10083

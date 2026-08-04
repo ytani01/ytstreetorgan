@@ -1,3 +1,8 @@
+"""`WebServer` の組み立てのテスト（HTTP は投げない）。
+
+実際のリクエストを通すテストは `test_rollbook_page_http.py` や
+`test_history.py`（どちらも `WebAppTestCase` を継承）にある。
+"""
 from unittest.mock import patch
 
 import pytest

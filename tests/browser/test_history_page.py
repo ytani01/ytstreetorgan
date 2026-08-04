@@ -8,21 +8,9 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, expect
 
-from .conftest import REPO_ROOT
+from .conftest import REPO_ROOT, upload_midi
 
 pytestmark = pytest.mark.browser
-
-
-def _upload(page: Page, live_server: str, midi: Path) -> None:
-    """履歴に 1 件積む。同名を訊かれたら置き換える。"""
-    page.goto(f'{live_server}/')
-    page.set_input_files('input[name="file1"]', str(midi))
-
-    modal = page.locator('#same-name-modal')
-    if modal.is_visible():
-        page.click('#btn-same-replace')
-
-    expect(page.locator('#svgbox svg')).to_be_visible()
 
 
 def test_lists_uploaded_files(
@@ -31,7 +19,7 @@ def test_lists_uploaded_files(
     """アップロードしたものが両方の欄に出る。"""
     midi = tmp_path / 'hist-listed.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
-    _upload(page, live_server, midi)
+    upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
 
@@ -51,7 +39,7 @@ def test_show_stored_svg_keeps_all_values(
     """
     midi = tmp_path / 'hist-show.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
-    _upload(page, live_server, midi)
+    upload_midi(page, live_server, midi)
     generated = page.locator('.viewer-foot').inner_text()
 
     page.goto(f'{live_server}/history')
@@ -74,7 +62,7 @@ def test_regenerate_from_stored_midi(
     """「再生成」なら諸元が全部出る。"""
     midi = tmp_path / 'hist-regen.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
-    _upload(page, live_server, midi)
+    upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
     page.click('#midi-table tr[data-name="hist-regen.mid"] [data-regen]')
@@ -94,7 +82,7 @@ def test_file_name_is_the_action(
     """
     midi = tmp_path / 'hist-name.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
-    _upload(page, live_server, midi)
+    upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
     row = page.locator('#midi-table tr[data-name="hist-name.mid"]')
@@ -120,7 +108,7 @@ def test_delete_one_file(
     """個別削除。確認してから消え、一覧から居なくなる。"""
     midi = tmp_path / 'hist-delete.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
-    _upload(page, live_server, midi)
+    upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
     row = page.locator('#svg-table tr[data-name="hist-delete.mid.svg"]')
@@ -143,7 +131,7 @@ def test_delete_cancelled_keeps_the_file(
     """確認でキャンセルしたら、何も送らず消さない。"""
     midi = tmp_path / 'hist-keep.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
-    _upload(page, live_server, midi)
+    upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
 
