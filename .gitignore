@@ -97,3 +97,7 @@ flycheck_*
 
 # Ignore dynaconf secret files
 .secrets.*
+
+# Playwright MCP がページのスナップショットやスクリーンショットを置く。
+# 手で動作確認したときの残骸なので追跡しない（一度紛れ込んだ）。
+.playwright-mcp/
