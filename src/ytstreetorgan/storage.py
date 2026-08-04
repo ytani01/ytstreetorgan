@@ -35,6 +35,34 @@ _SVG_SIZE_RE = re.compile(
 _HOLE_COLOR_RE = re.compile(r'stroke:#FF0000')
 _OFF_SCALE_COLOR_RE = re.compile(r'stroke:#000000')
 
+# 図からは求まらない値は `<svg>` の属性に埋めてある
+# （`RollBook._meta_attrs()`。名前を変えるならここも）。
+_META_PREFIX = 'data-storgan-'
+
+
+def _meta(svg: str, key: str) -> str | None:
+    """`<svg>` に埋めた諸元を 1 つ読む。無ければ None。"""
+    m = re.search(rf'{_META_PREFIX}{key}="([^"]*)"', svg)
+    return m.group(1) if m else None
+
+
+def _meta_int(svg: str, key: str) -> int | None:
+    """整数として読む。無い / 読めないなら None。"""
+    raw = _meta(svg, key)
+    try:
+        return int(raw)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def _meta_float(svg: str, key: str) -> float | None:
+    """小数として読む。無い / 読めないなら None。"""
+    raw = _meta(svg, key)
+    try:
+        return float(raw)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
 
 class FileInfo(TypedDict):
     """一覧の 1 行。"""
@@ -118,19 +146,22 @@ def list_files(dir_path: Path) -> list[FileInfo]:
 def book_from_svg(svg: str) -> dict:
     """保存済みの SVG から、ビューアに渡す諸元を読めるだけ読む。
 
-    読めるもの:
+    図から読むもの:
 
     - `width` / `height` — `<svg width="…mm" height="…mm">` にある
     - `holes` / `off_scale` — **描かれている穴と破線をそのまま数える**。
       これは「ブリッジで分割したあとの数」で、`RollBook` の同名の
       プロパティと同じ意味になる
 
-    読めないもの（None にする。画面では `---`）:
+    図からは求まらないもの（`RollBook._meta_attrs()` が属性に埋めている）:
 
     - `notes` / `hole_notes` / `off_scale_notes` — 分割**前**の音符の数。
       長い穴は 1 音符が `<path>` 複数本になり、**分割は多対一なので
       逆算できない**
-    - `mm_per_sec` — そもそも SVG に書かれていない
+    - `mm_per_sec` — 図には現れない
+
+    **属性が無い（＝埋めるようにする前に作った）SVG もある**ので、
+    その場合は None にする。画面では `---` と出る。
 
     Returns:
         dict: 読めたものは数値、読めないものは None。
@@ -141,13 +172,13 @@ def book_from_svg(svg: str) -> dict:
     book: dict = {
         'width': float(m.group(1)) if m else None,
         'height': float(m.group(2)) if m else None,
-        'mm_per_sec': None,
-        'notes': None,
-        'hole_notes': None,
+        'mm_per_sec': _meta_float(svg, 'mm-per-sec'),
+        'notes': _meta_int(svg, 'notes'),
+        'hole_notes': _meta_int(svg, 'hole-notes'),
         'holes': (
             len(_HOLE_COLOR_RE.findall(svg)) if has_svg else None
         ),
-        'off_scale_notes': None,
+        'off_scale_notes': _meta_int(svg, 'off-scale-notes'),
         'off_scale': (
             len(_OFF_SCALE_COLOR_RE.findall(svg)) if has_svg else None
         ),

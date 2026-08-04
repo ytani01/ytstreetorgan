@@ -41,10 +41,14 @@ def test_lists_uploaded_files(
            ).to_have_count(1)
 
 
-def test_show_stored_svg_marks_unknown_values(
+def test_show_stored_svg_keeps_all_values(
     live_server: str, page: Page, tmp_path: Path
 ) -> None:
-    """「表示」は生成し直さないので、分からない諸元が `---` になる。"""
+    """「表示」でも諸元が全部出る（生成したときと同じ）。
+
+    寸法と穴の数は図から読み、図から求まらない音符の数と `mm_per_sec` は
+    `<svg>` に埋めた属性から読む。
+    """
     midi = tmp_path / 'hist-show.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
     _upload(page, live_server, midi)
@@ -57,13 +61,11 @@ def test_show_stored_svg_marks_unknown_values(
     expect(page.locator('.result-head')).to_contain_text('履歴から表示')
 
     foot = page.locator('.viewer-foot')
-    # SVG に書いてある寸法は出る
-    expect(foot).to_contain_text('全長')
-    assert '---' in foot.inner_text()
-    assert foot.inner_text() != generated
-    # 演奏時間も出せない
-    expect(page.locator('#dur-t')).to_have_text('---')
-    expect(page.locator('#pos-t')).to_have_text('---')
+    assert '---' not in foot.inner_text()
+    assert foot.inner_text() == generated
+    # 演奏時間も出る（mm_per_sec が読めるため）
+    expect(page.locator('#dur-t')).not_to_have_text('---')
+    expect(page.locator('#pos-t')).not_to_have_text('---')
 
 
 def test_regenerate_from_stored_midi(

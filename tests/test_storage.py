@@ -109,15 +109,39 @@ class TestBookFromSvg:
         assert book['holes'] == 2
         assert book['off_scale'] == 1
 
-    def test_note_counts_and_speed_are_unknown(self):
-        """分割**前**の音符の数と mm_per_sec は読めない。画面では '---'。
+    def test_note_counts_and_speed_come_from_the_attributes(self):
+        """分割**前**の音符の数と mm_per_sec は属性から読む。
 
         分割は多対一なので、描かれた穴から音符の数は逆算できない。
+        そのため `RollBook` が `<svg>` に埋めている。
         """
+        svg = self.SVG.replace(
+            '>', ' data-storgan-mm-per-sec="50" data-storgan-notes="1033"'
+                 ' data-storgan-hole-notes="562"'
+                 ' data-storgan-off-scale-notes="471">', 1
+        )
+        book = book_from_svg(svg)
+
+        assert book['mm_per_sec'] == 50.0
+        assert book['notes'] == 1033
+        assert book['hole_notes'] == 562
+        assert book['off_scale_notes'] == 471
+
+    def test_note_counts_are_unknown_without_the_attributes(self):
+        """埋めるようにする前に作った SVG もある。無ければ '---' に落とす。"""
         book = book_from_svg(self.SVG)
 
         for key in ('mm_per_sec', 'notes', 'hole_notes', 'off_scale_notes'):
             assert book[key] is None, key
+
+    def test_broken_attributes_are_treated_as_unknown(self):
+        svg = self.SVG.replace(
+            '>', ' data-storgan-notes="abc" data-storgan-mm-per-sec="">', 1
+        )
+        book = book_from_svg(svg)
+
+        assert book['notes'] is None
+        assert book['mm_per_sec'] is None
 
     def test_size_is_none_when_missing(self):
         book = book_from_svg('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
@@ -169,10 +193,11 @@ class TestContentDisposition:
 
 
 class TestBookFromSvgMatchesRollBook:
-    """生成した SVG を読み直して、`RollBook` の数え上げと合うこと。
+    """生成した SVG を読み直すと、`RollBook` の値が**全部**戻ること。
 
-    **穴と破線を線の色で数えているので、色を変えるとここが落ちる。**
-    落ちたら `storage.py` の正規表現を `rollbook.svg()` に合わせ直すこと。
+    穴と破線は色で数え、それ以外は `<svg>` に埋めた属性から読む。
+    **色や属性名を変えるとここが落ちる。** 落ちたら `storage.py` を
+    `rollbook.py` に合わせ直すこと。
     """
 
     def test_round_trip(self):
@@ -190,7 +215,13 @@ class TestBookFromSvgMatchesRollBook:
 
             book = book_from_svg(svg)
 
-            assert book['width'] == round(rb.width, 2), model
-            assert book['height'] == round(rb.height, 2), model
-            assert book['holes'] == rb.hole_count, model
-            assert book['off_scale'] == rb.off_scale_count, model
+            assert book == {
+                'width': round(rb.width, 2),
+                'height': round(rb.height, 2),
+                'mm_per_sec': rb.mm_per_sec,
+                'notes': rb.note_count,
+                'hole_notes': rb.hole_note_count,
+                'holes': rb.hole_count,
+                'off_scale_notes': rb.off_scale_note_count,
+                'off_scale': rb.off_scale_count,
+            }, model

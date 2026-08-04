@@ -5,6 +5,7 @@ import json
 import math
 from pathlib import Path
 from typing import TypedDict
+from xml.sax.saxutils import quoteattr
 
 from loguru import logger
 from ytmidilib import NoteInfo, Parser
@@ -323,6 +324,30 @@ class RollBook:
         """
         return float(self._conf.get('mm_per_sec', 0.0))
 
+    # 履歴からこの SVG を出し直すときのために、**図からは求まらない値**を
+    # 属性に埋めておく。寸法と穴の数は描かれているものから読めるが、
+    # 音符の数（ブリッジで分割する前）は分割が多対一なので逆算できず、
+    # 秒 → mm の係数はどこにも現れない。
+    #
+    # 読むのは `storage.book_from_svg()`。名前を storgan- で始めているのは、
+    # 他のツールが付けた属性と紛れないようにするため。
+    META_PREFIX = 'data-storgan-'
+
+    def _meta_attrs(self) -> str:
+        """`<svg>` に付ける諸元の属性を組み立てる。"""
+        meta = {
+            'model': self._model,
+            'mm-per-sec': f'{self.mm_per_sec:g}',
+            'notes': str(self.note_count),
+            'hole-notes': str(self.hole_note_count),
+            'off-scale-notes': str(self.off_scale_note_count),
+        }
+
+        return ''.join(
+            f' {self.META_PREFIX}{key}={quoteattr(value)}'
+            for key, value in meta.items()
+        )
+
     def svg(
         self, color: str = '#0000FF', hole_color: str = '#FF0000',
         line_width: float = DEF_LINE_WIDTH, stroke_dasharray: str = 'none'
@@ -347,7 +372,9 @@ class RollBook:
         svg += ' viewBox="'
         svg += f'{-self._width:.2f} {-self._height:.2f}'
         svg += f' {self._width:.2f} {self._height:.2f}'
-        svg += '">\n'
+        svg += '"'
+        svg += self._meta_attrs()
+        svg += '>\n'
 
         svg += svg_square(
             0, 0, self._width, self._height,
