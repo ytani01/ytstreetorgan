@@ -59,11 +59,11 @@
       return;
     }
     const items = [
-      ["ブック高さ", num(m["book height"], 1), " mm"],
+      ["ブック高さ", num(m["book_height"], 1), " mm"],
       ["トラック数", (m["notes"] || []).length, ""],
       ["ピッチ", num(m["pitch"], 1), " mm"],
-      ["送り速度", num(m["1sec"], 0), " mm/秒"],
-      ["基準の音", m["base note"], ""],
+      ["送り速度", num(m["mm_per_sec"], 0), " mm/秒"],
+      ["基準の音", m["base_note"], ""],
     ];
     specs.replaceChildren(...items.map(([label, value, unit]) => {
       const div = document.createElement("div");

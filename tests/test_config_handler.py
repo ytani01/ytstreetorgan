@@ -64,14 +64,14 @@ class TestConfigHandler(AsyncHTTPTestCase):
         # Add new model
         new_conf = {
             "model": "test_async_model",
-            "book height": 100,
+            "book_height": 100,
             "margin": 5,
             "pitch": 3.5,
-            "hole height": 2.5,
-            "1sec": 50,
-            "base note": 60,
-            "bridge width": 1,
-            "bridge threshold": 50,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
             "notes": [{"name": "C", "offset": 0}], "memo": "test"
         }
         add_payload = json.dumps({'action': 'add', 'config': new_conf})

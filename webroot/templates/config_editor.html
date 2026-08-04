@@ -95,9 +95,9 @@
                 <h2>基本寸法</h2>
                 <div class="panel__body">
                   <div class="field">
-                    <label for="field-book-height">ブック高さ<small>book height</small></label>
+                    <label for="field-book-height">ブック高さ<small>book_height</small></label>
                     <input type="number" step="0.1" id="field-book-height"
-                      name="book height" required>
+                      name="book_height" required>
                     <span class="field__unit">mm</span>
                   </div>
                   <div class="field">
@@ -113,15 +113,15 @@
                     <span class="field__unit">mm</span>
                   </div>
                   <div class="field">
-                    <label for="field-hole-height">穴の高さ<small>hole height</small></label>
+                    <label for="field-hole-height">穴の高さ<small>hole_height</small></label>
                     <input type="number" step="0.1" id="field-hole-height"
-                      name="hole height" required>
+                      name="hole_height" required>
                     <span class="field__unit">mm</span>
                   </div>
                   <div class="field">
-                    <label for="field-1sec">1 秒あたりの長さ<small>1sec</small></label>
-                    <input type="number" step="0.1" id="field-1sec"
-                      name="1sec" required>
+                    <label for="field-mm-per-sec">1 秒あたりの長さ<small>mm_per_sec</small></label>
+                    <input type="number" step="0.1" id="field-mm-per-sec"
+                      name="mm_per_sec" required>
                     <span class="field__unit">mm</span>
                   </div>
                 </div>
@@ -135,15 +135,15 @@
                     紙が切れてしまわないための措置です。
                   </p>
                   <div class="field">
-                    <label for="field-bridge-width">ブリッジ幅<small>bridge width</small></label>
+                    <label for="field-bridge-width">ブリッジ幅<small>bridge_width</small></label>
                     <input type="number" step="0.1" id="field-bridge-width"
-                      name="bridge width" required>
+                      name="bridge_width" required>
                     <span class="field__unit">mm</span>
                   </div>
                   <div class="field">
-                    <label for="field-bridge-threshold">分割する長さ<small>bridge threshold</small></label>
+                    <label for="field-bridge-threshold">分割する長さ<small>bridge_threshold</small></label>
                     <input type="number" step="0.1" id="field-bridge-threshold"
-                      name="bridge threshold" required>
+                      name="bridge_threshold" required>
                     <span class="field__unit">mm</span>
                   </div>
                 </div>
@@ -161,9 +161,9 @@
                 <div class="panel__body"
                   style="border-bottom:1px solid var(--rule);">
                   <div class="field">
-                    <label for="field-base-note">基準の音<small>base note / MIDI ノート番号</small></label>
+                    <label for="field-base-note">基準の音<small>base_note / MIDI ノート番号</small></label>
                     <input type="number" id="field-base-note"
-                      name="base note" required>
+                      name="base_note" required>
                     <span class="field__unit"></span>
                   </div>
                   <!-- 例は必ず行頭から始める（続けて流すと「60 =」と「C4」が

@@ -1,14 +1,14 @@
 [
   {
     "model": "ModelName",
-    "book height": 126,
+    "book_height": 126,
     "margin": 5,
     "pitch": 3.5,
-    "hole height": 2.5,
-    "1sec": 50,
-    "base note": 41,
-    "bridge width": 1,
-    "bridge threshold": 50,
+    "hole_height": 2.5,
+    "mm_per_sec": 50,
+    "base_note": 41,
+    "bridge_width": 1,
+    "bridge_threshold": 50,
     "notes": [
       { "name": "F", "offset": 0 },
       { "name": "G", "offset": 2 },

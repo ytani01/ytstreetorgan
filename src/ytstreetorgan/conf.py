@@ -17,52 +17,62 @@ class NoteConf(TypedDict):
 
     Attributes:
         name: 音名（例: 'F#'）。表示用で、穴の位置には影響しない。
-        offset: ``'base note'`` からの半音数。
+        offset: ``base_note`` からの半音数。
     """
 
     name: str
     offset: int
 
 
-# 項目名にスペースが入っていると
-#
-# class ModelConf(TypedDict, total=False):
-#      :
-#    'book height': float
-#      :
-#
-# のようには定義できない。(文法エラー)
-ModelConf = TypedDict(
-    'ModelConf',
-    {
-        'model': str,
-        'book height': float,
-        'margin': float,
-        'pitch': float,
-        'hole height': float,
-        '1sec': float,
-        'notes': list[NoteConf],
-        'base note': int,
-        'bridge width': float,
-        'bridge threshold': float,
-        'memo': str,
-    },
-    total=False,
-)
+class ModelConf(TypedDict, total=False):
+    """機種 1 つ分の設定。
+
+    キーはそのまま JSON のフィールド名。**すべて Python の識別子**なので、
+    この TypedDict を class 形式で書ける。かつては ``'book height'`` の
+    ように空白入りで、関数形式でしか書けなかった。
+    **旧形式はもう読めない。**
+
+    Attributes:
+        model: 機種名。設定の中で一意。
+        book_height: ブックの高さ [mm]。
+        margin: 上端から 1 本目のトラックまで [mm]。
+        pitch: トラックの間隔 [mm]。
+        hole_height: 穴の高さ [mm]。
+        mm_per_sec: 秒 → mm の変換係数。旧 ``'1sec'``（数字始まりで識別子に
+            できないため、``RollBook.mm_per_sec`` に合わせて改名した）。
+        base_note: オフセットを数える起点の MIDI ノート番号。
+        bridge_width: ブリッジ（紙のつなぎ）の幅 [mm]。
+        bridge_threshold: これを超える穴を分割する [mm]。
+        notes: トラックの定義。並び順がそのままトラック番号。
+        memo: 覚え書き（動作には影響しない）。
+    """
+
+    model: str
+    book_height: float
+    margin: float
+    pitch: float
+    hole_height: float
+    mm_per_sec: float
+    base_note: int
+    bridge_width: float
+    bridge_threshold: float
+    notes: list[NoteConf]
+    memo: str
+
 
 # 必須の数値項目と、その値に適用する変換。
 # validate_config() の検証と coerce_numeric_fields() の型変換の両方が
 # この定義を使うので、設定項目を増減させるときはここだけ直せばよい。
 # 挿入順がそのまま検証順（＝エラーメッセージに出る項目の順）になる。
 NUMERIC_FIELDS: dict[str, Callable[[Any], Any]] = {
-    'book height': float,
+    'book_height': float,
     'margin': float,
     'pitch': float,
-    'hole height': float,
-    '1sec': float,
-    'base note': int,
-    'bridge width': float,
-    'bridge threshold': float,
+    'hole_height': float,
+    'mm_per_sec': float,
+    'base_note': int,
+    'bridge_width': float,
+    'bridge_threshold': float,
 }
 
 
@@ -202,7 +212,7 @@ class Conf:
         """Get config data for ``model_name``.
 
         Returns a dict whose keys match the raw JSON field names
-        (e.g. ``'base note'``, ``'hole height'``, ``'1sec'``, …).
+        (e.g. ``'base_note'``, ``'hole_height'``, ``'mm_per_sec'``, …).
         See :class:`ModelConf` for the full schema documentation.
         """
         logger.debug(f'model_name=\'{model_name}\'')

@@ -166,22 +166,22 @@ class HoleInfo:
         self.start_sec = self.note_info.abs_time
         self.sec = self.note_info.length()
 
-        base_note = self.conf.get('base note', 0)
+        base_note = self.conf.get('base_note', 0)
         notes = self.conf.get('notes', [])
         note_val = self.note_info.note if self.note_info.note is not None else -1
         self.scale = note2scale(note_val, base_note, notes)
 
-        sec_per_sec = self.conf.get('1sec', 0.0)
+        mm_per_sec = self.conf.get('mm_per_sec', 0.0)
         pitch = self.conf.get('pitch', 0.0)
         margin = self.conf.get('margin', 0.0)
 
-        self.x = self.start_sec * sec_per_sec
+        self.x = self.start_sec * mm_per_sec
         self.y = self.scale * pitch + margin
-        self.w = self.sec * sec_per_sec
-        self.h = self.conf.get('hole height', 0.0)
+        self.w = self.sec * mm_per_sec
+        self.h = self.conf.get('hole_height', 0.0)
 
-        self.bridge_width = self.conf.get('bridge width')
-        self.bridge_threshold = self.conf.get('bridge threshold')
+        self.bridge_width = self.conf.get('bridge_width')
+        self.bridge_threshold = self.conf.get('bridge_threshold')
 
     def __str__(self) -> str:
         """オブジェクトの文字列表現を取得する。
@@ -259,7 +259,7 @@ class RollBook:
         logger.debug('conf={}', json.dumps(self._conf))
 
         self._width = 0.0
-        self._height = float(self._conf.get('book height', 0.0))
+        self._height = float(self._conf.get('book_height', 0.0))
         self._holes: list[HoleInfo] = []
         self._svg = ''
 
@@ -274,7 +274,7 @@ class RollBook:
 
     @property
     def height(self) -> float:
-        """ブックの高さ [mm]（設定の ``'book height'``）。"""
+        """ブックの高さ [mm]（設定の ``'book_height'``）。"""
         return self._height
 
     @property
@@ -284,11 +284,11 @@ class RollBook:
 
     @property
     def mm_per_sec(self) -> float:
-        """秒 → mm の変換係数（設定の ``'1sec'``）。
+        """秒 → mm の変換係数（設定の ``'mm_per_sec'``）。
 
         ビューアがスクロール位置を演奏時間に直すのに使う。
         """
-        return float(self._conf.get('1sec', 0.0))
+        return float(self._conf.get('mm_per_sec', 0.0))
 
     def svg(
         self, color: str = '#0000FF', hole_color: str = '#FF0000',

@@ -53,10 +53,13 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 見つからないと `Conf.__init__` が `FileNotFoundError` を投げるので、設定に触るテストは
 必ずパスを明示するかモックする。
 
-`ModelConf` の**キーは生の JSON フィールド名**で、空白や数字始まりを含む
-（`'book height'`, `'hole height'`, `'base note'`, `'1sec'`）。Python の識別子ではないので
-`conf['book height']` のように添字でアクセスする。`Conf.save()` は `.bak` を作ってから
-一時ファイル経由で原子的に置換する。
+`ModelConf` の**キーは生の JSON フィールド名**（`'book_height'`, `'base_note'` …）。
+**すべて Python の識別子**なので、`ModelConf` / `NoteConf` はどちらも
+`class ...(TypedDict)` の形で定義してある。かつては `'book height'` のように
+空白入りで、`ModelConf` だけ関数形式でしか書けなかった。**旧形式はもう読めない。**
+`'1sec'` は数字始まりで識別子にできないため `'mm_per_sec'` に改名した
+（`RollBook.mm_per_sec` に合わせた）。
+`Conf.save()` は `.bak` を作ってから一時ファイル経由で原子的に置換する。
 
 トラックの定義は `'notes'`（`NoteConf` = `{'name': str, 'offset': int}` のリスト）。
 リストの**並び順がそのままトラック番号**で、`note2scale()` はその index を返す。
@@ -65,7 +68,7 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 
 `'name'` は**設定エディタの表示専用**。SVG 生成は `'offset'` しか見ないので、
 音名が実際の音と食い違っていてもロールブックは変わらない（人間が読むためのラベル）。
-穴の位置を決めるのは `'base note' + 'offset'` だけ。
+穴の位置を決めるのは `'base_note' + 'offset'` だけ。
 
 ### 画面に出す用語
 
@@ -77,7 +80,7 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 | トラック | 穴の列。並び順がそのまま番号 | `'notes'` の要素 |
 | 音名 | `F#` のような表示用ラベル | `'name'` |
 | 半音単位のオフセット | 基準の音からの距離 | `'offset'` |
-| 基準の音 | オフセットを数える起点。値は MIDI ノート番号 | `'base note'` |
+| 基準の音 | オフセットを数える起点。値は MIDI ノート番号 | `'base_note'` |
 | 音階 | その機種が出せる音の集まり | （設定項目ではない） |
 
 - **「ノート」は必ず「MIDI ノート番号」と書く**（音名と紛れるため）。
@@ -91,7 +94,7 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 ### SVG 座標系
 
 **すべての座標が負値**（`svg_square()` は `M {-x},{-y} h {-w} v {-h}`、viewBox の原点も負）。
-ロールブックは右から左へ流れるため。単位は mm で、`'1sec'`（既定 50.0）が秒→mm の変換係数。
+ロールブックは右から左へ流れるため。単位は mm で、`'mm_per_sec'`（既定 50.0）が秒→mm の変換係数。
 線は `vector-effect:non-scaling-stroke` + `-inkscape-stroke:hairline` を付ける
 （カッティング用にヘアラインが要る）。
 

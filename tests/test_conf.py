@@ -358,15 +358,15 @@ class TestValidateConfig:
     def test_valid_config(self):
         sample = {
             "model": "test_model",
-            "book height": 100,
+            "book_height": 100,
             "margin": 5,
             "pitch": 3.5,
-            "hole height": 2.5,
-            "1sec": 50,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
             "notes": [{"name": "C", "offset": 0}, {"name": "D", "offset": 2}],
-            "base note": 60,
-            "bridge width": 1,
-            "bridge threshold": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
             "memo": "sample"
         }
         valid, msg = validate_config(sample)
@@ -379,7 +379,7 @@ class TestValidateConfig:
         assert "オブジェクト" in msg
 
     def test_missing_model(self):
-        sample = {"book height": 100}
+        sample = {"book_height": 100}
         valid, msg = validate_config(sample)
         assert valid is False
         assert "機種名は必須" in msg
@@ -396,11 +396,11 @@ class TestValidateConfig:
     def test_invalid_numeric_field(self):
         sample = {
             "model": "test_model",
-            "book height": "abc",
-            "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
-            "base note": 60,
-            "bridge width": 1,
-            "bridge threshold": 50,
+            "book_height": "abc",
+            "margin": 5, "pitch": 3.5, "hole_height": 2.5, "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
             "notes": [{"name": "C", "offset": 0}]
         }
         valid, msg = validate_config(sample)
@@ -408,20 +408,20 @@ class TestValidateConfig:
         assert "数値である必要" in msg
 
     def test_int_field_rejects_non_integer_string(self):
-        # 'base note' は int で変換される。float() で検証していた頃は
+        # 'base_note' は int で変換される。float() で検証していた頃は
         # "60.5" が検証を通り、あとの int() で ValueError になっていた。
         sample = {
             "model": "test_model",
-            "book height": 100,
-            "margin": 5, "pitch": 3.5, "hole height": 2.5, "1sec": 50,
-            "base note": "60.5",
-            "bridge width": 1,
-            "bridge threshold": 50,
+            "book_height": 100,
+            "margin": 5, "pitch": 3.5, "hole_height": 2.5, "mm_per_sec": 50,
+            "base_note": "60.5",
+            "bridge_width": 1,
+            "bridge_threshold": 50,
             "notes": [{"name": "C", "offset": 0}]
         }
         valid, msg = validate_config(sample)
         assert valid is False
-        assert "'base note'" in msg
+        assert "'base_note'" in msg
 
     # 'notes' の各要素は {'name': str, 'offset': int}。
     # 壊れ方ごとに、どの要素が悪いのか（index）が分かること。
@@ -435,14 +435,14 @@ class TestValidateConfig:
     def test_invalid_note_item(self, bad_note, expected):
         sample = {
             "model": "test_model",
-            "book height": 100,
+            "book_height": 100,
             "margin": 5,
             "pitch": 3.5,
-            "hole height": 2.5,
-            "1sec": 50,
-            "base note": 60,
-            "bridge width": 1,
-            "bridge threshold": 50,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
             "notes": [{"name": "C", "offset": 0}, bad_note]
         }
         valid, msg = validate_config(sample)
@@ -453,14 +453,14 @@ class TestValidateConfig:
     def test_notes_must_be_a_list(self):
         sample = {
             "model": "test_model",
-            "book height": 100,
+            "book_height": 100,
             "margin": 5,
             "pitch": 3.5,
-            "hole height": 2.5,
-            "1sec": 50,
-            "base note": 60,
-            "bridge width": 1,
-            "bridge threshold": 50,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
             "notes": {"name": "C", "offset": 0}
         }
         valid, msg = validate_config(sample)
@@ -478,14 +478,14 @@ class TestConfMutations:
         data = [
             {
                 "model": "m1",
-                "book height": 100,
+                "book_height": 100,
                 "margin": 5,
                 "pitch": 3.5,
-                "hole height": 2.5,
-                "1sec": 50,
-                "base note": 60,
-                "bridge width": 1,
-                "bridge threshold": 50,
+                "hole_height": 2.5,
+                "mm_per_sec": 50,
+                "base_note": 60,
+                "bridge_width": 1,
+                "bridge_threshold": 50,
                 "notes": [{"name": "C", "offset": 0}], "memo": "m1 memo"
             }
         ]
@@ -528,21 +528,21 @@ class TestConfMutations:
         conf = Conf(config_file=str(sample_conf_file))
         new_model = {
             "model": "m2",
-            "book height": 120,
+            "book_height": 120,
             "margin": 6,
             "pitch": 3.5,
-            "hole height": 2.5,
-            "1sec": 50,
-            "base note": 60,
-            "bridge width": 1,
-            "bridge threshold": 50,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
             "notes": [{"name": "D", "offset": 2}], "memo": "m2 memo"
         }
         ok, msg = conf.add_model(new_model)
 
         assert ok is True
         assert "m2" in conf.models
-        assert conf.get("m2")["book height"] == 120.0
+        assert conf.get("m2")["book_height"] == 120.0
 
     def test_add_model_duplicate(self, sample_conf_file):
         conf = Conf(config_file=str(sample_conf_file))
@@ -575,10 +575,10 @@ class TestConfMutations:
 class TestCoerceNumericFields:
     SAMPLE = {
         "model": "test_model",
-        "book height": "100", "margin": "5", "pitch": "3.5",
-        "hole height": "2.5", "1sec": "50",
-        "base note": "60",
-        "bridge width": "1", "bridge threshold": "50",
+        "book_height": "100", "margin": "5", "pitch": "3.5",
+        "hole_height": "2.5", "mm_per_sec": "50",
+        "base_note": "60",
+        "bridge_width": "1", "bridge_threshold": "50",
         "notes": [{"name": "C", "offset": "0"}, {"name": "D", "offset": "2"}],
         "memo": "keep me",
     }

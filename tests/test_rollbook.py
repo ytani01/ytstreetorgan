@@ -42,17 +42,17 @@ def test_rollbook_parse(mock_parser):
     rb = RollBook()
     # Mock conf slightly if needed, but defaults might work
     rb._conf = {
-        'base note': 60,
+        'base_note': 60,
         'notes': [
             {'name': 'C', 'offset': 0},
             {'name': 'D', 'offset': 2},
             {'name': 'E', 'offset': 4},
         ],
-        '1sec': 10,
+        'mm_per_sec': 10,
         'pitch': 5,
         'margin': 2,
-        'hole height': 3,
-        'book height': 100
+        'hole_height': 3,
+        'book_height': 100
     }
 
     svg = rb.parse('dummy.mid')
@@ -68,16 +68,16 @@ def test_holeinfo_str():
     mock_note.note = 60
 
     conf = {
-        'base note': 60,
+        'base_note': 60,
         'notes': [
             {'name': 'C', 'offset': 0},
             {'name': 'D', 'offset': 2},
             {'name': 'E', 'offset': 4},
         ],
-        '1sec': 10,
+        'mm_per_sec': 10,
         'pitch': 5,
         'margin': 2,
-        'hole height': 3
+        'hole_height': 3
     }
     hi = HoleInfo(mock_note, conf)
     s = str(hi)

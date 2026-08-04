@@ -24,29 +24,29 @@ document.addEventListener("DOMContentLoaded", function () {
   const addError = $("add-model-error");
 
   // 入力欄の id と、設定ファイル上のキーの対応。
-  // キーは生の JSON フィールド名（空白や数字始まりを含む）。
+  // 値は生の JSON フィールド名（画面では小さいラベルとして出している）。
   const FIELDS = {
     "field-model": "model",
-    "field-book-height": "book height",
+    "field-book-height": "book_height",
     "field-margin": "margin",
     "field-pitch": "pitch",
-    "field-hole-height": "hole height",
-    "field-1sec": "1sec",
-    "field-base-note": "base note",
-    "field-bridge-width": "bridge width",
-    "field-bridge-threshold": "bridge threshold",
+    "field-hole-height": "hole_height",
+    "field-mm-per-sec": "mm_per_sec",
+    "field-base-note": "base_note",
+    "field-bridge-width": "bridge_width",
+    "field-bridge-threshold": "bridge_threshold",
     "field-memo": "memo",
   };
 
   const NUMERIC = {
-    "book height": parseFloat,
+    "book_height": parseFloat,
     "margin": parseFloat,
     "pitch": parseFloat,
-    "hole height": parseFloat,
-    "1sec": parseFloat,
-    "base note": v => parseInt(v, 10),
-    "bridge width": parseFloat,
-    "bridge threshold": parseFloat,
+    "hole_height": parseFloat,
+    "mm_per_sec": parseFloat,
+    "base_note": v => parseInt(v, 10),
+    "bridge_width": parseFloat,
+    "bridge_threshold": parseFloat,
   };
 
   /* ---- 通知 ------------------------------------------------------------ */

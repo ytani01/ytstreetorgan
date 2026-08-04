@@ -131,8 +131,8 @@ def test_add_model_copies_the_template(
     src = next(d for d in data if d['model'] == '20notes')
     # 名前以外はコピー元と同じ。トラックは並び順ごと
     assert added['notes'] == src['notes']
-    assert added['base note'] == src['base note']
-    assert added['book height'] == src['book height']
+    assert added['base_note'] == src['base_note']
+    assert added['book_height'] == src['book_height']
 
 
 @pytest.mark.parametrize('name, expected', [
@@ -240,7 +240,7 @@ def test_save_shows_server_side_error(live_server: str, page: Page) -> None:
 
     alert = page.locator('#alert-container .alert--error')
     expect(alert).to_be_visible()
-    expect(alert).to_contain_text("必須項目 'book height' がありません")
+    expect(alert).to_contain_text("必須項目 'book_height' がありません")
 
     # 「保存中...」のまま固まらず、押せる状態に戻る
     save = page.locator('#btn-save-config')
@@ -251,7 +251,7 @@ def test_save_shows_server_side_error(live_server: str, page: Page) -> None:
     saved = next(
         d for d in _conf_data(page, live_server) if d['model'] == '34notes'
     )
-    assert saved['book height'] == 126.0
+    assert saved['book_height'] == 126.0
 
 
 def test_blank_offset_is_saved_as_zero(
