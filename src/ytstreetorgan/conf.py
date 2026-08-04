@@ -201,27 +201,40 @@ class Conf:
         """Load config file."""
         logger.debug(f'config_file=\'{self.config_file}\'')
 
+        # 読めない理由（文字コード / JSON / 'model' が無い）で扱いを
+        # 変えていないので、まとめて捕まえる
         try:
             json_text = self.config_file.read_text(encoding='utf-8')
             self.data = json.loads(json_text)
-            self.models = [
-                d['model']  # pyright: ignore[reportTypedDictNotRequiredAccess]
-                for d in self.data
-            ]
-        except UnicodeDecodeError as e:
-            logger.error(exmsg(e))
-            return []
-        except json.JSONDecodeError as e:
-            logger.error(exmsg(e))
-            return []
-        except KeyError as e:
-            logger.error(exmsg(e))
-            return []
+            self.models = self._model_names()
         except Exception as e:
             logger.error(exmsg(e))
             return []
 
         return self.data
+
+    def _model_names(self) -> list[str]:
+        """`data` に並んでいる機種名。
+
+        **形が違えばそのまま例外にする**（list でない、要素が dict で
+        ない、`'model'` が無い）。`load()` がそれを捕まえて空を返すので、
+        壊れた設定を半端に読み込んだ状態にしない。
+        """
+        return [
+            d['model']  # pyright: ignore[reportTypedDictNotRequiredAccess]
+            for d in self.data
+        ]
+
+    def _index_of(self, model_name: str) -> int | None:
+        """`data` の何番目がその機種か。無ければ None。"""
+        if not self.data:
+            return None
+
+        for idx, d in enumerate(self.data):
+            if d.get('model') == model_name:
+                return idx
+
+        return None
 
     def get(self, model_name: str = '') -> ModelConf:
         """Get config data for ``model_name``.
@@ -232,15 +245,12 @@ class Conf:
         """
         logger.debug(f'model_name=\'{model_name}\'')
 
-        if self.data is None:
+        idx = self._index_of(model_name)
+        if idx is None:
+            logger.error(f'model:\'{model_name}\' not found')
             return {}
 
-        for d in self.data:
-            if d.get('model') == model_name:
-                return d
-
-        logger.error(f'mode:\'{model_name}\' not found')
-        return {}
+        return self.data[idx]
 
     def save(self) -> tuple[bool, str]:
         """Save configuration to JSON file atomically with backup."""
@@ -263,10 +273,7 @@ class Conf:
                 f.write('\n')
 
             tmp_file.replace(self.config_file)
-            self.models = [
-                d['model'] for d in self.data
-                if isinstance(d, dict) and 'model' in d
-            ]
+            self.models = self._model_names()  # 壊れていれば下の except へ
             logger.info(f"Saved configuration to {self.config_file}")
             return True, "設定を保存しました"
 
@@ -281,12 +288,7 @@ class Conf:
         if not valid:
             return False, msg
 
-        target_idx = None
-        for idx, d in enumerate(self.data):
-            if d.get('model') == model_name:
-                target_idx = idx
-                break
-
+        target_idx = self._index_of(model_name)
         if target_idx is None:
             msg = f"機種 '{model_name}' が見つかりません"
             logger.error(msg)
@@ -312,12 +314,7 @@ class Conf:
 
     def delete_model(self, model_name: str) -> tuple[bool, str]:
         """Delete a model configuration by name and save."""
-        target_idx = None
-        for idx, d in enumerate(self.data):
-            if d.get('model') == model_name:
-                target_idx = idx
-                break
-
+        target_idx = self._index_of(model_name)
         if target_idx is None:
             msg = f"機種 '{model_name}' が見つかりません"
             logger.error(msg)
