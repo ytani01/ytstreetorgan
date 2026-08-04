@@ -159,6 +159,36 @@ def test_minimap_window_drag_is_relative(
     page.mouse.up()
 
 
+def test_holes_are_readable_on_screen_only(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """画面では線を太く・実線の穴を塗る。**保存される SVG は無変更。**
+
+    生成される SVG は `stroke-width:0.2` + `non-scaling-stroke` で、
+    倍率に関わらず 0.2px にしかならず読めない。CSS で上書きしているが、
+    ダウンロードは置き場のファイルをそのまま返すので影響してはいけない。
+    """
+    upload_midi(page, live_server, sample_midi)
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    # 画面: 線は 1px、実線の穴は塗られている
+    solid = page.locator('#svgbox svg path[style*="stroke:#FF0000"]').first
+    assert solid.evaluate(
+        'e => getComputedStyle(e).strokeWidth') == '1px'
+    fill = solid.evaluate('e => getComputedStyle(e).fill')
+    assert fill != 'none' and '255, 0, 0' in fill, fill
+
+    # 破線（音階に無い音）は塗らない。実線との違いが分かるように
+    dashed = page.locator('#svgbox svg path[style*="stroke:#000000"]').first
+    assert dashed.evaluate('e => getComputedStyle(e).fill') == 'none'
+
+    # ダウンロードされる SVG は元のまま
+    link = page.locator(f'a[href*="/download/{sample_midi.name}.svg"]')
+    res = page.request.get(urljoin(page.url, link.get_attribute('href') or ''))
+    assert 'stroke-width:0.2' in res.text()
+    assert 'fill:none' in res.text()
+
+
 def test_static_assets_load(live_server: str, page: Page) -> None:
     """CSS/JS が 404 しない。
 
