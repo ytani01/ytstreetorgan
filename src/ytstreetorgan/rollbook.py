@@ -102,7 +102,7 @@ def divide_length_by_max_len(
 
     Note:
         分割数 n と 1 要素あたりの長さも計算しているが、**返さない**
-        （誰も読んでいなかった）。導出は docs/memo-divide.md にある。
+        （誰も読んでいなかった）。
     """
     logger.debug(
         'total_len={}, unit_len_max={}, gap={}',

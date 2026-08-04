@@ -103,7 +103,7 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
   scale が `-1` の穴はブックの全長（`_width`）を伸ばさない。
 - 穴の長さが `'bridge threshold'` を超えると `divide_length_by_max_len()` が
   `'bridge width'` の隙間（ブリッジ）を挟んで複数に分割する。紙のブックが切れないようにする措置。
-  導出は `docs/memo-divide.md` にある。
+  分割数は `n = ceil((全長 + 隙間) / (隙間 + 上限))`。
 
 ### Web 層
 
