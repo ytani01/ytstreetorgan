@@ -126,6 +126,19 @@ class TestInit:
         with pytest.raises(FileNotFoundError, match=Conf.CONF_FNAME):
             Conf(config_file="")
 
+    def test_not_found_message_lists_where_it_looked(self, isolated_search_path):
+        """探した場所が分かること。
+
+        名前だけだと、どこに設定を置けばよいのか分からないまま
+        「見つかりません」とだけ言われることになる。
+        """
+        with pytest.raises(FileNotFoundError) as excinfo:
+            Conf(config_file="")
+
+        msg = str(excinfo.value)
+        for dir_path in isolated_search_path:
+            assert str(dir_path / Conf.CONF_FNAME) in msg
+
     def test_default_config_file_argument_behaves_like_empty_string(
         self, isolated_search_path
     ):

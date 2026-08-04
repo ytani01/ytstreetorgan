@@ -167,20 +167,35 @@ class Conf:
         #
         # `config_file`が指定されなければ、SEARCH_PATHを探す
         #
+        searched: list[Path] = []
         if config_file == '':
             for dir in self.SEARCH_PATH:
-                self.config_file = (dir / self.CONF_FNAME).expanduser()
-                logger.debug(f'search config_file=\'{self.config_file}\'')
+                candidate = (dir / self.CONF_FNAME).expanduser()
+                searched.append(candidate)
+                logger.debug(f'search config_file=\'{candidate}\'')
 
-                if self.config_file.is_file():
-                    logger.debug(f'find: \'{self.config_file}\'')
+                if candidate.is_file():
+                    logger.debug(f'find: \'{candidate}\'')
+                    self.config_file = candidate
                     break
+            else:
+                # 見つからなかった。探した先を持ったままにすると、
+                # 最後の候補（/etc/…）が指定されたかのように見える
+                self.config_file = searched[-1] if searched else self.config_file
 
         if self.config_file.is_file():
             self.load()
         else:
-            logger.error(f'{self.config_file.name}: not found')
-            raise FileNotFoundError(self.config_file.name)
+            # どこを探したのかまで出す。名前だけだと、設定を置く場所が
+            # 分からないまま「見つかりません」とだけ言われることになる
+            if searched:
+                where = '、'.join(str(p) for p in searched)
+                msg = f'{self.CONF_FNAME} が見つかりません（探した場所: {where}）'
+            else:
+                msg = f'{self.config_file} が見つかりません'
+
+            logger.error(msg)
+            raise FileNotFoundError(msg)
 
     def load(self) -> list[ModelConf]:
         """Load config file."""
