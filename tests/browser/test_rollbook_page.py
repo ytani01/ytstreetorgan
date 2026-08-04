@@ -280,8 +280,9 @@ def test_same_name_reuse_shows_the_previous_file(
     expect(page.locator('#svgbox svg')).to_be_visible()
     assert _book_size(page) == before, '今回選んだほうで作られている'
     # 何が起きたのか画面に出る
+    # どのファイルから作ったのか名前も出る
     expect(page.locator('.result-head')).to_contain_text(
-        '前回アップロードしたファイルから作りました'
+        '前回アップロードした reuse-me.mid から作りました'
     )
 
     # サーバー側のファイルも置き換わっていない

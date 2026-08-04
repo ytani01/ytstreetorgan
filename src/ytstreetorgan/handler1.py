@@ -10,7 +10,12 @@ from . import __author__, __copyright_year__
 from .conf import Conf
 from .mylog import exmsg
 from .rollbook import RollBook
-from .storage import book_from_svg, content_disposition, resolve_in
+from .storage import (
+    book_from_svg,
+    content_disposition,
+    mtime_text,
+    resolve_in,
+)
 from .utils import get_size_unit
 
 
@@ -163,7 +168,7 @@ class Handler1(StorganBaseHandler):
         self._render()
 
     def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None,
-                src_size='', msg_error=False, reused=False,
+                src_size='', msg_error=False, reused_name='',
                 from_history=False):
         """テンプレートを描画する。
 
@@ -185,9 +190,10 @@ class Handler1(StorganBaseHandler):
             （＝ MIDI 名 + '.svg'）に含まれるので渡さない。
         msg_error: bool
             ``msg`` が失敗の知らせなら True（画面上で赤くする）。
-        reused: bool
+        reused_name: str
             今回送られたファイルではなく、サーバーにあった同名のファイル
-            から作った場合は True（結果の画面にその旨を出す）。
+            から作った場合、その名前。結果の画面にその旨を出す
+            （空なら普通に生成した場合）。
         from_history: bool
             履歴から保存済みの SVG をそのまま出した場合は True。
             諸元が SVG から読めるぶんしか無いことを画面に断る。
@@ -207,7 +213,7 @@ class Handler1(StorganBaseHandler):
                     size_limit_bytes=self._size_limit,
                     msg_error=msg_error,
                     uploaded_names=self.uploaded_midi_names(),
-                    reused=reused,
+                    reused_name=reused_name,
                     from_history=from_history,
                     livereload=self._livereload,
                     nav='top',   # base.html のナビで現在地を示す
@@ -303,20 +309,23 @@ class Handler1(StorganBaseHandler):
             svg_data=svg_data,
             svg_filename=svg1_fname,
             src_size=src_size,
-            reused=reuse,
-            book=self._book_of(rollbook),
+            reused_name=file1_fname if reuse else '',
+            book=self._book_of(rollbook, svg1_path),
         )
 
-    @staticmethod
-    def _book_of(rollbook: RollBook) -> dict:
+    def _book_of(self, rollbook: RollBook, svg_path: Path) -> dict:
         """ビューアに渡す諸元を組み立てる。
 
         穴の数は「音符の数」と「ブリッジで分割したあとの数」の 2 段階あり、
         さらに実線（穴を開ける）と破線（開けない）で分かれる。
-        **どれも SVG からは逆算できない**ので全部渡す
-        （`storage.book_from_svg()` が None で埋めるのと対になっている）。
+
+        履歴から出し直すときは `storage.book_from_svg()` が同じ形を作る。
+        **項目を増やすときは両方を直すこと。**
         """
         return {
+            'model': self._model,
+            # SVG は今書いたので、更新日時がそのまま生成日時になる
+            'created': mtime_text(svg_path),
             'width': round(rollbook.width, 2),
             'height': round(rollbook.height, 2),
             'mm_per_sec': rollbook.mm_per_sec,
@@ -348,11 +357,15 @@ class Handler1(StorganBaseHandler):
         svg_data = path.read_text(encoding='utf-8')
         size, unit = get_size_unit(path.stat().st_size)
 
+        book = book_from_svg(svg_data)
+        # 生成日時は SVG の中ではなくファイルの更新日時から取る
+        book['created'] = mtime_text(path)
+
         self._render(
             svg_data=svg_data,
             svg_filename=path.name,
             src_size=f'{size:.1f} {unit}',
-            book=book_from_svg(svg_data),
+            book=book,
             from_history=True,
         )
 
@@ -390,5 +403,5 @@ class Handler1(StorganBaseHandler):
             svg_data=svg_data,
             svg_filename=svg_path.name,
             src_size=f'{size:.1f} {unit}',
-            book=self._book_of(rollbook),
+            book=self._book_of(rollbook, svg_path),
         )

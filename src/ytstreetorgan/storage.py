@@ -21,6 +21,9 @@ from .utils import get_size_unit
 # 置き場の名前 → webroot 下のディレクトリ名
 KINDS = {'midi': 'midi', 'svg': 'svg'}
 
+# 分からない値の出し方。テンプレートと storgan.js の表記と合わせること
+UNKNOWN = '---'
+
 # ヘッダの quoted-string を壊す文字と、制御文字
 _UNSAFE_IN_HEADER_RE = re.compile(r'["\\]|[\x00-\x1f\x7f]')
 
@@ -130,17 +133,28 @@ def list_files(dir_path: Path) -> list[FileInfo]:
 
     files: list[FileInfo] = []
     for p in entries:
-        st = p.stat()
-        size, unit = get_size_unit(st.st_size)
+        size, unit = get_size_unit(p.stat().st_size)
         files.append({
             'name': p.name,
             'size': f'{size:.1f} {unit}',
-            'mtime': datetime.fromtimestamp(st.st_mtime).strftime(
-                '%Y-%m-%d %H:%M'
-            ),
+            'mtime': mtime_text(p) or UNKNOWN,
         })
 
     return files
+
+
+def mtime_text(path: Path) -> str | None:
+    """ファイルの更新日時。生成した日時として画面に出す。
+
+    SVG は生成したときに書かれるので、更新日時がそのまま生成日時になる。
+    読めなければ None（画面では `---`）。
+    """
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime).strftime(
+            '%Y-%m-%d %H:%M'
+        )
+    except OSError:
+        return None
 
 
 def book_from_svg(svg: str) -> dict:
@@ -159,6 +173,10 @@ def book_from_svg(svg: str) -> dict:
       長い穴は 1 音符が `<path>` 複数本になり、**分割は多対一なので
       逆算できない**
     - `mm_per_sec` — 図には現れない
+    - `model` — どの機種で作ったか。図には現れない
+
+`created`（生成日時）は SVG の中ではなく**ファイルの更新日時**なので、
+    ここでは None にしておき、呼び出し側が `mtime_text()` で入れる。
 
     **属性が無い（＝埋めるようにする前に作った）SVG もある**ので、
     その場合は None にする。画面では `---` と出る。
@@ -170,6 +188,8 @@ def book_from_svg(svg: str) -> dict:
     has_svg = '<svg' in svg
 
     book: dict = {
+        'model': _meta(svg, 'model'),
+        'created': None,   # ファイルの更新日時。呼び出し側が入れる
         'width': float(m.group(1)) if m else None,
         'height': float(m.group(2)) if m else None,
         'mm_per_sec': _meta_float(svg, 'mm-per-sec'),

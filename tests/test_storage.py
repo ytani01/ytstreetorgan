@@ -9,6 +9,7 @@ from ytstreetorgan.storage import (
     book_from_svg,
     content_disposition,
     list_files,
+    mtime_text,
     resolve_in,
     safe_name,
 )
@@ -124,6 +125,7 @@ class TestBookFromSvg:
 
         assert book['mm_per_sec'] == 50.0
         assert book['notes'] == 1033
+        assert book['model'] is None   # この SVG には入れていない
         assert book['hole_notes'] == 562
         assert book['off_scale_notes'] == 471
 
@@ -131,8 +133,13 @@ class TestBookFromSvg:
         """埋めるようにする前に作った SVG もある。無ければ '---' に落とす。"""
         book = book_from_svg(self.SVG)
 
-        for key in ('mm_per_sec', 'notes', 'hole_notes', 'off_scale_notes'):
+        for key in ('mm_per_sec', 'notes', 'hole_notes', 'off_scale_notes',
+                    'model'):
             assert book[key] is None, key
+
+    def test_created_is_left_to_the_caller(self):
+        """生成日時は SVG の中ではなくファイルの更新日時なので、ここでは None。"""
+        assert book_from_svg(self.SVG)['created'] is None
 
     def test_broken_attributes_are_treated_as_unknown(self):
         svg = self.SVG.replace(
@@ -216,6 +223,8 @@ class TestBookFromSvgMatchesRollBook:
             book = book_from_svg(svg)
 
             assert book == {
+                'model': model,
+                'created': None,   # ファイルの更新日時。呼び出し側が入れる
                 'width': round(rb.width, 2),
                 'height': round(rb.height, 2),
                 'mm_per_sec': rb.mm_per_sec,
@@ -225,3 +234,21 @@ class TestBookFromSvgMatchesRollBook:
                 'off_scale_notes': rb.off_scale_note_count,
                 'off_scale': rb.off_scale_count,
             }, model
+
+
+class TestMtimeText:
+    """SVG は生成したときに書かれるので、更新日時 = 生成日時として出す。"""
+
+    def test_formats_the_mtime(self, tmp_path):
+        import os
+        from datetime import datetime
+
+        p = tmp_path / 'a.svg'
+        p.write_text('x')
+        when = datetime(2026, 8, 4, 19, 30).timestamp()
+        os.utime(p, (when, when))
+
+        assert mtime_text(p) == '2026-08-04 19:30'
+
+    def test_missing_file_is_none(self, tmp_path):
+        assert mtime_text(tmp_path / 'nope.svg') is None

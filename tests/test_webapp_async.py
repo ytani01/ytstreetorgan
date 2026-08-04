@@ -133,7 +133,9 @@ class TestWebAppAsync(AsyncHTTPTestCase):
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="svgbox"', response.body)
-        self.assertIn("前回アップロードしたファイル".encode(), response.body)
+        # どのファイルから作ったのか名前も出る
+        self.assertIn("前回アップロードした".encode(), response.body)
+        self.assertIn(b"dummy.mid", response.body)
         self.assertEqual(
             (self.webroot / 'midi' / 'dummy.mid').read_bytes(), before
         )
@@ -148,7 +150,7 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         self.assertIn(b'id="svgbox"', response.body)
         self.assertTrue((self.webroot / 'midi' / 'dummy.mid').exists())
         # 前回のファイルは無かったので、その旨は出さない
-        self.assertNotIn("前回アップロードしたファイル".encode(), response.body)
+        self.assertNotIn("前回アップロードした".encode(), response.body)
 
 
 class TestWebAppLiveReload(AsyncHTTPTestCase):
