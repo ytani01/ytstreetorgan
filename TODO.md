@@ -2,8 +2,111 @@
 
 作成: 2026-08-02（コミット `82aaa65` 時点）
 
-A〜V はすべて決着した（N・O・S・U-1 は「対応しない」、P と Q は方針・文言を
-決めて決着）。**残っている項目は無い。**
+A〜V は決着した（N・O・S・U-1 は「対応しない」、P と Q は方針・文言を
+決めて決着）。**W は棚卸しだけ。まだ何も直していない。**
+
+---
+
+## W. コード全体の見直し（リファクタリング）
+
+`src/` を一通り読んだ棚卸し。**まだ何も直していない。**
+上から順に、放っておくと事故になるもの → 重複 → 使っていないもの →
+様式の順に並べてある。
+
+進め方の方針:
+
+- **1 コミット 1 テーマ。** まとめて直すと、落ちたときにどれが原因か分からない
+- 意味を変えない変更でも、**都度 `uv run pytest -q` と `-m browser`** を通す
+- CLAUDE.md に書いてある取り決め（座標系・穴の数え方・`storage.py` を通す・
+  `isolate_user_config` など）は**仕様**。壊さない。直すなら CLAUDE.md も直す
+
+### W-1. 放っておくと事故になるもの
+
+1. **`RollBook.parse()` は 2 回呼べない**（`rollbook.py:414`）。`self._holes`
+   を初期化せず `append` するので穴が二重になり、`_width` も `max()` で
+   伸びたまま。いまは 1 インスタンスにつき 1 回しか呼んでいないので
+   表面化していないだけ。先頭で初期化するか、使い回せないことを明示する
+2. **設定値が欠けていても 0 で描いてしまう**（`rollbook.py:170-185`）。
+   `HoleInfo` は `conf.get('pitch', 0.0)` のように既定値付きで読む。
+   さらに `Conf.get()` は**知らない機種名に `{}` を返す**（`conf.py:228`）
+   ので、機種名を打ち間違えると「高さ 0 の空のブック」が黙って出る。
+   どこか 1 か所で弾く
+3. `Conf.__init__` は探索に失敗したとき、`config_file` に**最後の候補**
+   （`/etc/storgan-conf.json`）が残ったまま `FileNotFoundError` を投げる
+   （`conf.py:170-183`）。例外にはファイル名しか入らないので、
+   **どこを探したのかが分からない**
+4. **リクエストのたびに設定ファイルを読み直している。**
+   `Handler1.__init__` / `HistoryHandler.get` / `ConfigHandler` /
+   `RollBook.__init__` がそれぞれ `Conf()` を作るので、1 回の生成で 2 回開く。
+   キャッシュするなら、**設定エディタの保存が即座に反映されること**
+   （mtime で無効化）を担保すること。→ **やるかどうか決める**
+5. `app.settings['models']` は**誰も読んでいない**（`webapp.py:123`）。
+   起動時の値なので機種を足しても古いまま。消す
+
+### W-2. 同じものが 2 か所以上にある
+
+6. サイズの文字列化 `f'{size:.1f} {unit}'` が 4 か所
+   （`handler1.py:286,367,405` と `storage.py:139`）。`storage.size_text()`
+   に寄せ、ついでに `StorganBaseHandler.get_filesize()`
+   （`tuple | None` を返して呼び出し側が `assert` している）を無くす
+7. `render()` の共通引数（title / author / version / copyright_year /
+   urlprefix / livereload / nav）が 3 ハンドラに散らばっている。
+   `StorganBaseHandler.render_page()` に集約する
+8. `_show_stored_svg()` と `_generate_from_stored()` の
+   「`resolve_in` → `is_file` → エラー描画」が同型（`handler1.py:346-382`）
+9. 「MIDI ファイルではないか、壊れている可能性があります」が 2 か所
+   （`handler1.py:300,394`）
+10. `Conf` の「機種名で線形探索」が 3 か所（`get` / `update_model` /
+    `delete_model`）。`load()` の 4 つの `except` も中身が同じ。
+    `update_model` と `add_model` の validate → coerce → save も同型
+11. **SVG の色と属性名が 2 モジュールに分かれている。**
+    `rollbook.META_PREFIX` と `storage._META_PREFIX`、`'#FF0000'` /
+    `'#000000'` の直書きと `storage` 側の正規表現。往復テストがあるので
+    黙ってはずれないが、意図としては 1 か所に置きたい
+12. `showAlert()` が `history.js` と `config_editor.js` に**1 文字違わず**
+    ある。`static/js/alert.js` に出す
+13. `'---'` が 3 か所（`storage.UNKNOWN` / `storgan.js:182` /
+    `storgan.html:74`）。サーバーから 1 か所で渡す
+
+### W-3. 使っていないもの
+
+14. `RollBook.svg()` と `HoleInfo.svg()` の色・線幅・破線の引数は、
+    実際には既定値のままか固定値でしか呼ばれていない（`rollbook.py:386-388`）
+15. `divide_length_by_max_len()` の戻り値のうち `n` と `unit_len` は
+    **どこからも読まれていない**（使うのは `segments` だけ）
+16. `RollBookApp._dbg` / `_version` は代入するだけ（`apps.py:32,43`）。
+    `end()` も両クラスで空
+17. `Conf.__init__(debug=...)` は使われていない（`conf.py:158`）
+18. `# pylint: disable=` が 3 か所（`apps.py:68,70`, `__main__.py:173`）。
+    **pylint は使っていない**（ruff / mypy / basedpyright）
+
+### W-4. 様式（先に決めること）
+
+19. **docstring の言語と様式がばらばら。** 英語（`conf.py` / `utils.py` /
+    `config_handler.py`）と日本語（新しいもの）が混在し、様式も
+    numpy 形式（`Parameters ----------`: `utils` / `handler1` / `webapp`）と
+    Google 形式（`Args:`）が混ざる。**どちらに寄せるか決める**
+    （「利用者に見える文字列は日本語」は決まっているが、docstring は未定）
+20. `logger.debug('app={}', app)`（`handler1.py:28`）と
+    `logger.debug(dir(self.request))`（`handler1.py:232`）は `-d` のとき
+    数百行出る。落とす
+21. ログの書式が `logger.debug('x={}', x)` と f-string で混在（`conf.py` は
+    f-string）。loguru は前者のほうがよい（出さないときに整形しない）
+22. ルーティングの形が不揃い（`webapp.py:94-97`）。`config.*` /
+    `history/?` / `download/(midi/)?(.*)`。`Download.get()` の
+    `kind: str | None` はこの省略可能グループの都合
+23. `RollBook.DEF_CONF_FILE = ''` の「空文字＝探索する」という約束。
+    `str | None` にするか、探索を別の関数に出す
+
+### W-5. テストとフロント
+
+24. ブラウザテストのアップロード用ヘルパが 2 本ある
+    （`test_rollbook_page.upload` と `test_history_page._upload`）。
+    `tests/browser/conftest.py` に 1 本にまとめる
+25. `tests/test_webapp.py` と `tests/test_webapp_async.py` の役割の境目が
+    曖昧（前者は `WebServer` の組み立て、後者は HTTP）。名前で分かるようにする
+26. `storgan.js` が 386 行で、アップロード / 機種セレクタ / ビューアの
+    3 つが 1 ファイルに入っている。ビューアを `viewer.js` に分ける
 
 ---
 
