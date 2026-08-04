@@ -78,8 +78,11 @@ class WebServer:
         self._version = version
         self._debug = debug
 
-        self._models = Conf().models
-        logger.info('_models={}', self._models)
+        # 起動時に設定を読めるか確かめる（読めなければここで落ちる）。
+        # 機種の一覧は各ハンドラがその都度読み直すので、app.settings には
+        # 載せない。載せていた頃は誰も読まないうえ、機種を足しても
+        # 起動時の値のままだった。
+        logger.info('models={}', Conf().models)
 
         try:
             self._workdir.mkdir(parents=True, exist_ok=True)
@@ -120,7 +123,6 @@ class WebServer:
             urlprefix=self._urlprefix,
             size_limit=self._size_limit,
             version=self._version,
-            models=self._models,
             # テンプレートが livereload.js を出すかどうかの判断に使う
             livereload=self._debug,
         )
