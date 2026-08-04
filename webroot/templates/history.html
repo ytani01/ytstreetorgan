@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+
+    <!-- 外部 CDN は使わない。ローカルで動かす道具なので、ネットに繋がって
+         いなくてもレイアウトが崩れないこと。 -->
+    <!-- static_url() は urlprefix と ?v=<hash> を付ける。手で組み立てると
+         prefix を変えたときに 404 になり、更新してもキャッシュが残る。 -->
+    <link rel="icon" href="{{ static_url('favicon.svg') }}">
+    <link rel="stylesheet" href="{{ static_url('css/pico.min.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/my.css') }}">
+
+    <script>
+      window.URL_PREFIX = "{{ urlprefix }}";
+    </script>
+  </head>
+  <body>
+    <header class="appbar">
+      <div class="appbar__inner">
+        <a href="{{urlprefix}}/" class="brand">
+          <svg width="30" height="20" viewBox="0 0 30 20" aria-hidden="true">
+            <rect x=".5" y=".5" width="29" height="19" rx="1.5"
+              fill="none" stroke="var(--cut)"/>
+            <g fill="var(--hole)">
+              <rect x="4" y="4" width="7" height="2" rx="1"/>
+              <rect x="14" y="4" width="4" height="2" rx="1"/>
+              <rect x="7" y="9" width="11" height="2" rx="1"/>
+              <rect x="21" y="9" width="4" height="2" rx="1"/>
+              <rect x="4" y="14" width="4" height="2" rx="1"/>
+              <rect x="12" y="14" width="8" height="2" rx="1"/>
+            </g>
+          </svg>
+          <span class="brand__name">Roll Book Maker</span>
+          <span class="brand__sub">storgan</span>
+        </a>
+        <nav>
+          <a href="{{urlprefix}}/">ロールブック作成</a>
+          <a href="{{urlprefix}}/history" aria-current="page">履歴</a>
+          <a href="{{urlprefix}}/config">機種設定</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="wrap">
+        <h1 class="page-title">履歴</h1>
+        <p class="page-lead">
+          アップロードした MIDI と、生成した SVG の一覧です。
+        </p>
+
+        <div id="alert-container"></div>
+
+        <div class="toolrow">
+          <label for="model-select">再生成に使う機種</label>
+          <select id="model-select">
+            {% for m in models %}
+            <option value="{{ m }}">{{ m }}</option>
+            {% end %}
+          </select>
+        </div>
+
+        <!-- 再生成と再表示は、生成結果の画面を出すハンドラ（Handler1）へ
+             送る。行のボタンが name を入れて submit する。 -->
+        <form id="act-form" method="post" action="{{urlprefix}}/">
+          <input type="hidden" name="model" id="act-model" value="">
+          <input type="hidden" name="stored_midi" id="act-midi" value="">
+          <input type="hidden" name="stored_svg" id="act-svg" value="">
+        </form>
+
+        <div class="hist-grid">
+          <section class="panel">
+            <h2>
+              MIDI
+              <span class="count">{{ len(midi_files) }} 件</span>
+              {% if len(midi_files) > 0 %}
+              <button type="button" class="btn-row btn-danger"
+                data-del-all="midi">すべて削除</button>
+              {% end %}
+            </h2>
+            {% if len(midi_files) == 0 %}
+            <div class="panel__body"><p class="field__hint">まだありません。</p></div>
+            {% else %}
+            <div class="hist-scroll">
+              <table class="hist" id="midi-table">
+                <thead>
+                  <tr>
+                    <th>ファイル</th>
+                    <th>サイズ</th>
+                    <th>更新</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for f in midi_files %}
+                  <tr data-name="{{ f['name'] }}">
+                    <td class="hist__name">{{ f['name'] }}</td>
+                    <td class="num">{{ f['size'] }}</td>
+                    <td class="num">{{ f['mtime'] }}</td>
+                    <td class="hist__act">
+                      <button type="button" class="btn-row"
+                        data-regen="{{ f['name'] }}"
+                        title="この MIDI から、選んだ機種で作り直す">再生成</button>
+                      <a class="btn-row" role="button" download
+                        href="{{urlprefix}}/download/midi/{{ f['name'] }}"
+                        title="ダウンロード">保存</a>
+                      <button type="button" class="btn-row btn-danger"
+                        data-del="midi" data-name="{{ f['name'] }}"
+                        title="削除">✕</button>
+                    </td>
+                  </tr>
+                  {% end %}
+                </tbody>
+              </table>
+            </div>
+            {% end %}
+          </section>
+
+          <section class="panel">
+            <h2>
+              SVG
+              <span class="count">{{ len(svg_files) }} 件</span>
+              {% if len(svg_files) > 0 %}
+              <button type="button" class="btn-row btn-danger"
+                data-del-all="svg">すべて削除</button>
+              {% end %}
+            </h2>
+            {% if len(svg_files) == 0 %}
+            <div class="panel__body"><p class="field__hint">まだありません。</p></div>
+            {% else %}
+            <div class="hist-scroll">
+              <table class="hist" id="svg-table">
+                <thead>
+                  <tr>
+                    <th>ファイル</th>
+                    <th>サイズ</th>
+                    <th>更新</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for f in svg_files %}
+                  <tr data-name="{{ f['name'] }}">
+                    <td class="hist__name">{{ f['name'] }}</td>
+                    <td class="num">{{ f['size'] }}</td>
+                    <td class="num">{{ f['mtime'] }}</td>
+                    <td class="hist__act">
+                      <button type="button" class="btn-row"
+                        data-show="{{ f['name'] }}"
+                        title="生成し直さず、この SVG をそのまま表示する">表示</button>
+                      <a class="btn-row" role="button" download
+                        href="{{urlprefix}}/download/{{ f['name'] }}"
+                        title="ダウンロード">保存</a>
+                      <button type="button" class="btn-row btn-danger"
+                        data-del="svg" data-name="{{ f['name'] }}"
+                        title="削除">✕</button>
+                    </td>
+                  </tr>
+                  {% end %}
+                </tbody>
+              </table>
+            </div>
+            {% end %}
+          </section>
+        </div>
+
+        <p class="field__hint">
+          「表示」は保存済みの SVG をそのまま出します。生成し直さないので、
+          穴の数と演奏時間は分かりません（<code>---</code> と出ます）。
+          知りたいときは MIDI から「再生成」してください。
+        </p>
+      </section>
+    </main>
+
+    <footer class="appfoot">
+      <div>
+        <span>{{ title }}</span>
+        <span class="spacer">v{{ version }}</span>
+        <span>&copy; {{ copyright_year }} {{ author }}</span>
+      </div>
+    </footer>
+
+    {% if livereload %}
+    <!-- 開発用（webapp --debug）。この 1 行は全ページに要る。
+         テンプレートは 3 本あって共通の親が無いので、増やすときは忘れずに。 -->
+    <script src="{{ static_url('js/livereload.js') }}"></script>
+    {% end %}
+    <script src="{{ static_url('js/history.js') }}"></script>
+  </body>
+</html>

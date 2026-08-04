@@ -113,9 +113,15 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 `StorganBaseHandler` を継承し、設定を `app.settings` から取り出す。
 `_url_path` の**末尾のスラッシュは必須**（`Handler1.get()` がこれと突き合わせてリダイレクトする）。
 
-- `Handler1` — MIDI アップロード → SVG 生成 → プレビュー
-- `Download` — `webroot/svg/` からのダウンロード
+- `Handler1` — MIDI アップロード → SVG 生成 → プレビュー。
+  履歴からの `stored_midi`（再生成）/ `stored_svg`（再表示）もここが受ける
+- `Download` — `webroot/svg/` と `webroot/midi/` からのダウンロード
 - `ConfigHandler` — `/storgan2/config` のモデル設定エディタ。`?api=1` で JSON を返す
+- `HistoryHandler` — `/storgan2/history` の一覧。POST は削除の JSON API
+
+**ファイル名を外（URL やフォーム）から受け取るときは必ず `storage.py` を通す。**
+`safe_name()` が区切り文字と `..` を弾き、`resolve_in()` が解決後も置き場の
+中にあることを確かめる。履歴は削除まであるので、ここを迂回すると事故になる。
 
 `webroot` / `workdir` は `WebServer` が `Path` に正規化し、`app.settings` にも
 `Path` のまま渡す。各ハンドラは `self._webroot / 'svg' / fname` のように組み立てる。

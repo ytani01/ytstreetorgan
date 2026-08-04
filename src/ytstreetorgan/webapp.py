@@ -12,6 +12,7 @@ from . import __version__
 from .conf import Conf
 from .config_handler import ConfigHandler
 from .handler1 import Download, Handler1
+from .history import HistoryHandler
 from .livereload import LiveReloadHandler, watch_webroot
 from .mylog import exmsg
 
@@ -91,7 +92,9 @@ class WebServer:
             (rf'{self._urlprefix}', Handler1),
             (rf'{self._urlprefix}/', Handler1),
             (rf'{self._urlprefix}/config.*', ConfigHandler),
-            (rf'{self._urlprefix}/download/.*', Download),
+            (rf'{self._urlprefix}/history/?', HistoryHandler),
+            # 種別つき（midi/）と、SVG 用の従来の形の両方を受ける
+            (rf'{self._urlprefix}/download/(midi/)?(.*)', Download),
         ]
         if self._debug:
             # 開発用。ブラウザはこれが切れたのを合図に再読み込みする

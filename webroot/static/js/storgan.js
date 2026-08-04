@@ -176,6 +176,9 @@
   svgEl.removeAttribute("width");
   svgEl.removeAttribute("height");
 
+  // 分からない値の出し方。テンプレート側の表記と合わせること
+  const UNKNOWN = "---";
+
   const PX_PER_MM = 96 / 25.4;
   const Z_MIN = 0.02;
   const Z_MAX = 5.0;
@@ -216,7 +219,10 @@
     );
 
     posMM.textContent = mm.toFixed(0);
-    posT.textContent = fmtTime(book.mm_per_sec > 0 ? mm / book.mm_per_sec : 0);
+    // 履歴から保存済みの SVG を出したときは mm_per_sec が分からない。
+    // 秒に直せないので位置だけ出す。
+    posT.textContent = book.mm_per_sec > 0
+      ? fmtTime(mm / book.mm_per_sec) : UNKNOWN;
 
     const scrollW = Math.max(1, box.scrollWidth);
     mmwin.style.left = (box.scrollLeft / scrollW * 100) + "%";
@@ -328,9 +334,8 @@
 
   const durT = $("dur-t");
   if (durT) {
-    durT.textContent = fmtTime(
-      book.mm_per_sec > 0 ? book.width / book.mm_per_sec : 0
-    );
+    durT.textContent = book.mm_per_sec > 0
+      ? fmtTime(book.width / book.mm_per_sec) : UNKNOWN;
   }
 
   fitHeight();

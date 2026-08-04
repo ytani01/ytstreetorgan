@@ -49,6 +49,7 @@
         </a>
         <nav>
           <a href="{{urlprefix}}/" aria-current="page">ロールブック作成</a>
+          <a href="{{urlprefix}}/history">履歴</a>
           <a href="{{urlprefix}}/config">機種設定</a>
         </nav>
       </div>
@@ -110,11 +111,20 @@
         <!-- SVG 名は「MIDI 名 + .svg」なので、元ファイル名は出さない
              （同じ名前が二度並ぶだけになる）。サイズだけ添える。 -->
         <div class="result-head">
+          {% if from_history %}
+          <!-- 履歴からそのまま出した場合。作っていないので「生成しました」とは
+               言わない。添えるサイズも元 MIDI ではなく SVG 自身のもの。 -->
+          <span class="badge-info">履歴から表示</span>
+          <span class="result-file">{{ svg_filename }}</span>
+          <span class="result-src">SVG <span class="num">{{ src_size }}</span></span>
+          <span class="result-src">生成し直していないので、諸元は SVG から読めるぶんだけです</span>
+          {% else %}
           <span class="badge-ok">生成しました</span>
           <span class="result-file">{{ svg_filename }}</span>
           <span class="result-src">元 MIDI <span class="num">{{ src_size }}</span></span>
           {% if reused %}
           <span class="result-src">前回アップロードしたファイルから作りました</span>
+          {% end %}
           {% end %}
         </div>
 
@@ -154,23 +164,27 @@
           </div>
 
           <!-- ブックの諸元はここに一度だけ。総時間 (#dur-t) は storgan.js が入れる -->
+          <!-- 履歴から保存済みの SVG を出したときは、SVG から読める
+               width / height 以外は分からない。分からないものは --- にする。 -->
+          {% set unknown = '---' %}
           <div class="viewer-foot">
-            <span>全長 <b>{{ '%.1f' % book['width'] }}</b> mm</span>
-            <span>演奏時間 <b id="dur-t">0:00</b></span>
-            <span>高さ <b>{{ '%.1f' % book['height'] }}</b> mm</span>
+            <span>全長 <b>{% if book['width'] is None %}{{ unknown }}{% else %}{{ '%.1f' % book['width'] }}{% end %}</b> mm</span>
+            <span>演奏時間 <b id="dur-t">{{ unknown }}</b></span>
+            <span>高さ <b>{% if book['height'] is None %}{{ unknown }}{% else %}{{ '%.1f' % book['height'] }}{% end %}</b> mm</span>
             <!-- 「音符の数 → ブリッジで分割したあとの数」。実線は実際に開ける
                  穴、破線は音階に無くて開けない音。分割後の数は SVG から
                  数えられない（穴 1 個が path 複数本になるため）ので、
                  サーバーが数えて渡している。 -->
-            <span>音符 <b>{{ book['notes'] }}</b></span>
+            <span>音符 <b>{{ book['notes'] if book['notes'] is not None else unknown }}</b></span>
             <span title="ブリッジで分割する前 → 分割したあと">
-              穴 <b>{{ book['hole_notes'] }}</b> → <b>{{ book['holes'] }}</b> 個
+              穴 <b>{{ book['hole_notes'] if book['hole_notes'] is not None else unknown }}</b>
+              → <b>{{ book['holes'] if book['holes'] is not None else unknown }}</b> 個
             </span>
             <span title="オルガンの音階に無い音。破線で描くだけで穴は開けない">
-              破線 <b>{{ book['off_scale_notes'] }}</b>
-              → <b>{{ book['off_scale'] }}</b> 個
+              破線 <b>{{ book['off_scale_notes'] if book['off_scale_notes'] is not None else unknown }}</b>
+              → <b>{{ book['off_scale'] if book['off_scale'] is not None else unknown }}</b> 個
             </span>
-            <span>1 秒 = <b>{{ '%.0f' % book['mm_per_sec'] }}</b> mm</span>
+            <span>1 秒 = <b>{% if book['mm_per_sec'] is None %}{{ unknown }}{% else %}{{ '%.0f' % book['mm_per_sec'] }}{% end %}</b> mm</span>
             <a class="dlbtn spacer" role="button" download
               href="{{urlprefix}}/download/{{ svg_filename }}">
               <svg width="14" height="14" viewBox="0 0 24 24"

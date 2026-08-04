@@ -10,6 +10,7 @@ from . import __author__, __copyright_year__
 from .conf import Conf
 from .mylog import exmsg
 from .rollbook import RollBook
+from .storage import book_from_svg, resolve_in
 from .utils import get_size_unit
 
 
@@ -75,38 +76,43 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
 
 class Download(StorganBaseHandler):
+    """生成した SVG と、アップロードした MIDI を持ち帰る。
+
+    URL は `/download/<name>`（SVG）と `/download/midi/<name>`。
+    SVG 側に種別が入っていないのは、生成結果の画面のリンクが
+    元からこの形だったため。
     """
-    Download SVG file
-    """
-    def __init__(self, app, req):
-        """ Constructor """
-        self._model = ''
-        self._model_name = RollBook.DEF_MODEL_NAME
-        self._conf_file = RollBook.DEF_CONF_FILE
-        self._rollbook = RollBook(self._model_name, self._conf_file)
 
-        super().__init__(app, req)
+    def get(self, kind: str | None = None, fname: str = ''):
+        """ファイルを返す。
 
-    def get(self):
+        Args:
+            kind (str | None): 'midi/' か None（省略されたら SVG）。
+                ルートの省略可能グループから来る。
+            fname (str): ファイル名。同上。
         """
-        GET method and rendering
-        """
-        logger.debug('request={}', self.request)
+        logger.debug('kind={}, fname={}', kind, fname)
 
-        uri = self.request.uri
-        assert uri is not None
-        fname = uri.split('/')[-1]
-        logger.debug('fname={}', fname)
+        subdir = 'midi' if kind else 'svg'
 
-        path_name = self._webroot / 'svg' / fname
+        try:
+            # 名前は URL から来る。置き場の外を指していないか必ず確かめる
+            path_name = resolve_in(self._webroot / subdir, fname)
+        except ValueError as e:
+            logger.error(exmsg(e))
+            raise tornado.web.HTTPError(400, reason='bad file name') from e
+
+        if not path_name.is_file():
+            raise tornado.web.HTTPError(404)
+
         logger.debug('path_name={}', path_name)
 
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition',
-                        'attachment; filename=' + fname)
+                        'attachment; filename=' + path_name.name)
 
         buf_size = 4096
-        with path_name.open() as f:
+        with path_name.open('rb') as f:
             while True:
                 data = f.read(buf_size)
                 if not data:
@@ -156,7 +162,8 @@ class Handler1(StorganBaseHandler):
         self._render()
 
     def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None,
-                src_size='', msg_error=False, reused=False):
+                src_size='', msg_error=False, reused=False,
+                from_history=False):
         """テンプレートを描画する。
 
         ``svg_data`` が空なら「ファイル選択」、そうでなければ「生成結果」の
@@ -180,6 +187,9 @@ class Handler1(StorganBaseHandler):
         reused: bool
             今回送られたファイルではなく、サーバーにあった同名のファイル
             から作った場合は True（結果の画面にその旨を出す）。
+        from_history: bool
+            履歴から保存済みの SVG をそのまま出した場合は True。
+            諸元が SVG から読めるぶんしか無いことを画面に断る。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
@@ -197,6 +207,7 @@ class Handler1(StorganBaseHandler):
                     msg_error=msg_error,
                     uploaded_names=self.uploaded_midi_names(),
                     reused=reused,
+                    from_history=from_history,
                     livereload=self._livereload,
                     models=self._models,
                     models_data=self._conf_data,
@@ -211,6 +222,17 @@ class Handler1(StorganBaseHandler):
         POST method
         """
         logger.debug(dir(self.request))
+
+        # 履歴の画面からの操作。どちらもファイルは送られてこない
+        stored_svg = self.get_argument('stored_svg', '')
+        if stored_svg:
+            self._show_stored_svg(stored_svg)
+            return
+
+        stored_midi = self.get_argument('stored_midi', '')
+        if stored_midi:
+            self._generate_from_stored(stored_midi)
+            return
 
         file1 = self.request.files['file1'][0]
         file1_fname = file1['filename']
@@ -280,17 +302,91 @@ class Handler1(StorganBaseHandler):
             svg_filename=svg1_fname,
             src_size=src_size,
             reused=reuse,
-            book={
-                'width': round(rollbook.width, 2),
-                'height': round(rollbook.height, 2),
-                'mm_per_sec': rollbook.mm_per_sec,
-                # 穴の数は「音符の数」と「ブリッジで分割したあとの数」の
-                # 2 段階あり、さらに実線（穴を開ける）と破線（開けない）で
-                # 分かれる。どれも SVG からは逆算できないので全部渡す。
-                'notes': rollbook.note_count,
-                'hole_notes': rollbook.hole_note_count,
-                'holes': rollbook.hole_count,
-                'off_scale_notes': rollbook.off_scale_note_count,
-                'off_scale': rollbook.off_scale_count,
-            },
+            book=self._book_of(rollbook),
+        )
+
+    @staticmethod
+    def _book_of(rollbook: RollBook) -> dict:
+        """ビューアに渡す諸元を組み立てる。
+
+        穴の数は「音符の数」と「ブリッジで分割したあとの数」の 2 段階あり、
+        さらに実線（穴を開ける）と破線（開けない）で分かれる。
+        **どれも SVG からは逆算できない**ので全部渡す
+        （`storage.book_from_svg()` が None で埋めるのと対になっている）。
+        """
+        return {
+            'width': round(rollbook.width, 2),
+            'height': round(rollbook.height, 2),
+            'mm_per_sec': rollbook.mm_per_sec,
+            'notes': rollbook.note_count,
+            'hole_notes': rollbook.hole_note_count,
+            'holes': rollbook.hole_count,
+            'off_scale_notes': rollbook.off_scale_note_count,
+            'off_scale': rollbook.off_scale_count,
+        }
+
+    def _show_stored_svg(self, name: str) -> None:
+        """保存済みの SVG を、生成し直さずにそのまま表示する。
+
+        諸元は SVG から読めるぶんだけ（`width` / `height`）。
+        穴の数と `mm_per_sec` は SVG に無いので None のまま渡し、
+        画面では `---` と出る。
+        """
+        try:
+            path = resolve_in(self._webroot / 'svg', name)
+        except ValueError as e:
+            logger.error(exmsg(e))
+            self._render(msg=f'{name} は開けません。', msg_error=True)
+            return
+
+        if not path.is_file():
+            self._render(msg=f'{name} は見つかりません。', msg_error=True)
+            return
+
+        svg_data = path.read_text(encoding='utf-8')
+        size, unit = get_size_unit(path.stat().st_size)
+
+        self._render(
+            svg_data=svg_data,
+            svg_filename=path.name,
+            src_size=f'{size:.1f} {unit}',
+            book=book_from_svg(svg_data),
+            from_history=True,
+        )
+
+    def _generate_from_stored(self, name: str) -> None:
+        """保存済みの MIDI から、いま選んでいる機種で作り直す。"""
+        try:
+            midi_path = resolve_in(self._webroot / 'midi', name)
+        except ValueError as e:
+            logger.error(exmsg(e))
+            self._render(msg=f'{name} は開けません。', msg_error=True)
+            return
+
+        if not midi_path.is_file():
+            self._render(msg=f'{name} は見つかりません。', msg_error=True)
+            return
+
+        self._model = self.get_argument('model')
+        rollbook = RollBook(self._model, self._conf_file)
+        svg_path = self._webroot / 'svg' / f'{midi_path.name}.svg'
+
+        try:
+            svg_data = rollbook.parse_to_file(midi_path, svg_path)
+        except Exception as e:
+            logger.error(exmsg(e))
+            self._render(
+                msg=f'{midi_path.name} を読み込めませんでした。'
+                    'MIDI ファイルではないか、壊れている可能性があります。',
+                msg_error=True,
+            )
+            return
+
+        size, unit = get_size_unit(midi_path.stat().st_size)
+
+        self._render(
+            svg_data=svg_data,
+            svg_filename=svg_path.name,
+            src_size=f'{size:.1f} {unit}',
+            book=self._book_of(rollbook),
         )
