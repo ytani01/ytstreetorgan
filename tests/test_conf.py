@@ -598,10 +598,10 @@ class TestCoerceNumericFields:
         assert self.SAMPLE == original
 
     def test_passes_through_unknown_keys(self):
-        out = coerce_numeric_fields({**self.SAMPLE, "bridge interval": 10})
-        # 未知のキー（旧設定の名残など）は素通りさせる
+        out = coerce_numeric_fields({**self.SAMPLE, "unknown_field": 10})
+        # 未知のキー（手で足したものなど）は素通りさせる
         assert out["memo"] == "keep me"
-        assert out["bridge interval"] == 10
+        assert out["unknown_field"] == 10
         assert [n["name"] for n in out["notes"]] == ["C", "D"]
 
     def test_covers_every_validated_numeric_field(self):
