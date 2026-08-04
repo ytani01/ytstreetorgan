@@ -155,7 +155,7 @@ class Conf:
     ]
     CONF_FNAME = 'storgan-conf.json'
 
-    def __init__(self, config_file: str = '', debug=False):
+    def __init__(self, config_file: str = ''):
         """Constructor."""
         logger.debug(f'config_file=\'{config_file}\'')
 

@@ -162,11 +162,11 @@ class TestInit:
 
         assert conf.config_file == conf_file
 
-    def test_debug_argument_is_accepted(self, tmp_path):
-        """debug 引数を渡してもインスタンス化できること(未使用の引数だが受理される)"""
+    def test_empty_config_file_is_loaded_as_empty(self, tmp_path):
+        """中身が空リストの設定でも、そのまま読み込めること"""
         conf_file = write_json(tmp_path / "my_conf.json", [])
 
-        conf = Conf(config_file=str(conf_file), debug=True)
+        conf = Conf(config_file=str(conf_file))
 
         assert conf.data == []
 

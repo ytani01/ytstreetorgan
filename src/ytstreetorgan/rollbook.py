@@ -4,7 +4,6 @@
 import json
 import math
 from pathlib import Path
-from typing import TypedDict
 from xml.sax.saxutils import quoteattr
 
 from loguru import logger
@@ -87,15 +86,9 @@ def svg_square(
     return svg
 
 
-class DivisionResult(TypedDict):
-    n: int
-    unit_len: float
-    segments: list[tuple[float, float]]
-
-
 def divide_length_by_max_len(
     total_len: float, unit_len_max: float | None, gap: float | None = 1.0
-) -> DivisionResult:
+) -> list[tuple[float, float]]:
     """長さ total_len を 最大 unit_len_max間隔 で分割。間隔は gap。
     最少の分割数 n で分割する。
 
@@ -105,27 +98,27 @@ def divide_length_by_max_len(
         gap (float|None): 要素間の間隔[mm], default = 1.0mm
 
     Returns:
-        DivisionResult: 分割結果 (n, unit_len, segments)
+        list[tuple[float, float]]: 各要素の (開始, 終了)。分割しない場合は 1 個。
+
+    Note:
+        分割数 n と 1 要素あたりの長さも計算しているが、**返さない**
+        （誰も読んでいなかった）。導出は docs/memo-divide.md にある。
     """
     logger.debug(
         'total_len={}, unit_len_max={}, gap={}',
         total_len, unit_len_max, gap
     )
 
-    DEFAULT_RESULT: DivisionResult = {
-        "n": 1,
-        "unit_len": total_len,
-        "segments": [(0, total_len)]
-    }
+    NO_DIVISION: list[tuple[float, float]] = [(0.0, total_len)]
 
     if total_len <= 0:
         logger.error('{} <=0', total_len)
-        return DEFAULT_RESULT
+        return NO_DIVISION
     if unit_len_max is None or unit_len_max <= 0:
         logger.error('{} <= 0', unit_len_max)
-        return DEFAULT_RESULT
+        return NO_DIVISION
     if gap is None or gap <= 0.0:
-        return DEFAULT_RESULT
+        return NO_DIVISION
 
     # x(n) <= b を満たす最小の正の整数 n
     n = math.ceil((total_len + gap) / (gap + unit_len_max))
@@ -143,11 +136,8 @@ def divide_length_by_max_len(
         current_pos = end_pos + gap
 
         logger.debug("n={}, unit_len={}, segment={}", n, round(unit_len, 4), segments)
-    return {
-        "n": n,
-        "unit_len": round(unit_len, 4),
-        "segments": segments,
-    }
+
+    return segments
 
 
 class HoleInfo:
@@ -202,7 +192,7 @@ class HoleInfo:
         # ここで一度だけ求めて svg() と hole_count が同じものを見る。
         self.segments = divide_length_by_max_len(
             self.w, self.bridge_threshold, self.bridge_width
-        )['segments']
+        )
 
     def __str__(self) -> str:
         """オブジェクトの文字列表現を取得する。
@@ -219,14 +209,13 @@ class HoleInfo:
         str_data += f' ({self.x:.2f}, {self.y:.2f})-({self.w:.2f}, {self.h:.2f})'
         return str_data
 
-    def svg(self, color: str = HOLE_COLOR, line_width: float = DEF_LINE_WIDTH,
+    def svg(self, color: str = HOLE_COLOR,
             stroke_dasharray: str = 'none') -> str:
         """穴描画用のSVGパス文字列を生成する。
 
         Args:
-            color (str, optional): 線色。デフォルトは HOLE_COLOR。
-            line_width (float, optional): 線の太さ（mm単位）。
-                デフォルトは DEF_LINE_WIDTH。
+            color (str, optional): 線色。デフォルトは HOLE_COLOR（実線）。
+                音階に無い音は OFF_SCALE_COLOR で呼ばれる。
             stroke_dasharray (str, optional): 破線のスタイル。デフォルトは 'none'。
 
         Returns:
@@ -237,7 +226,7 @@ class HoleInfo:
             logger.debug("({}, {})", x1, x2)
 
             svg += svg_square(
-                self.x + x1, self.y, x2 - x1, self.h, color, line_width,
+                self.x + x1, self.y, x2 - x1, self.h, color,
                 stroke_dasharray=stroke_dasharray
             )
 
@@ -375,21 +364,14 @@ class RollBook:
             for key, value in meta.items()
         )
 
-    def svg(
-        self, color: str = BOOK_COLOR, hole_color: str = HOLE_COLOR,
-        line_width: float = DEF_LINE_WIDTH, stroke_dasharray: str = 'none'
-    ) -> str:
+    def svg(self) -> str:
         """ロールブック全体を描画するSVGドキュメント文字列を生成する。
 
-        Args:
-            color (str, optional): ブック外枠の線色。
-                デフォルトは BOOK_COLOR。
-            hole_color (str, optional): 穴の線色。
-                デフォルトは HOLE_COLOR。
-            line_width (float, optional): 線の太さ（mm単位）。
-                デフォルトは DEF_LINE_WIDTH。
-            stroke_dasharray (str, optional): 破線のスタイル。
-                デフォルトは 'none'。
+        色と線の太さは module 定数で決まる（`BOOK_COLOR` / `HOLE_COLOR` /
+        `OFF_SCALE_COLOR` / `DEF_LINE_WIDTH`）。**引数で差し替えられる形に
+        してあったが、既定値以外で呼ばれたことは一度も無い。**
+        色は `storage.book_from_svg()` が読み直す約束でもあるので、
+        呼ぶ側ごとに変えられるほうがむしろ困る。
 
         Returns:
             str: 生成されたSVG形式のテキスト文字列。
@@ -403,10 +385,7 @@ class RollBook:
         svg += self._meta_attrs()
         svg += '>\n'
 
-        svg += svg_square(
-            0, 0, self._width, self._height,
-            color, line_width, stroke_dasharray=stroke_dasharray
-        )
+        svg += svg_square(0, 0, self._width, self._height, BOOK_COLOR)
 
         for hi in self._holes:
             if hi.scale < 0:
@@ -414,7 +393,7 @@ class RollBook:
                     color=OFF_SCALE_COLOR, stroke_dasharray=OFF_SCALE_DASH
                 )
             else:
-                s1 = hi.svg(color=hole_color)
+                s1 = hi.svg(color=HOLE_COLOR)
 
             svg += s1
 

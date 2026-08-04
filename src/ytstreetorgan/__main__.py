@@ -103,10 +103,7 @@ def rollbook(
     loggerInit(debug)
     logger.debug(f"command='{ctx.command.name}'")
 
-    app = RollBookApp(
-        midi_file, conf_file, model_name, channel, out_file, __version__,
-        debug=debug
-    )
+    app = RollBookApp(midi_file, conf_file, model_name, channel, out_file)
     try:
         app.main()
     finally:
@@ -170,7 +167,7 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     help=f'max sound length, default={Player.SEC_MAX}'
 )
 @click_common_opts(__version__)
-def play(  # pylint: disable=too-many-arguments
+def play(
     ctx, midi_file, pos_sec, channel, rate, sec_min, sec_max, debug
 ) -> None:
     """

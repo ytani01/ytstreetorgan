@@ -25,22 +25,22 @@ class RollBookApp:
         model_name: str,
         channel: Sequence[int] = (),
         out_file: str | None = None,
-        version: str = 'current',
-        debug: bool = False
     ) -> None:
-        """ Constructor """
-        self._dbg = debug
+        """ Constructor
+
+        Note:
+            version と debug は受け取っていたが使っていなかったので外した
+            （ログの初期化は `__main__` の `loggerInit()` が済ませている）。
+        """
         logger.debug('midi_file={}, conf_file={}', midi_file, conf_file)
         logger.debug('model_name={}', model_name)
         logger.debug('channel={}', channel)
         logger.debug('out_file={}', out_file)
-        logger.debug('version={}', version)
 
         self._midi_file = midi_file
         self._conf_file = conf_file
         self._model_name = model_name
         self._channel = list(channel)
-        self._version = version
 
         if out_file:
             # 明示指定されたパスはそのまま使う（相対パスは cwd 基準）
@@ -65,9 +65,9 @@ class RollBookApp:
         """ end ... do nothing """
 
 
-class MidiApp:  # pylint: disable=too-many-instance-attributes
+class MidiApp:
     """ MidiApp """
-    def __init__(self, midi_file: str,  # pylint: disable=too-many-arguments
+    def __init__(self, midi_file: str,
                  channel: Sequence[int] = (),
                  parse_only: bool = False,
                  visual_flag: bool = False,
