@@ -162,7 +162,7 @@ def test_minimap_window_drag_is_relative(
 def test_holes_are_readable_on_screen_only(
     live_server: str, page: Page, sample_midi: Path
 ) -> None:
-    """画面では線を太く・実線の穴を塗る。**保存される SVG は無変更。**
+    """画面では穴をくり抜いたように見せる。**保存される SVG は無変更。**
 
     生成される SVG は `stroke-width:0.2` + `non-scaling-stroke` で、
     倍率に関わらず 0.2px にしかならず読めない。CSS で上書きしているが、
@@ -171,16 +171,19 @@ def test_holes_are_readable_on_screen_only(
     upload_midi(page, live_server, sample_midi)
     expect(page.locator('#svgbox svg')).to_be_visible()
 
-    # 画面: 線は 1px、実線の穴は塗られている
+    # 実線の穴: 黒く塗り潰す。**縁の赤（カットライン）は残すこと。**
+    # 黒く塗るだけだと、音階に無い音と色で区別が付かなくなる
     solid = page.locator('#svgbox svg path[style*="stroke:#FF0000"]').first
-    assert solid.evaluate(
-        'e => getComputedStyle(e).strokeWidth') == '1px'
-    fill = solid.evaluate('e => getComputedStyle(e).fill')
-    assert fill != 'none' and '255, 0, 0' in fill, fill
+    assert solid.evaluate('e => getComputedStyle(e).strokeWidth') == '1px'
+    assert solid.evaluate('e => getComputedStyle(e).fill') == 'rgb(28, 26, 23)'
+    assert solid.evaluate('e => getComputedStyle(e).stroke') == 'rgb(255, 0, 0)'
 
-    # 破線（音階に無い音）は塗らない。実線との違いが分かるように
+    # 音階に無い音: 塗らず、線は落として描く（穴と紛らわしいため）。
+    # **消してはいけない。** 演奏者が欠落を目視するためにわざと描いている
     dashed = page.locator('#svgbox svg path[style*="stroke:#000000"]').first
     assert dashed.evaluate('e => getComputedStyle(e).fill') == 'none'
+    stroke = dashed.evaluate('e => getComputedStyle(e).stroke')
+    assert stroke == 'rgb(138, 124, 102)', stroke
 
     # ダウンロードされる SVG は元のまま
     link = page.locator(f'a[href*="/download/{sample_midi.name}.svg"]')
