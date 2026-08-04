@@ -5,7 +5,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ytstreetorgan.rollbook import HoleInfo, RollBook, note2scale, svg_square
+from ytstreetorgan.rollbook import (
+    HOLE_COLOR,
+    HoleInfo,
+    RollBook,
+    note2scale,
+    svg_square,
+)
 
 
 def test_note2scale():
@@ -233,3 +239,20 @@ def test_hole_count_grows_when_holes_are_divided_more():
     assert coarse.hole_note_count == fine.hole_note_count
     # 分割後は大きく違う
     assert fine.hole_count > coarse.hole_count * 2
+
+
+def test_css_selects_holes_by_the_same_color():
+    """ビューアの CSS は、実線の穴を**色の文字列**で選んで塗っている。
+
+    CSS からは定数を import できないので、`HOLE_COLOR` を変えると
+    セレクタが黙ってすり抜け、画面で塗られなくなるだけになる。
+    ずれたらここで気づけるようにしておく。
+    """
+    css = (Path('webroot') / 'static' / 'css' / 'my.css').read_text(
+        encoding='utf-8'
+    )
+
+    assert f'stroke:{HOLE_COLOR}' in css, (
+        f'my.css が {HOLE_COLOR} を選んでいない。'
+        'rollbook.HOLE_COLOR を変えたら my.css も直すこと'
+    )

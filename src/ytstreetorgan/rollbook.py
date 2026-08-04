@@ -17,6 +17,12 @@ DEF_LINE_WIDTH = 0.2
 # **`storage.book_from_svg()` がこの色で穴と破線を見分け、この接頭辞で
 # 諸元を読む。** どちらも「描いたものを読み直す」ための約束なので、
 # 定義はここ 1 か所に置き、storage 側はこれを import して使う。
+#
+# [!! 注意 !!] **色を変えるなら `webroot/static/css/my.css` も直すこと。**
+# ビューアは `path[style*="stroke:#FF0000"]` という**文字列の一致**で
+# 実線の穴を選んで塗っている（CSS からは import できない）。片方だけ
+# 変えると黙ってすり抜け、画面で塗られなくなるだけになるので、
+# `test_css_selects_holes_by_the_same_color` がずれを見張っている。
 BOOK_COLOR = '#0000FF'       # ブックの外枠
 HOLE_COLOR = '#FF0000'       # 実線（実際に開ける穴）
 OFF_SCALE_COLOR = '#000000'  # 破線（オルガンの音階に無い音）
