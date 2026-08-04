@@ -14,24 +14,52 @@
   }
 
   const status = document.getElementById("drop-status");
+  const overwrite = document.getElementById("overwrite");
   const limit = window.SIZE_LIMIT || 0;
+  const uploaded = window.UPLOADED_NAMES || [];
 
-  // 上限を超えたら送らない。送ると tornado が本文を読まずに接続を切るので、
-  // ブラウザには真っ白なページが残り、理由が何も伝わらない。
+  function setStatus(text, isError) {
+    if (!status) {
+      return;
+    }
+    status.textContent = text;
+    status.classList.toggle("drop__status--error", Boolean(isError));
+  }
+
+  /* 選び直せるように戻す。同じファイルをもう一度選んでも change が出る */
+  function reset() {
+    input.value = "";
+  }
+
   input.addEventListener("change", () => {
     const file = input.files && input.files[0];
     if (!file) {
       return;
     }
 
+    // 上限を超えたら送らない。送ると tornado が本文を読まずに接続を切るので、
+    // ブラウザには真っ白なページが残り、理由が何も伝わらない。
     if (limit && file.size > limit) {
-      if (status) {
-        status.textContent =
-          `${file.name} は大きすぎます（上限 ${window.SIZE_LIMIT_TEXT}）。`;
-        status.classList.add("drop__status--error");
-      }
-      input.value = "";  // 選び直せるように戻す（同じファイルでも change が出る）
+      setStatus(
+        `${file.name} は大きすぎます（上限 ${window.SIZE_LIMIT_TEXT}）。`, true
+      );
+      reset();
       return;
+    }
+
+    // 同じ名前が既にあるなら訊く。黙って上書きすると、直したつもりの
+    // ファイルなのか前のままなのかが画面から分からない。
+    if (uploaded.includes(file.name)) {
+      const ok = confirm(
+        `${file.name} は既にアップロードされています。\n` +
+        "今回選んだファイルで置き換えますか？"
+      );
+      if (!ok) {
+        setStatus("置き換えないので、そのままにしました。", false);
+        reset();
+        return;
+      }
+      overwrite.value = "1";
     }
 
     input.form.submit();

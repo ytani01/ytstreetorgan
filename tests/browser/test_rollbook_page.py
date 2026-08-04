@@ -6,7 +6,20 @@ from urllib.parse import urljoin
 import pytest
 from playwright.sync_api import Page, expect
 
+from .conftest import REPO_ROOT
+
 pytestmark = pytest.mark.browser
+
+
+def upload(page: Page, midi: Path) -> None:
+    """MIDI を選んで送る。
+
+    ``live_server`` はセッション全体で 1 個なので、同じ名前のファイルを
+    先に別のテストが送っていると「置き換えますか？」を訊かれる。
+    ここでは常に置き換える。
+    """
+    page.once('dialog', lambda d: d.accept())
+    page.set_input_files('input[name="file1"]', str(midi))
 
 
 def test_upload_midi_renders_svg_preview(
@@ -18,7 +31,7 @@ def test_upload_midi_renders_svg_preview(
     expect(page.locator('text=MIDI ファイルを選んでください')).to_be_visible()
 
     # ファイル選択で onchange -> form.submit() が走る
-    page.set_input_files('input[name="file1"]', str(sample_midi))
+    upload(page, sample_midi)
 
     # 生成された SVG がページに埋め込まれる
     # （ロゴなどの装飾 SVG と区別するため、置き場を明示して選ぶ）
@@ -44,7 +57,7 @@ def test_viewer_starts_at_the_beginning_of_the_song(
     viewBox が負で、曲の先頭が x=0 側 = ブックの右端にあるため。
     """
     page.goto(f'{live_server}/')
-    page.set_input_files('input[name="file1"]', str(sample_midi))
+    upload(page, sample_midi)
 
     expect(page.locator('#svgbox svg')).to_be_visible()
 
@@ -61,7 +74,7 @@ def test_viewer_zoom_controls(
 ) -> None:
     """倍率のボタンが SVG の描画サイズを変える。"""
     page.goto(f'{live_server}/')
-    page.set_input_files('input[name="file1"]', str(sample_midi))
+    upload(page, sample_midi)
 
     expect(page.locator('#svgbox svg')).to_be_visible()
 
@@ -166,7 +179,7 @@ def test_upload_over_size_limit_is_stopped_before_sending(
         sent.append(r.url) if r.method == 'POST' else None
     ))
 
-    page.set_input_files('input[name="file1"]', str(sample_midi))
+    upload(page, sample_midi)
 
     status = page.locator('#drop-status')
     expect(status).to_contain_text('大きすぎます')
@@ -175,3 +188,63 @@ def test_upload_over_size_limit_is_stopped_before_sending(
 
     assert not sent, f'上限超えなのに送っている: {sent}'
     expect(page.locator('#svgbox')).to_have_count(0)
+
+
+def _book_size(page: Page) -> str:
+    """ビューアのフッターから、ブックの諸元を読む。"""
+    return page.locator('.viewer-foot').inner_text()
+
+
+def test_same_name_replaces_after_confirming(
+    live_server: str, page: Page, tmp_path: Path
+) -> None:
+    """同じ名前で上げ直したら、置き換えると答えれば新しい中身になる。
+
+    かつては送られてきた中身を捨てて古いほうを解析していたので、
+    **成功したように見えて前回の結果が返っていた**。
+    """
+    short = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+    long = REPO_ROOT / 'webroot' / 'midi' / 'd-kaeru.mid'
+    same = tmp_path / 'replace-me.mid'
+
+    page.goto(f'{live_server}/')
+    same.write_bytes(short.read_bytes())
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#svgbox svg')).to_be_visible()
+    before = _book_size(page)
+
+    # 同じ名前・違う中身。訊かれたら「置き換える」
+    page.goto(f'{live_server}/')
+    same.write_bytes(long.read_bytes())
+    page.once('dialog', lambda d: d.accept())
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    assert _book_size(page) != before, '古いほうの結果が返っている'
+
+
+def test_same_name_cancelled_sends_nothing(
+    live_server: str, page: Page, tmp_path: Path
+) -> None:
+    """置き換えないと答えたら、送らずにその場で止まる。"""
+    midi = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+    same = tmp_path / 'keep-me.mid'
+    same.write_bytes(midi.read_bytes())
+
+    page.goto(f'{live_server}/')
+    page.set_input_files('input[name="file1"]', str(same))
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    page.goto(f'{live_server}/')
+    sent: list[str] = []
+    page.on('request', lambda r: (
+        sent.append(r.url) if r.method == 'POST' else None
+    ))
+    page.once('dialog', lambda d: d.dismiss())
+    page.set_input_files('input[name="file1"]', str(same))
+
+    expect(page.locator('#drop-status')).to_contain_text('そのままにしました')
+    # ファイル選択の画面のまま。送ってもいない
+    expect(page.locator('input[name="file1"]')).to_be_attached()
+    page.wait_for_timeout(500)
+    assert not sent, f'取りやめたのに送っている: {sent}'

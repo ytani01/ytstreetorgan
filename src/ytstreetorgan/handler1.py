@@ -55,6 +55,21 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
         return get_size_unit(file_path.stat().st_size)
 
+    def uploaded_midi_names(self) -> list[str]:
+        """これまでにアップロードされた MIDI のファイル名。
+
+        同じ名前で上げ直すと中身が置き換わるので、画面 (storgan.js) が
+        送る前に確認するのに使う。
+        """
+        midi_dir = self._webroot / 'midi'
+        if not midi_dir.is_dir():
+            return []
+
+        return sorted(
+            p.name for p in midi_dir.iterdir()
+            if p.is_file() and not p.name.startswith('.')
+        )
+
 
 class Download(StorganBaseHandler):
     """
@@ -174,6 +189,7 @@ class Handler1(StorganBaseHandler):
                     # JS が送信前に大きさを比べるのに使う。
                     size_limit_bytes=self._size_limit,
                     msg_error=msg_error,
+                    uploaded_names=self.uploaded_midi_names(),
                     models=self._models,
                     models_data=self._conf_data,
                     svg_data=svg_data,
@@ -199,9 +215,20 @@ class Handler1(StorganBaseHandler):
 
         rollbook = RollBook(self._model, self._conf_file)
 
-        wrote_file = not file1_path.exists()
-        if wrote_file:
-            file1_path.write_bytes(file1['body'])
+        # 同じ名前が既にあるなら、確かめてからでないと置き換えない。
+        # かつては送られてきた中身を捨てて古いほうを解析していたので、
+        # MIDI を直して同じ名前で上げ直すと**前回の結果がそのまま返っていた**。
+        # 成功したように見えるぶん、エラーになるより質が悪い。
+        # 画面は storgan.js が先に訊くので、ここへは来ない。
+        if file1_path.exists() and self.get_argument('overwrite', '') != '1':
+            self._render(
+                msg=f'{file1_fname} は既にあります。'
+                    '置き換えるか、名前を変えてください。',
+                msg_error=True,
+            )
+            return
+
+        file1_path.write_bytes(file1['body'])
 
         result = self.get_filesize(file1_path)
         assert result is not None
@@ -215,10 +242,9 @@ class Handler1(StorganBaseHandler):
             # 画面ごと失われて選び直すこともできなくなる。
             logger.error(exmsg(e))
 
-            # 今回書いたものは消す。残すと、次に同じ名前で正しい
-            # ファイルを送っても上の exists() に弾かれ、壊れたほうが使われる。
-            if wrote_file:
-                file1_path.unlink(missing_ok=True)
+            # 読めなかったものは残さない。残すと、次に同じ名前で正しい
+            # ファイルを送るたびに「既にあります」と言われることになる。
+            file1_path.unlink(missing_ok=True)
 
             self._render(
                 msg=f'{file1_fname} を読み込めませんでした。'

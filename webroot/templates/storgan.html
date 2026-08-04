@@ -20,6 +20,8 @@
       // 本文を読まずに接続を切るので、ブラウザには真っ白なページが残る。
       window.SIZE_LIMIT = {{ size_limit_bytes }};
       window.SIZE_LIMIT_TEXT = "{{ size_limit }} {{ size_unit }}";
+      // 同じ名前で上げ直すと中身が置き換わるので、送る前に確認する
+      window.UPLOADED_NAMES = {% raw json_encode(uploaded_names) %};
       // ビューアが初期倍率とスクロール位置を決めるのに使う。
       // SVG 文字列からは寸法が取り出せないのでサーバーから渡している。
       window.BOOK_DATA = {% raw json_encode(book) %};
@@ -87,8 +89,11 @@
                 .mid / .midi — <span class="num">{{ size_limit }}</span>
                 {{ size_unit }} まで
               </p>
-              <!-- 送信は storgan.js が行う（大きさを確かめてから submit する） -->
+              <!-- 送信は storgan.js が行う（大きさと同名を確かめてから
+                   submit する）。overwrite は同名を置き換えると答えたとき
+                   だけ 1 になる（サーバーはこれが無いと置き換えない） -->
               <input type="file" id="file1" name="file1" accept=".mid,.midi">
+              <input type="hidden" id="overwrite" name="overwrite" value="">
             </label>
           </form>
           <p class="drop__status{% if msg_error %} drop__status--error{% end %}"

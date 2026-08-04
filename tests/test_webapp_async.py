@@ -41,28 +41,74 @@ class TestWebAppAsync(AsyncHTTPTestCase):
         # Should contain the default message
         self.assertIn("MIDI ファイルを選んでください".encode(), response.body)
 
-    def test_post_upload(self):
-        # Simulate an upload of a small real midi file
-        midi_data = (self.webroot / 'midi' / 'd-kaeru.mid').read_bytes()
+    def _upload(self, fname='dummy.mid', overwrite=False, src='d-kaeru.mid'):
+        """MIDI を 1 本アップロードする（multipart を手で組み立てる）。"""
+        midi_data = (self.webroot / 'midi' / src).read_bytes()
 
         boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
-        body = (
-            f'--{boundary}\r\n'
-            'Content-Disposition: form-data; name="model"\r\n\r\n'
+        fields = f'--{boundary}\r\n' \
+            'Content-Disposition: form-data; name="model"\r\n\r\n' \
             '34notes\r\n'
-            f'--{boundary}\r\n'
-            'Content-Disposition: form-data; name="file1"; filename="dummy.mid"\r\n'
+        if overwrite:
+            fields += (
+                f'--{boundary}\r\n'
+                'Content-Disposition: form-data; name="overwrite"\r\n\r\n'
+                '1\r\n'
+            )
+        body = (
+            fields
+            + f'--{boundary}\r\n'
+            + f'Content-Disposition: form-data; name="file1"; filename="{fname}"'
+            + '\r\n'
             'Content-Type: audio/midi\r\n\r\n'
         ).encode() + midi_data + f'\r\n--{boundary}--\r\n'.encode()
-        headers = {
-            'Content-Type': f'multipart/form-data; boundary={boundary}'
-        }
-        response = self.fetch(
-            f'{TEST_URL_PREFIX}/', method='POST', headers=headers, body=body
+
+        return self.fetch(
+            f'{TEST_URL_PREFIX}/', method='POST', body=body,
+            headers={'Content-Type':
+                     f'multipart/form-data; boundary={boundary}'},
         )
+
+    def test_post_upload(self):
+        response = self._upload()
         self.assertEqual(response.code, 200)
         # It should render the SVG data variable injected into HTML
         self.assertIn(b"<svg ", response.body)
+
+    def test_post_same_name_without_overwrite_is_refused(self):
+        """overwrite が無い同名の POST は、置き換えずに断る。
+
+        画面は storgan.js が先に訊くのでここへは来ないが、
+        サーバー側だけで見ても古いファイルを黙って使わないこと。
+        """
+        self.assertEqual(self._upload().code, 200)
+        before = (self.webroot / 'midi' / 'dummy.mid').read_bytes()
+
+        # 同じ名前で別の中身を送る
+        response = self._upload(src='holy.mid')
+
+        self.assertEqual(response.code, 200)
+        self.assertIn("既にあります".encode(), response.body)
+        # ロールブックは作らない（<svg は装飾のロゴにも出るので、
+        # ビューアの置き場があるかどうかで見る）
+        self.assertNotIn(b'id="svgbox"', response.body)
+        # 中身も置き換わっていない
+        self.assertEqual(
+            (self.webroot / 'midi' / 'dummy.mid').read_bytes(), before
+        )
+
+    def test_post_same_name_with_overwrite_replaces(self):
+        """overwrite=1 なら置き換えて、新しい中身で作り直す。"""
+        self.assertEqual(self._upload().code, 200)
+
+        response = self._upload(src='holy.mid', overwrite=True)
+
+        self.assertEqual(response.code, 200)
+        self.assertIn(b"<svg ", response.body)
+        self.assertEqual(
+            (self.webroot / 'midi' / 'dummy.mid').read_bytes(),
+            (self.webroot / 'midi' / 'holy.mid').read_bytes(),
+        )
 
     def test_download(self):
         # Create a dummy svg file to download
