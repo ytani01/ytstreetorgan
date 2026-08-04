@@ -169,6 +169,10 @@ class Handler1(StorganBaseHandler):
 
     DEF_MSG = 'MIDI ファイルを選んでください'
 
+    # 解析に失敗したときの文言。アップロードと履歴からの再生成で共用する
+    UNREADABLE_MSG = ('{} を読み込めませんでした。'
+                      'MIDI ファイルではないか、壊れている可能性があります。')
+
     def get(self):
         """
         GET method
@@ -305,9 +309,7 @@ class Handler1(StorganBaseHandler):
             file1_path.unlink(missing_ok=True)
 
             self._render(
-                msg=f'{file1_fname} を読み込めませんでした。'
-                    'MIDI ファイルではないか、壊れている可能性があります。',
-                msg_error=True,
+                msg=self.UNREADABLE_MSG.format(file1_fname), msg_error=True
             )
             return
 
@@ -337,6 +339,29 @@ class Handler1(StorganBaseHandler):
             logger.error(exmsg(e))
             self._render(msg=str(e), msg_error=True)
             return None
+
+    def _stored_path(self, subdir: str, name: str) -> Path | None:
+        """置き場（`webroot/<subdir>/`）の中のファイルを引く。
+
+        名前は履歴の画面から来るので、**必ず `resolve_in()` を通す**
+        （置き場の外を指していないか確かめる）。引けなければ理由を
+        画面に出して None を返す。
+
+        Returns:
+            Path | None: 引けなければ None（描画はここで済ませてある）。
+        """
+        try:
+            path = resolve_in(self._webroot / subdir, name)
+        except ValueError as e:
+            logger.error(exmsg(e))
+            self._render(msg=f'{name} は開けません。', msg_error=True)
+            return None
+
+        if not path.is_file():
+            self._render(msg=f'{name} は見つかりません。', msg_error=True)
+            return None
+
+        return path
 
     def _book_of(self, rollbook: RollBook, svg_path: Path) -> dict:
         """ビューアに渡す諸元を組み立てる。
@@ -368,15 +393,8 @@ class Handler1(StorganBaseHandler):
         穴の数と `mm_per_sec` は SVG に無いので None のまま渡し、
         画面では `---` と出る。
         """
-        try:
-            path = resolve_in(self._webroot / 'svg', name)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            self._render(msg=f'{name} は開けません。', msg_error=True)
-            return
-
-        if not path.is_file():
-            self._render(msg=f'{name} は見つかりません。', msg_error=True)
+        path = self._stored_path('svg', name)
+        if path is None:
             return
 
         svg_data = path.read_text(encoding='utf-8')
@@ -395,15 +413,8 @@ class Handler1(StorganBaseHandler):
 
     def _generate_from_stored(self, name: str) -> None:
         """保存済みの MIDI から、いま選んでいる機種で作り直す。"""
-        try:
-            midi_path = resolve_in(self._webroot / 'midi', name)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            self._render(msg=f'{name} は開けません。', msg_error=True)
-            return
-
-        if not midi_path.is_file():
-            self._render(msg=f'{name} は見つかりません。', msg_error=True)
+        midi_path = self._stored_path('midi', name)
+        if midi_path is None:
             return
 
         self._model = self.get_argument('model')
@@ -418,9 +429,7 @@ class Handler1(StorganBaseHandler):
         except Exception as e:
             logger.error(exmsg(e))
             self._render(
-                msg=f'{midi_path.name} を読み込めませんでした。'
-                    'MIDI ファイルではないか、壊れている可能性があります。',
-                msg_error=True,
+                msg=self.UNREADABLE_MSG.format(midi_path.name), msg_error=True
             )
             return
 
