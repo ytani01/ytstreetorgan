@@ -9,6 +9,20 @@
 
         <div id="alert-container"></div>
 
+        <!-- アイコンの実体。ここで一度だけ定義し、行からは <use> で参照する。
+             アイコンフォントも CDN も使わない方針（CLAUDE.md「フロントエンド」）。
+             色は .icon の stroke: currentColor が継承されて決まる。 -->
+        <svg class="icon-defs" aria-hidden="true" focusable="false">
+          <symbol id="i-save" viewBox="0 0 24 24">
+            <path d="M12 3v11m0 0 4-4m-4 4-4-4"/>
+            <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+          </symbol>
+          <symbol id="i-trash" viewBox="0 0 24 24">
+            <path d="M4 6h16M10 6V4h4v2"/>
+            <path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/>
+          </symbol>
+        </svg>
+
         <div class="toolrow">
           <label for="model-select">再生成に使う機種</label>
           <select id="model-select">
@@ -52,19 +66,29 @@
                 <tbody>
                   {% for f in midi_files %}
                   <tr data-name="{{ f['name'] }}">
-                    <td class="hist__name">{{ f['name'] }}</td>
+                    <!-- 名前そのものが「再生成」。行に文字のボタンを並べると
+                         窮屈なので、一番自然な操作を名前に寄せている -->
+                    <td class="hist__name">
+                      <button type="button" class="hist__open"
+                        data-regen="{{ f['name'] }}"
+                        title="この MIDI から、選んだ機種で作り直す"
+                        aria-label="{{ f['name'] }} から作り直す"
+                        >{{ f['name'] }}</button>
+                    </td>
                     <td class="num">{{ f['size'] }}</td>
                     <td class="num">{{ f['mtime'] }}</td>
                     <td class="hist__act">
-                      <button type="button" class="btn-row"
-                        data-regen="{{ f['name'] }}"
-                        title="この MIDI から、選んだ機種で作り直す">再生成</button>
-                      <a class="btn-row" role="button" download
+                      <a class="btn-row btn-icon" download
                         href="{{urlprefix}}/download/midi/{{ f['name'] }}"
-                        title="ダウンロード">保存</a>
-                      <button type="button" class="btn-row btn-danger"
+                        title="ダウンロード"
+                        aria-label="{{ f['name'] }} をダウンロード">
+                        <svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>
+                      </a>
+                      <button type="button" class="btn-row btn-icon btn-danger"
                         data-del="midi" data-name="{{ f['name'] }}"
-                        title="削除">✕</button>
+                        title="削除" aria-label="{{ f['name'] }} を削除">
+                        <svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>
+                      </button>
                     </td>
                   </tr>
                   {% end %}
@@ -99,19 +123,29 @@
                 <tbody>
                   {% for f in svg_files %}
                   <tr data-name="{{ f['name'] }}">
-                    <td class="hist__name">{{ f['name'] }}</td>
+                    <!-- 名前そのものが「表示」。MIDI 側は「再生成」で、
+                         どちらも押した先は生成結果の画面 -->
+                    <td class="hist__name">
+                      <button type="button" class="hist__open"
+                        data-show="{{ f['name'] }}"
+                        title="生成し直さず、この SVG をそのまま表示する"
+                        aria-label="{{ f['name'] }} をそのまま表示"
+                        >{{ f['name'] }}</button>
+                    </td>
                     <td class="num">{{ f['size'] }}</td>
                     <td class="num">{{ f['mtime'] }}</td>
                     <td class="hist__act">
-                      <button type="button" class="btn-row"
-                        data-show="{{ f['name'] }}"
-                        title="生成し直さず、この SVG をそのまま表示する">表示</button>
-                      <a class="btn-row" role="button" download
+                      <a class="btn-row btn-icon" download
                         href="{{urlprefix}}/download/{{ f['name'] }}"
-                        title="ダウンロード">保存</a>
-                      <button type="button" class="btn-row btn-danger"
+                        title="ダウンロード"
+                        aria-label="{{ f['name'] }} をダウンロード">
+                        <svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>
+                      </a>
+                      <button type="button" class="btn-row btn-icon btn-danger"
                         data-del="svg" data-name="{{ f['name'] }}"
-                        title="削除">✕</button>
+                        title="削除" aria-label="{{ f['name'] }} を削除">
+                        <svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>
+                      </button>
                     </td>
                   </tr>
                   {% end %}
@@ -123,9 +157,11 @@
         </div>
 
         <p class="field__hint">
-          「表示」は保存済みの SVG をそのまま出します。生成し直さないので、
-          穴の数と演奏時間は分かりません（<code>---</code> と出ます）。
-          知りたいときは MIDI から「再生成」してください。
+          <b>ファイル名を押す</b>と、MIDI は選んだ機種で<b>作り直し</b>、
+          SVG は保存済みのものを<b>そのまま表示</b>します。
+          属性を埋める前に作った古い SVG は、穴の数や演奏時間が
+          分からないことがあります（<code>---</code> と出ます）。
+          そのときは MIDI のほうから作り直してください。
         </p>
       </section>
 {% end %}

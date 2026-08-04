@@ -84,6 +84,36 @@ def test_regenerate_from_stored_midi(
     assert '---' not in page.locator('.viewer-foot').inner_text()
 
 
+def test_file_name_is_the_action(
+    live_server: str, page: Page, tmp_path: Path
+) -> None:
+    """ファイル名そのものが操作。行に残るのは保存と削除のアイコンだけ。
+
+    アイコンには文字が無いので、`aria-label` が無いと何のボタンか
+    分からなくなる。そこも一緒に見ている。
+    """
+    midi = tmp_path / 'hist-name.mid'
+    midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
+    _upload(page, live_server, midi)
+
+    page.goto(f'{live_server}/history')
+    row = page.locator('#midi-table tr[data-name="hist-name.mid"]')
+
+    # 操作の欄は 2 つだけ（「再生成」の文字ボタンは無くなった）
+    expect(row.locator('.hist__act > *')).to_have_count(2)
+    for sel in ('a[download]', '[data-del]'):
+        label = row.locator(sel).get_attribute('aria-label')
+        assert label and 'hist-name.mid' in label, f'{sel} に説明が無い'
+
+    # 名前を押すと再生成になる
+    name = row.locator('.hist__open')
+    expect(name).to_have_text('hist-name.mid')
+    name.click()
+
+    expect(page.locator('#svgbox svg')).to_be_visible()
+    expect(page.locator('.result-head')).to_contain_text('生成しました')
+
+
 def test_delete_one_file(
     live_server: str, page: Page, tmp_path: Path
 ) -> None:
