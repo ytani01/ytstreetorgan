@@ -179,6 +179,11 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 
 - **初期表示は右端**（`viewBox` が負で、曲の先頭が x=0 側 = 右端にあるため）。
   既定の倍率は「高さ合わせ」。「全体」だと 7% になって何も読めない
+- **拡縮の位置合わせは「ブック上の位置（mm）」で覚える**（`setZoom()`）。
+  基準の点が SVG の右端・上端から何 mm かを実測し、倍率を変えたあとの
+  `requestAnimationFrame` で引き戻す。**`scrollWidth` に対する比では駄目。**
+  `padding` は拡縮しないので比が倍率に対して一定にならず、はみ出して
+  いないときは `scrollWidth` が `clientWidth` で頭打ちになって中央へ飛ぶ
 - ブックの諸元は `RollBook` のプロパティから取り、`Handler1._render()` が
   `book` として渡して、テンプレートが `window.BOOK_DATA` に出している。
   `width` / `height` は SVG の属性にも出ているが、**穴の数と

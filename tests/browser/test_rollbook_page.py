@@ -84,6 +84,34 @@ def test_viewer_zoom_controls(
     )
 
 
+def test_viewer_zoom_keeps_center(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """拡縮しても、中央に見えている位置（mm）が動かない。"""
+    upload_midi(page, live_server, sample_midi)
+
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    # 曲の先頭側（右端）へ寄せる。ブックのちょうど中央だと、比で戻す
+    # 古い実装でも誤差が打ち消し合ってしまい、ずれを捕まえられない
+    page.evaluate(
+        '() => { const b = document.getElementById("svgbox");'
+        ' b.scrollLeft = b.scrollWidth * 0.85; }'
+    )
+    page.wait_for_timeout(50)
+    before = int(page.locator('#pos-mm').inner_text())
+
+    for _ in range(3):
+        page.click('#zoom-in')
+    page.wait_for_timeout(50)
+    assert abs(int(page.locator('#pos-mm').inner_text()) - before) <= 2
+
+    for _ in range(3):
+        page.click('#zoom-out')
+    page.wait_for_timeout(50)
+    assert abs(int(page.locator('#pos-mm').inner_text()) - before) <= 2
+
+
 def scroll_left(page: Page) -> float:
     """ビューアの横スクロール位置。"""
     return page.evaluate('() => document.getElementById("svgbox").scrollLeft')

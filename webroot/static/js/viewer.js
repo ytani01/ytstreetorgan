@@ -79,22 +79,38 @@
     mmwin.style.width = (Math.min(1, box.clientWidth / scrollW) * 100) + "%";
   }
 
-  function setZoom(next, anchorRatio) {
-    const prev = z;
-    z = Math.min(Z_MAX, Math.max(Z_MIN, next));
+  /* 拡縮しても、基準の点（既定は表示の中央、ホイールならポインタの位置）が
+     画面の同じところに残るようにする。
 
-    const ratio = (anchorRatio === undefined)
-      ? (box.scrollLeft + box.clientWidth / 2) / Math.max(1, box.scrollWidth)
-      : anchorRatio;
+     [!! 重要 !!] scrollWidth に対する比で覚えてはいけない。padding は
+     拡縮しないので比が倍率に対して一定にならず、はみ出していないときは
+     scrollWidth が clientWidth で頭打ちになって中央へ飛ぶ。
+     ブック上の位置（SVG の端から何 mm か）で覚えれば倍率と無関係に決まる。 */
+  function setZoom(next, anchorX) {
+    const prev = z;
+
+    const boxRect = box.getBoundingClientRect();
+    const ax = (anchorX === undefined)
+      ? boxRect.left + boxRect.width / 2 : anchorX;
+    const ay = boxRect.top + boxRect.height / 2;
+    // 基準の点は、ブックの右端（曲の先頭）から何 mm・上端から何 mm か
+    const before = svgEl.getBoundingClientRect();
+    const mmX = (before.right - ax) / (PX_PER_MM * prev);
+    const mmY = (ay - before.top) / (PX_PER_MM * prev);
+
+    z = Math.min(Z_MAX, Math.max(Z_MIN, next));
 
     box.style.setProperty("--z", z);
     zoomEl.value = String(toSlider(z));
     zoomVal.textContent = Math.round(z * 100) + "%";
 
     if (prev !== z) {
-      // 描画サイズが変わったあとでないと scrollWidth が古い
+      // 描画サイズが変わったあとでないと、実測しても古い値が返る
       requestAnimationFrame(() => {
-        box.scrollLeft = ratio * box.scrollWidth - box.clientWidth / 2;
+        const r = svgEl.getBoundingClientRect();
+        // スクロールを増やすと中身は左（上）へ動く。ずれた分だけ足す
+        box.scrollLeft += (r.right - mmX * PX_PER_MM * z) - ax;
+        box.scrollTop += (r.top + mmY * PX_PER_MM * z) - ay;
         update();
       });
     }
@@ -194,10 +210,8 @@
       return;
     }
     e.preventDefault();
-    const r = box.getBoundingClientRect();
-    const anchor =
-      (box.scrollLeft + (e.clientX - r.left)) / Math.max(1, box.scrollWidth);
-    setZoom(z * (e.deltaY < 0 ? 1.12 : 1 / 1.12), anchor);
+    // ポインタの下にある位置を動かさない
+    setZoom(z * (e.deltaY < 0 ? 1.12 : 1 / 1.12), e.clientX);
   }, { passive: false });
 
   /* ドラッグでのパン。長い紙を手で送る感覚に合わせる。 */
