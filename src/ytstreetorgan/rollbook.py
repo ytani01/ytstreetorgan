@@ -3,6 +3,7 @@
 #
 import json
 import math
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TypedDict
 from xml.sax.saxutils import quoteattr
@@ -252,6 +253,40 @@ def transpose_candidates(
         best_of_key.values(),
         key=lambda c: (-c['notes'], c['key'] != 0, abs(c['transpose']))
     )
+
+
+def add_transpose_rows(
+    candidates: list[TransposeCandidate],
+    note_info: list[NoteInfo], conf: ModelConf, wanted: Sequence[int],
+) -> list[TransposeCandidate]:
+    """候補に無い移調量の行を足して、並べ直したものを返す。
+
+    `transpose_candidates()` は調ごとに「いちばん音域に収まるオクターブ」
+    しか返さないので、**`±0` や手で指定した値は並ばないことが多い**。
+    それだと表から ±0 に戻せず、「移調しないと何 % なのか」も分からない。
+
+    Args:
+        candidates (list[TransposeCandidate]): `transpose_candidates()` の結果。
+        note_info (list[NoteInfo]): 成績を測る対象（移調する**前**）。
+        conf (ModelConf): 機種の設定。
+        wanted (Sequence[int]): 必ず行にしたい移調量。既にあるものは飛ばす。
+
+    Returns:
+        list[TransposeCandidate]: 鳴らせる音符の多い順。元のリストは変えない。
+    """
+    if not candidates:
+        return list(candidates)
+
+    rows = list(candidates)
+    for t in wanted:
+        if any(c['transpose'] == t for c in rows):
+            continue
+        row = transpose_score(note_info, conf, t)
+        if row is not None:
+            rows.append(row)
+
+    rows.sort(key=lambda c: (-c['notes'], c['key'] != 0, abs(c['transpose'])))
+    return rows
 
 
 def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
@@ -831,23 +866,11 @@ class RollBook:
 
         # 候補に無い移調量でも、次の 2 つは必ず行にする。
         #
-        # - **±0（移調しない）** — 戻る先。候補は調ごとに「いちばん音域に
-        #   収まるオクターブ」しか出さないので、±0 は挙がらないことが多い。
-        #   無いと**一度移調したら元に戻せない**。「移調しないと何 %
-        #   なのか」という比較の基準でもある
-        # - **いま適用している値** — 手で指定した値は候補に無いことがある。
-        #   自分がどれを見ているのか分からなくなる
-        if self._candidates:
-            for want in (0, self._transpose):
-                if any(c['transpose'] == want for c in self._candidates):
-                    continue
-                row = transpose_score(note_info, self._conf, want)
-                if row is not None:
-                    self._candidates.append(row)
-
-            self._candidates.sort(
-                key=lambda c: (-c['notes'], c['key'] != 0, abs(c['transpose']))
-            )
+        # - **±0（移調しない）** — 戻る先。無いと一度移調したら元に戻せない
+        # - **いま適用している値** — 手で指定した値は候補に無いことがある
+        self._candidates = add_transpose_rows(
+            self._candidates, note_info, self._conf, (0, self._transpose)
+        )
 
         if self._transpose:
             note_info = transpose_notes(note_info, self._transpose)

@@ -142,6 +142,101 @@ def test_midi_app_unknown_model_raises(tmp_path):
 
 @patch('ytstreetorgan.apps.Parser')
 @patch('ytstreetorgan.apps.Player')
+def test_play_logs_how_it_transposed_at_info(
+    mock_player, mock_parser, tmp_path, capsys
+):
+    """`play -t auto` は、どう変換したかを INFO のログで出す（TODO-039）。
+
+    候補の表は `parse` のときだけ。再生中に 12 行流すと邪魔なので、
+    `play` はこの 1 行で済ませる。
+    """
+    import io
+
+    from loguru import logger
+    from ytmidilib import NoteInfo
+
+    sink = io.StringIO()
+    logger.remove()
+    logger.add(sink, level='INFO')
+
+    midi_file = str(tmp_path / "test.mid")
+    app = MidiApp(midi_file, model_name='34notes', transpose='auto')
+
+    # base_note=41。オクターブ上げれば音階に乗る音を置く
+    mock_parser.return_value.parse.return_value = {
+        'note_info': [NoteInfo(abs_time=0.0, channel=0, note=29,
+                               velocity=100, end_time=1.0)],
+        'channel_set': {0},
+    }
+
+    app.main()
+    app.end()
+
+    logged = sink.getvalue()
+    assert '34notes' in logged
+    assert '移調' in logged
+    assert 'おまかせ' in logged, 'auto で選んだことが分かること'
+
+    # 候補の表は play では出さない
+    assert '音の長さ' not in capsys.readouterr().out
+
+
+@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.Player')
+def test_play_does_not_print_each_note(mock_player, mock_parser, tmp_path, capsys):
+    """`play` は音符 1 つずつを標準出力に並べない（DEBUG へ回す）。
+
+    `Player.play()` 側の print も `_StdoutToDebug` で DEBUG に回るので、
+    既定の出力に音符の行は出ない。
+    """
+    from ytmidilib import NoteInfo
+
+    def noisy_play(*_args, **_kwargs):
+        print('0003.214 / start:0003.214 channel:00 note:067')
+
+    mock_player.return_value.play.side_effect = noisy_play
+
+    midi_file = str(tmp_path / "test.mid")
+    app = MidiApp(midi_file, parse_only=False)
+
+    mock_parser.return_value.parse.return_value = {
+        'note_info': [NoteInfo(abs_time=0.0, channel=0, note=60,
+                               velocity=100, end_time=1.0)],
+        'channel_set': {0},
+    }
+
+    app.main()
+    app.end()
+
+    out = capsys.readouterr().out
+    assert 'start:' not in out, '再生中の音符が標準出力に出ている'
+    assert '(   0)' not in out, '解析した音符の一覧が標準出力に出ている'
+    assert 'channel_set=' in out, 'まとめの 1 行は残すこと'
+
+
+@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.Player')
+def test_parse_still_prints_each_note(mock_player, mock_parser, tmp_path, capsys):
+    """`parse` は中身を見るのが目的なので、音符の一覧を出したままにする。"""
+    from ytmidilib import NoteInfo
+
+    midi_file = str(tmp_path / "test.mid")
+    app = MidiApp(midi_file, parse_only=True)
+
+    mock_parser.return_value.parse.return_value = {
+        'note_info': [NoteInfo(abs_time=0.0, channel=0, note=60,
+                               velocity=100, end_time=1.0)],
+        'channel_set': {0},
+    }
+
+    app.main()
+    app.end()
+
+    assert '(   0)' in capsys.readouterr().out
+
+
+@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.Player')
 def test_midi_app_merges_overlapping_same_note(mock_player, mock_parser, tmp_path):
     """`-m` 指定時は、同じ音の重なりも 1 つにまとめてから再生する（TODO-038）。
 

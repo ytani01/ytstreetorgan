@@ -6,6 +6,8 @@
 **`__main__.py` は click の定義だけの薄い層に保つ**という決めごとがある
 （テストしやすくするため）。ロジックはここに置く。
 """
+import contextlib
+import io
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -16,12 +18,59 @@ from .conf import Conf, ModelConf, validate_config
 from .rollbook import (
     RollBook,
     TransposeCandidate,
+    add_transpose_rows,
     merge_overlapping_notes,
     note2scale,
     transpose_candidates,
     transpose_notes,
     transpose_notices,
+    transpose_score,
 )
+
+
+class _StdoutToDebug(io.TextIOBase):
+    """`print()` の出力を DEBUG のログへ回す。
+
+    `Player.play()` は**音符 1 つごとに `print()` する**。再生の進みを
+    見るためのもので、普段は要らない。ytmidilib は別リポジトリの
+    パッケージなので向こうを直せない。こちらで stdout を差し替えて、
+    `-d` を付けたときだけ見えるようにする。
+
+    **loguru は stderr に書く**（`mylog.loggerInit()` の既定）ので、
+    ここで stdout を奪っても書き戻りにはならない。
+    """
+
+    def write(self, text: str) -> int:
+        for line in text.splitlines():
+            if line.strip():
+                logger.debug(line)
+        return len(text)
+
+
+def transpose_summary(
+    cand: TransposeCandidate, model_name: str, auto: bool
+) -> str:
+    """どう移調したかを 1 行にする。
+
+    **移調量を生で見せない。** `-24` だけでは何が起きたか分からないので、
+    「調 ±0・2 オクターブ下」に分けて添える。
+    """
+    key = '±0' if cand['key'] == 0 else f'{cand["key"]:+d}'
+    octave = '±0' if cand['octave'] == 0 else f'{cand["octave"]:+d}'
+    how = 'おまかせで' if auto else ''
+
+    if cand['transpose'] == 0:
+        head = f'[{model_name}] {how}移調しません'
+    else:
+        head = (
+            f'[{model_name}] {how}移調 {cand["transpose"]:+d} 半音'
+            f'（調 {key}・オクターブ {octave}）'
+        )
+
+    return (
+        f'{head} → 鳴らせる音符 {cand["notes"]} 個'
+        f'（{cand["note_pct"]:.1f}%、音の長さ {cand["sec_pct"]:.1f}%）'
+    )
 
 
 def format_transpose_table(
@@ -211,6 +260,7 @@ class MidiApp:
         self._model_name = model_name
         self._model_conf: ModelConf | None = None
         self._candidates: list[TransposeCandidate] = []
+        self._chosen: TransposeCandidate | None = None
         self._merged_count = 0
         if self._model_name:
             conf = Conf(conf_file).get(self._model_name)
@@ -256,7 +306,14 @@ class MidiApp:
             self._transpose = (
                 self._candidates[0]['transpose'] if self._candidates else 0
             )
-            logger.info('transpose=auto -> {}', self._transpose)
+
+        # ±0（戻る先）といま使う値は、候補に無くても必ず行にする
+        self._candidates = add_transpose_rows(
+            self._candidates, merged, self._model_conf, (0, self._transpose)
+        )
+        self._chosen = transpose_score(
+            merged, self._model_conf, self._transpose
+        )
 
         shifted = transpose_notes(merged, self._transpose)
 
@@ -265,9 +322,17 @@ class MidiApp:
             if note2scale(ni.note, base_note, notes) >= 0
         ]
 
-        logger.info(
-            '[{}] {} -> {} (merge) -> {} (transpose={:+d}, scale)',
-            self._model_name,
+        # **どう変換したのかを INFO で残す。** 音符 1 つずつの表示は
+        # DEBUG（`_StdoutToDebug`）なので、既定ではこれだけが出る
+        if self._chosen is not None:
+            logger.info(
+                transpose_summary(
+                    self._chosen, self._model_name or '',
+                    self._transpose_req == 'auto',
+                )
+            )
+        logger.debug(
+            '{} -> {} (merge) -> {} (transpose={:+d}, scale)',
             len(note_info), len(merged), len(converted), self._transpose
         )
         return converted
@@ -282,21 +347,28 @@ class MidiApp:
             parsed_data['note_info'] = self._convert_for_model(
                 parsed_data['note_info']
             )
-            # 分母は**統合後**の数。候補の割合と揃えないと食い違って見える
-            print(f'機種: {self._model_name}'
-                  f'  移調: {self._transpose:+d} 半音'
-                  f'  鳴らせる音符: {len(parsed_data["note_info"])}'
-                  f'/{self._merged_count}',
-                  flush=True)
-            print(
-                format_transpose_table(self._candidates, self._transpose),
-                flush=True
-            )
+            # 候補の表は `parse`（調べるのが目的）だけ。再生中に 12 行流すと
+            # 邪魔なので、`play` は上の INFO 1 行で済ませる
+            if self._parse_only:
+                # 分母は**統合後**の数。候補の割合と揃えないと食い違って見える
+                print(f'機種: {self._model_name}'
+                      f'  移調: {self._transpose:+d} 半音'
+                      f'  鳴らせる音符: {len(parsed_data["note_info"])}'
+                      f'/{self._merged_count}',
+                      flush=True)
+                print(
+                    format_transpose_table(self._candidates, self._transpose),
+                    flush=True
+                )
 
-        logger.debug('parsed_data=')
-        if self._dbg or self._parse_only:
+        # 音符 1 つずつの一覧は `parse`（中身を見るのが目的）だけ出す。
+        # `play` のときは -d を付けた場合のみ、DEBUG のログとして出る
+        if self._parse_only:
             for i, data in enumerate(parsed_data['note_info']):
                 print(f'({i:4d}) {data}', flush=True)
+        else:
+            for i, data in enumerate(parsed_data['note_info']):
+                logger.debug('({:4d}) {}', i, data)
 
         print('channel_set=', parsed_data['channel_set'], flush=True)
 
@@ -308,8 +380,11 @@ class MidiApp:
         if self._parse_only:
             return
 
-        self._player.play(parsed_data, self._pos_sec,
-                          self._sec_min, self._sec_max)
+        # `Player.play()` は音符 1 つごとに print() する。ytmidilib は
+        # 別リポジトリなので向こうを直せない。stdout を差し替えて DEBUG に回す
+        with contextlib.redirect_stdout(_StdoutToDebug()):
+            self._player.play(parsed_data, self._pos_sec,
+                              self._sec_min, self._sec_max)
 
     def end(self) -> None:
         """後片付け（いまは何もしない）。`main()` と対で呼ぶ。"""

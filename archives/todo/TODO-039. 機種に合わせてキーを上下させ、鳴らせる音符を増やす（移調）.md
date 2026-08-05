@@ -63,8 +63,21 @@
 - `RollBook(model, conf_file, transpose)` — `'auto'` なら候補の 1 位を選ぶ。
   実際に使った値は `transpose` プロパティに入る
 
-CLI（`rollbook` / `play` に `-t`、`parse` に `-m` と `-t`）。`auto` でも
-そうでなくても候補の表を出す。
+CLI（`rollbook` / `play` に `-t`、`parse` に `-m` と `-t`）。
+
+**候補の表を出すのは `parse` と `rollbook` だけ。** `play` は再生中に 12 行
+流れると邪魔なので、`transpose_summary()` の 1 行を INFO で出すに留める:
+
+```
+[20notes a] おまかせで移調 -24 半音（調 ±0・オクターブ -2）
+ → 鳴らせる音符 146 個（97.3%、音の長さ 97.9%）
+```
+
+**音符 1 つずつの表示は `parse` だけ。** `play` では DEBUG に回してある
+（`-d` を付ければ従来どおり見える）。`Player.play()` は音符ごとに
+`print()` するが、ytmidilib は別リポジトリなので向こうを直せない。
+`_StdoutToDebug` で stdout を差し替えて DEBUG のログへ回している
+（**loguru は stderr に書く**ので書き戻りにはならない）。
 
 Web の生成画面に候補の表を出し、**押すとその移調量で作り直す**
 （履歴からの再生成と同じ `stored_midi` の経路に乗せた）。
