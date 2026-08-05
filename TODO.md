@@ -2,10 +2,11 @@
 
 作成: 2026-08-02（コミット `82aaa65` 時点）
 
-**残っているのは 1 件（TODO-042）。** これまでに 42 件を決着させた。
+**残っているのは 3 件（TODO-045 → TODO-044 → TODO-042）。**
+これまでに 42 件を決着させた。
 
 新しく足すときは、この上に節を作る（完了したら「完了済み」へ移す）。
-**番号は `TODO-044` から。** かつては A・B・C … の 1 文字だったが、
+**番号は `TODO-046` から。** かつては A・B・C … の 1 文字だったが、
 X まで来て Z が近かったので通し番号にした。**旧番号は各ファイルの
 冒頭に残してある**（コミットメッセージはそちらの記号で書いてある）。
 
@@ -15,7 +16,139 @@ TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項�
 
 ---
 
+## TODO-045. `ytmidilib` への要求書を出す
+
+**［回答・修正待ち］** `ytmidilib` 側の返事があるまで、こちらは動かない。
+
+- [x] 要求書を書く → [`docs/20260806a-ytmidilib-requests.md`](docs/20260806a-ytmidilib-requests.md)
+- [ ] `ytmidilib` 側の回答・修正を待つ
+- [ ] 直ったものから `uv sync --upgrade-package ytmidilib` で取り込み、
+      こちら側の手当てを剥がす
+
+### 何を出したか
+
+14 項目。優先度順の一覧と、項目ごとの「現状 → こちらへの影響 → 要求 →
+受け入れ条件」は要求書のほうにある。**ここには他の TODO との関係だけ書く。**
+
+| 要求書の項目 | こちらの TODO |
+|---|---|
+| 3. 型注釈が無い（`py.typed` と食い違い） | **TODO-044 そのもの** |
+| 8. MIDI 書き出しの API が無い | **TODO-042** が必要としている |
+| 4. `Player.play()` が音符ごとに `print()` する | TODO-040 で「向こうを直すのが筋」と決着済み |
+| 1・2・5・6・7・9〜14（11 項目） | どれにも無い。今回ソースを読んで見つけた |
+
+### 実測で見つけた不具合が 2 件ある
+
+どちらも要求書に再現手順ごと書いてある。
+
+- **`set_tempo` が無い MIDI で、全部の音が `abs_time` = 0・長さ 0 になる**
+  （`cur_tempo` の初期値が `None` で、MIDI 既定の 500000 μsec/beat を
+  当てていない）。**ロールブックが全長 0 になる**
+- `NoteInfo(..., end_time=1)` が黙って `end_time = None` になる
+  （`isinstance(end_time, float)` が `int` を弾く）
+
+### 待っている間にやらないこと
+
+**こちら側で回避策を書かない。** TODO-044 の注意書きと同じ理由で、
+場当たりの手当てが増えるほど、上流が直ったときに剥がす手間が増える。
+
+上流が動かないと分かった時点で、項目ごとに「こちらで受ける」か
+「許容すると記録する」かを決め直す。
+
+---
+
+## TODO-044. `basedpyright` の 11 件を片付ける（本丸は ytmidilib 側）
+
+- [ ] `ytmidilib` に型注釈を入れる（**別リポジトリ**）
+- [ ] `docs/Developer.md` の「一括で回す」が実際に通るようにする
+
+### まず事実
+
+`uv run basedpyright src` が **11 件のエラーを出し、終了コード 1 を返す**。
+
+`docs/Developer.md`「一括で回す」はこう書いてある:
+
+```bash
+uv run ruff check src tests && \
+uv run mypy src && \
+uv run basedpyright src && \    # ← ここで止まる
+uv run pytest -m ""
+```
+
+**`&&` で繋いであるので、この手順は以前から通っていない**（`pytest` まで
+到達しない）。「11 件は許容する」という判断がどこにも記録されないまま
+残っていた。TODO-043 の整理でもそのままにしてしまった。
+
+### 11 件は全部 1 つの原因
+
+`ytmidilib` の `NoteInfo` が**無注釈**なので、`note` / `velocity` /
+`end_time` が `Unknown | None` と推論される。
+
+```python
+# ytmidilib/midi_parser.py
+class NoteInfo:
+    def __init__(self, abs_time=None, channel=None, note=None,
+                 velocity=None, end_time=None, debug=False):
+```
+
+内訳（`ni.note` などをそのまま使っている箇所）:
+
+| ファイル | 件数 |
+|---|---|
+| `transpose.py` | 7 |
+| `rollbook.py` | 3 |
+| `apps.py` | 1 |
+
+**`ytmidilib` は `py.typed` を置いている**（＝型付きだと宣言している）のに、
+中身に注釈がほぼ無い（`def ... -> ...` が全 7 ファイルで 4 個だけ）。
+宣言と中身が食い違っているのが、そもそもの原因。
+
+### こちら側の対処は既にちぐはぐ
+
+同じ問題に、場当たりで 2 通りの手当てが入っている。
+
+```python
+# HoleInfo.__init__ — None を -1 に読み替える
+note_val = self.note_info.note if self.note_info.note is not None else -1
+
+# merge_overlapping_notes() — assert で黙らせる
+assert cur.end_time is not None and nxt.end_time is not None
+```
+
+残り 11 か所は素通し。**同じことに 3 通りの態度が混ざっている。**
+
+### 案
+
+| 案 | 判定 |
+|---|---|
+| **`ytmidilib` に型注釈を入れる** | ◎ 推し。原因そのものを断つ |
+| こちらに型付きの薄い層を挟む | △ 上流を触らずに済むが、同じ形の宣言が二重になる |
+| 許容すると決めて記録する | △ せめて `docs/Developer.md` の `&&` を実態に合わせる |
+
+**`ytmidilib` は利用者自身のリポジトリ**（`[tool.uv.sources]` の git 依存）
+なので、上流を直すのが素直。`NoteInfo.__init__` に注釈を入れるだけで
+11 件のほとんどが消えるはず。
+
+直したら `uv sync --upgrade-package ytmidilib`（`docs/tech-stack.md`）。
+
+### 注意
+
+**上流を直すまで、こちら側で assert を撒かないこと。** 場当たりの手当てが
+増えるほど、あとで注釈が入ったときに剥がす手間が増える。
+
+### やること
+
+- [ ] `ytmidilib` 側で `NoteInfo` に型注釈を入れる（別リポジトリ）
+- [ ] `uv sync --upgrade-package ytmidilib` で取り込み、残る件数を数え直す
+- [ ] 残ったものは、`HoleInfo` / `merge_overlapping_notes` の手当てと
+      合わせて**やり方を 1 つに揃える**
+- [ ] `docs/Developer.md` の「一括で回す」が実際に通ることを確かめる
+
+---
+
 ## TODO-042. 移調候補ごとに、移調した MIDI をダウンロードできるようにする
+
+**［保留中］** TODO-044 の判断待ち。着手前に確認すること。
 
 - [ ] Web の移調候補の表に、各行の移調量で MIDI を作ってダウンロードする
       ボタンを足す
