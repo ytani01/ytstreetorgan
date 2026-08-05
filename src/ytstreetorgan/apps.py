@@ -350,9 +350,8 @@ class MidiApp:
         if self._parse_only:
             return
 
-        # `Player.play()` は音符 1 つごとに print() する。**これは
-        # ytmidilib（別リポジトリ）の出力なので、こちらでは触らない。**
-        # 黙らせたいなら向こうを直す（TODO-040）
+        # `Player.play()` は既定では何も出さない（ytmidilib 0.1.0。
+        # 音符ごとの行は向こうの DEBUG ログへ回った）
         self._player.play(parsed_data, self._pos_sec,
                           self._sec_min, self._sec_max)
 

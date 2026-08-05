@@ -16,11 +16,32 @@
 |---|---|
 | **click** | CLI |
 | **tornado** | Web サーバー（テンプレートも tornado のもの） |
-| **ytmidilib** | MIDI の解析と再生。**git 依存**（`[tool.uv.sources]`） |
+| **ytmidilib** | MIDI の解析・再生・書き出し。**git 依存**（`[tool.uv.sources]`） |
 | **pygame-ce** | MIDI 再生の実体（ytmidilib が使う） |
 | **loguru** >= 0.7.3 | ログ。標準 `logging` は使わない |
 
-上流の `ytmidilib` を直したら `uv sync --upgrade-package ytmidilib`。
+### `ytmidilib`（別リポジトリ）
+
+**タグで固定してある**（`tag = "0.1.0"`。`v` は付かない）。既定ブランチを
+追わせない。上流を直したらタグを打ち、こちらで上げる。
+
+```bash
+uv sync --upgrade-package ytmidilib
+```
+
+**タグを上げたのにバージョンが `0.0.4.dev20+g...` のように入ることがある。**
+`uv` の git キャッシュ（`~/.cache/uv/git-v0/db/`）に新しいタグの ref が
+入らず、hatch-vcs の `git describe` が古いタグからの距離を返すため。
+db と checkouts を消してから入れ直す（TODO-047 に手順がある）。
+
+`ytmidilib` は**標準 `logging`** を使い、**ハンドラを付けない**
+（0.1.0 から。ライブラリとして正しい作り）。こちらは loguru なので、
+**向こうのログはどこにも出ない**。`-d` を付けて出るのはこちらのログだけ。
+
+`pygame` は import されるだけでバナーを出す。`ytmidilib.Player` 経由で
+必ず読み込まれるので、`src/ytstreetorgan/__init__.py` の先頭で
+`PYGAME_HIDE_SUPPORT_PROMPT` を設定して黙らせている（**`ytmidilib` を
+読み込むより前**でないと効かない）。
 
 ## フロントエンド
 

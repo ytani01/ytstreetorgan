@@ -128,9 +128,7 @@ class _NoteTally:
         self.sec_of: dict[int, float] = {}
         for ni in note_info:
             self.count_of[ni.note] = self.count_of.get(ni.note, 0) + 1
-            self.sec_of[ni.note] = (
-                self.sec_of.get(ni.note, 0.0) + (ni.end_time - ni.abs_time)
-            )
+            self.sec_of[ni.note] = self.sec_of.get(ni.note, 0.0) + ni.length()
 
         self.total_notes = len(note_info)
         self.total_sec = sum(self.sec_of.values())

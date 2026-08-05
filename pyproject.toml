@@ -81,4 +81,4 @@ markers = [
 ]
 
 [tool.uv.sources]
-ytmidilib = { git = "https://github.com/ytani01/ytmidilib.git" }
+ytmidilib = { git = "https://github.com/ytani01/ytmidilib.git", tag = "0.1.0" }

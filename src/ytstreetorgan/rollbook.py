@@ -238,8 +238,7 @@ class HoleInfo:
 
         base_note = self.conf.get('base_note', 0)
         notes = self.conf.get('notes', [])
-        note_val = self.note_info.note if self.note_info.note is not None else -1
-        self.scale = note2scale(note_val, base_note, notes)
+        self.scale = note2scale(self.note_info.note, base_note, notes)
 
         mm_per_sec = self.conf.get('mm_per_sec', 0.0)
         pitch = self.conf.get('pitch', 0.0)
@@ -544,8 +543,7 @@ class RollBook:
         self._candidates = []
         self._svg = ''
 
-        # ytmidilib は外部パッケージなので str に落として渡す
-        midi = self._midi_parser.parse(str(midi_file), channel)
+        midi = self._midi_parser.parse(midi_file, channel)
         logger.debug('midi[channel_set]={}', midi['channel_set'])
 
         self._raw_note_count = len(midi['note_info'])
