@@ -2,8 +2,8 @@
 
 作成: 2026-08-02（コミット `82aaa65` 時点）
 
-**残っているのは 2 件（TODO-048 → TODO-042）。**
-これまでに 46 件を決着させた。
+**残っているのは 1 件（TODO-042）。**
+これまでに 47 件を決着させた。
 
 新しく足すときは、この上に節を作る（完了したら「完了済み」へ移す）。
 **番号は `TODO-049` から。** かつては A・B・C … の 1 文字だったが、
@@ -16,52 +16,10 @@ TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項�
 
 ---
 
-## TODO-048. `ytmidilib` に 2 通目の要求書を出す（ファイルの移調）
-
-**［回答待ち］** TODO-042 の実装方針を変えるための要求。
-
-- [x] 要求書を書く → [`docs/20260806c-ytmidilib-requests-2.md`](docs/20260806c-ytmidilib-requests-2.md)
-- [ ] `ytmidilib` 側の回答・修正を待つ
-- [ ] タグを上げて取り込み、TODO-042 に着手する
-
-### なぜ
-
-TODO-042 は当初「`mido` を直接使って元の MIDI のバイト列をいじる」方針
-だった。**MIDI を受け取って MIDI を返す処理は `ytmidilib` の仕事**なので、
-向こうに寄せる。こちらが `mido.MidiTrack` を組み立て始めると、MIDI の
-低レベル処理が 2 リポジトリに散る。
-
-`ytmidilib 0.1.0` の `transpose(note_info, n)` では**代用できない**
-（実測）。`NoteInfo` は絶対秒・チャンネル・note・velocity しか持たないので、
-`write()` で組み立て直すと音色（`program_change`）・音量・ピッチベンド・
-トラック構成・テンポ変化が消える。**元のバイト列から `note` だけずらす
-API が要る。**
-
-### 要求の骨子
-
-```python
-transpose_file(src, dst, n, clip=False)   # src / dst とも path | file-like
-transpose(note_info, n, clip=False)       # 既存にも同じ引数を足す
-```
-
-- **file-like を受ける**こと（TODO-042 はディスクに残さずメモリ上で返す）。
-  `mido.MidiFile` を返す形にはしない。**`mido` を公開 API に出させない**
-- **範囲外の扱いを既存の `transpose()` と揃える。** いまは `ValueError`
-  （回答書 #8。「クリップは曲が変わったのに成功して返る」は妥当）。
-  ファイル版だけ黙って丸めると、同じ「移調」で意味論が 2 つになる。
-  `clip=True` を**呼び出し側が明示的に書く**なら、曲が変わることを承知で
-  丸めたという判断が呼び出しに現れる
-
-ほかに、打楽器チャンネル（ch 9）を移調するかどうかと、`write()` の
-docstring に「何が失われるか」を書くことも要求した。
-
----
-
 ## TODO-042. 移調候補ごとに、移調した MIDI をダウンロードできるようにする
 
-**［保留中］** TODO-048 の回答待ち。**下の「実装方針」は `mido` を直接
-使う前提で書いてあり、`ytmidilib` に寄せると決めたので古い。**
-要求が通ったら書き直すこと。
+**［着手できる］** TODO-048 で要求した `ytmidilib.transpose_file()` が
+`0.1.1` に入り、取り込み済み。
 
 - [ ] Web の移調候補の表に、各行の移調量で MIDI を作ってダウンロードする
       ボタンを足す
@@ -79,28 +37,28 @@ docstring に「何が失われるか」を書くことも要求した。
 アップロードされた元のファイルを移調するだけにし、テンポ・チャンネル・
 トラック構成・音階に無い音も全部そのまま残す。
 
-### 実装方針 — `mido` でバイト列を直接いじる。`NoteInfo` は経由しない
+### 実装方針 — `ytmidilib.transpose_file()` に任せる。`mido` は使わない
 
-`NoteInfo` は絶対時刻（秒）に直したあとの形で、**テンポ変化・トラック分割
-・tick 単位を持っていない**。そこから組み立て直すと複数テンポの曲でズレる。
-`mido.MidiFile` を読んで `note` だけずらせば、**note 以外は無変更**で済む。
-
-`holy.mid` で動作を確認した手順:
+**`mido` を直接叩かない**（TODO-048）。MIDI を受け取って MIDI を返す処理は
+`ytmidilib` の仕事で、`0.1.1` の `transpose_file()` がそれをする。
+`NoteInfo` も経由しない（絶対秒に直したあとの形で、テンポ変化・トラック分割
+・tick 単位を持っていないため、組み立て直すと複数テンポの曲でズレる）。
 
 ```python
-mf = mido.MidiFile(src_path)
-out = mido.MidiFile(type=mf.type, ticks_per_beat=mf.ticks_per_beat)
-for track in mf.tracks:
-    new_track = mido.MidiTrack()
-    for msg in track:
-        if msg.type in ('note_on', 'note_off'):
-            msg = msg.copy(note=max(0, min(127, msg.note + semitones)))
-        new_track.append(msg)
-    out.tracks.append(new_track)
-out.save(file=io.BytesIO())  # ファイルに書かずメモリ上でも作れる
+import io
+from ytmidilib import transpose_file
+
+buf = io.BytesIO()
+with open(src_path, 'rb') as f:
+    transpose_file(f, buf, semitones)   # note 以外は変わらない
+data = buf.getvalue()
 ```
 
-はみ出す音は 0〜127 に丸める（潰れて重なっても許容する）。
+**はみ出す音の扱いは、実装するときに決める。** 既定（`clip=False`）は
+範囲外の音が 1 つでもあると `ValueError` になる。`clip=True` で 0 .. 127 に
+丸まる（潰れて重なっても許容するなら、こちら）。**移調候補は元の音域から
+作っているので、実際に外れることはまず無いはず**だが、`ValueError` が
+出たときに画面へ何を出すかは決めておくこと。
 
 ### 保存しない。リクエストごとにメモリ上で作る
 
@@ -150,6 +108,7 @@ MIDI だけ欲しい」場合もある。
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-048.** `ytmidilib` に 2 通目の要求書を出す（ファイルの移調）](archives/todo/TODO-048.%20ytmidilib%20に%202%20通目の要求書を出す（ファイルの移調）.md)
 - [**TODO-047.** `ytmidilib` 0.1.0 を取り込む](archives/todo/TODO-047.%20ytmidilib%200.1.0%20を取り込む.md)
 - [**TODO-046.** `ytmidilib` をタグで固定する](archives/todo/TODO-046.%20ytmidilib%20をタグで固定する.md)
 - [**TODO-045.** `ytmidilib` への要求書を出す](archives/todo/TODO-045.%20ytmidilib%20への要求書を出す.md)
