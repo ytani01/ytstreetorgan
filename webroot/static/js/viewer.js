@@ -130,14 +130,15 @@
   }
 
   /* 既定はこちら。ブックの高さを画面に合わせ、あとは横スクロールで送る。
-     縦横比が 33:1 なので「全体」を既定にすると細すぎて何も読めない。 */
+     縦横比が 33:1 なので「全体」を既定にすると細すぎて何も読めない。
+
+     倍率を変えるだけで、見ている位置は setZoom() に任せて動かさない
+     （TODO-049）。先頭へ戻すのは初期表示のときだけ。 */
   function fitHeight() {
     setZoom(innerSize().h / (book.height * PX_PER_MM));
-    requestAnimationFrame(toStart);
   }
   function fitAll() {
     setZoom(innerSize().w / (book.width * PX_PER_MM));
-    requestAnimationFrame(toStart);
   }
   /* 曲の先頭は右端（SVG の x=0 側）。だから初期表示は右端に寄せる。 */
   function toStart() {
@@ -244,5 +245,8 @@
       ? fmtTime(book.width / book.mm_per_sec) : UNKNOWN;
   }
 
+  // 初期表示だけは、高さを合わせたうえで曲の先頭（右端）へ寄せる。
+  // setZoom() が rAF で位置を戻すので、そのあとに走るよう rAF を重ねる。
   fitHeight();
+  requestAnimationFrame(toStart);
 })();

@@ -239,6 +239,7 @@
                     <th>音符</th>
                     <th title="鳴らせる音符の長さ（秒）の合計。ブック全体の演奏時間とは別">音の長さ</th>
                     <th>移調後の音域</th>
+                    <th title="元の MIDI をその調に移調して持ち帰る（ロールブックではありません）">MIDI</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -259,11 +260,36 @@
                     <td class="num">{{ '%.1f' % c['note_pct'] }}%</td>
                     <td class="num">{{ '%.1f' % c['sec_pct'] }}%</td>
                     <td class="num">{{ c['lo'] }}–{{ c['hi'] }}</td>
+                    <!-- 元の MIDI をその調に移調して持ち帰る（TODO-042）。
+                         ロールブックの音符ではなく、上げた元のファイルを
+                         移調するだけなので、音階に無い音も残る。
+                         ±0 の行にも出す（元のキーのまま MIDI だけ欲しい
+                         場合がある） -->
+                    <td class="hist__act">
+                      <a class="btn-row btn-icon" download
+                        href="{{urlprefix}}/download/midi-transpose/{{ url_escape(midi_name) }}?t={{ c['transpose'] }}"
+                        title="この調に移調した MIDI をダウンロード"
+                        aria-label="移調 {{ '%+d' % c['transpose'] }} 半音の MIDI をダウンロード">
+                        <svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>
+                      </a>
+                    </td>
                   </tr>
                   {% end %}
                 </tbody>
               </table>
             </div>
+
+            <!-- 候補ぶんの MIDI をまとめて（TODO-050）。1 行ずつ押すと
+                 最大 7 回になる。半音数はクエリで渡す（サーバー側で
+                 候補を作り直さない）。中身の名前は 1 件ずつのときと同じ -->
+            <p class="field__hint">
+              <a class="btn-row btn-labeled" id="transpose-zip" download
+                href="{{urlprefix}}/download/midi-transpose-zip/{{ url_escape(midi_name) }}?t={{ ','.join(str(c['transpose']) for c in candidates) }}"
+                title="表の全ての調に移調した MIDI を、1 つの ZIP にまとめてダウンロード">
+                <svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>
+                すべての候補の MIDI をダウンロード（ZIP）
+              </a>
+            </p>
             {% end %}
           </div>
         </section>

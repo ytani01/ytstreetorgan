@@ -11,7 +11,12 @@ from loguru import logger
 from . import __version__
 from .conf import Conf
 from .config_handler import ConfigHandler
-from .handler1 import Download, Handler1
+from .handler1 import (
+    Download,
+    DownloadTransposedMidi,
+    DownloadTransposedMidiZip,
+    Handler1,
+)
 from .history import HistoryHandler
 from .livereload import LiveReloadHandler, watch_webroot
 from .mylog import exmsg
@@ -94,6 +99,13 @@ class WebServer:
             # midi のほうを先に置くこと）。SVG は種別なしの従来の形
             (rf'{self._urlprefix}/download/midi/(.*)', Download,
              {'kind': 'midi'}),
+            # その場で移調して返す（保存しない）。実在のファイルを返す
+            # /download/midi/ とは別物なので、ハンドラも分けてある
+            (rf'{self._urlprefix}/download/midi-transpose/(.*)',
+             DownloadTransposedMidi),
+            # 候補をまとめて ZIP で（TODO-050）。こちらも保存しない
+            (rf'{self._urlprefix}/download/midi-transpose-zip/(.*)',
+             DownloadTransposedMidiZip),
             (rf'{self._urlprefix}/download/(.*)', Download, {'kind': 'svg'}),
         ]
         if self._debug:

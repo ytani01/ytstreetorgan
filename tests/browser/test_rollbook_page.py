@@ -1,5 +1,7 @@
 """メイン画面（MIDI アップロード → SVG プレビュー）のブラウザテスト。"""
+import io
 import re
+import zipfile
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -108,6 +110,33 @@ def test_viewer_zoom_keeps_center(
 
     for _ in range(3):
         page.click('#zoom-out')
+    page.wait_for_timeout(50)
+    assert abs(int(page.locator('#pos-mm').inner_text()) - before) <= 2
+
+
+def test_fit_height_keeps_position(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """「高さ合わせ」でも、見ている位置（mm）が動かない。
+
+    先頭へ戻すのは初期表示のときだけ（TODO-049）。「全体」は横に
+    はみ出さなくなる＝必ずブックの中央が映るので、ここでは見ない。
+    """
+    upload_midi(page, live_server, sample_midi)
+
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    # 拡大しておく。ここで倍率が変わっていないと fit-height が素通りする
+    for _ in range(3):
+        page.click('#zoom-in')
+    page.evaluate(
+        '() => { const b = document.getElementById("svgbox");'
+        ' b.scrollLeft = b.scrollWidth * 0.5; }'
+    )
+    page.wait_for_timeout(50)
+    before = int(page.locator('#pos-mm').inner_text())
+
+    page.click('#fit-height')
     page.wait_for_timeout(50)
     assert abs(int(page.locator('#pos-mm').inner_text()) - before) <= 2
 
@@ -268,6 +297,66 @@ def test_transpose_table_lets_you_compare_and_go_back(
     assert page.locator('#svgbox svg').get_attribute(
         'data-storgan-transpose'
     ) == '0'
+
+
+def test_transpose_table_rows_offer_transposed_midi(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """候補の**全行**に、その調の MIDI を持ち帰るリンクがある（TODO-042）。
+
+    ロールブックの音符ではなく、上げた元のファイルを移調したもの。
+    ``±0`` の行にも出す（元のキーのまま MIDI だけ欲しい場合がある）。
+    """
+    upload_midi(page, live_server, sample_midi)
+
+    rows = page.locator('#transpose-table tbody tr')
+    links = page.locator('#transpose-table a[href*="/download/midi-transpose/"]')
+    expect(links).to_have_count(rows.count())
+
+    # ±0 の行の分もある
+    zero = page.locator(
+        '#transpose-table a[href*="/download/midi-transpose/"][href$="t=0"]'
+    )
+    expect(zero).to_have_count(1)
+
+    href = links.first.get_attribute('href')
+    assert href is not None
+    res = page.request.get(urljoin(page.url, href))
+    assert res.ok
+    # SMF のヘッダ。中身は tests/test_midi_transpose.py が確かめている
+    assert res.body().startswith(b'MThd')
+    assert '.t' in res.headers['content-disposition']
+
+    # その場で作って返すだけで、置き場には残さない
+    page.goto(f'{live_server}/history')
+    expect(page.locator('body')).not_to_contain_text('.t+')
+
+
+def test_transpose_table_offers_all_candidates_as_zip(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """候補ぶんの MIDI を、1 つの ZIP でまとめて持ち帰れる（TODO-050）。"""
+    upload_midi(page, live_server, sample_midi)
+
+    href = page.locator('#transpose-zip').get_attribute('href')
+    assert href is not None
+
+    # 表の全行ぶんの半音数が並んでいる
+    rows = page.locator('#transpose-table tbody tr')
+    tt = href.split('?t=')[1]
+    assert len(tt.split(',')) == rows.count()
+
+    res = page.request.get(urljoin(page.url, href))
+    assert res.ok
+    assert res.headers['content-type'] == 'application/zip'
+    with zipfile.ZipFile(io.BytesIO(res.body())) as zf:
+        # 中身の検証は tests/test_midi_transpose.py。ここは行数との対応だけ
+        assert len(zf.namelist()) == rows.count()
+    assert '.transposed.zip' in res.headers['content-disposition']
+
+    # その場で作って返すだけで、置き場には残さない
+    page.goto(f'{live_server}/history')
+    expect(page.locator('body')).not_to_contain_text('.zip')
 
 
 def test_transpose_table_is_capped_and_hidden_when_no_improvement(

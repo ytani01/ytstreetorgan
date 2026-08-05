@@ -50,6 +50,21 @@
     </header>
 
     <main>
+      <!-- アイコンの実体。ここで一度だけ定義し、各ページの行からは
+           <use href="#i-…"> で参照する。アイコンフォントも CDN も
+           使わない方針（CLAUDE.md「フロントエンド」）。
+           色は .icon の stroke: currentColor が継承されて決まる。 -->
+      <svg class="icon-defs" aria-hidden="true" focusable="false">
+        <symbol id="i-save" viewBox="0 0 24 24">
+          <path d="M12 3v11m0 0 4-4m-4 4-4-4"/>
+          <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+        </symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24">
+          <path d="M4 6h16M10 6V4h4v2"/>
+          <path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/>
+        </symbol>
+      </svg>
+
       {% block content %}{% end %}
     </main>
 

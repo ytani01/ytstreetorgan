@@ -144,6 +144,13 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 - `Handler1` — MIDI アップロード → SVG 生成 → プレビュー。
   履歴からの `stored_midi`（再生成）/ `stored_svg`（再表示）もここが受ける
 - `Download` — `webroot/svg/` と `webroot/midi/` からのダウンロード
+- `DownloadTransposedMidi` — `/download/midi-transpose/<name>?t=<半音数>`。
+  **アップロード済みの MIDI を、その場で移調して返す**（TODO-042）。
+  ロールブックの音符ではなく元のファイルを移調するだけ。**保存しない**
+- `DownloadTransposedMidiZip` — `/download/midi-transpose-zip/<name>?t=-5,0,3`。
+  候補ぶんをまとめて ZIP で返す（TODO-050）。**半音数はクエリで受け取り、
+  候補を作り直さない**（1 件版と同じく、名前と半音数だけから作れる形に
+  揃えてある）。こちらも保存しない
 - `ConfigHandler` — `/storgan2/config` のモデル設定エディタ。`?api=1` で JSON を返す
 - `HistoryHandler` — `/storgan2/history` の一覧。POST は削除の JSON API
 
@@ -208,7 +215,9 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 スクロールバーが消えて現在位置を見失うので使わない。
 
 - **初期表示は右端**（`viewBox` が負で、曲の先頭が x=0 側 = 右端にあるため）。
-  既定の倍率は「高さ合わせ」。「全体」だと 7% になって何も読めない
+  既定の倍率は「高さ合わせ」。「全体」だと 7% になって何も読めない。
+  **先頭へ戻すのは初期表示のときだけ**（TODO-049）。「高さ合わせ」
+  「全体」のボタンは倍率を変えるだけで、位置は他の拡縮と同じく保つ
 - **拡縮の位置合わせは「ブック上の位置（mm）」で覚える**（`setZoom()`）。
   基準の点が SVG の右端・上端から何 mm かを実測し、倍率を変えたあとの
   `requestAnimationFrame` で引き戻す。**`scrollWidth` に対する比では駄目。**

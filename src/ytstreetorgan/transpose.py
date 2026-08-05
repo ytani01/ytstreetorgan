@@ -16,13 +16,109 @@
 そのため。前者は穴の位置を決めるためのもので、後者は「実機は 1 音に
 1 パイプ」という別の話（TODO-038）。
 """
+import io
+import zipfile
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Literal, NamedTuple, TypedDict
 
 from loguru import logger
-from ytmidilib import NoteInfo
+from ytmidilib import NoteInfo, transpose_file
 
 from .conf import ModelConf
+
+
+def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
+    """MIDI ファイルを移調して、そのバイト列を返す（TODO-042）。
+
+    **`RollBook` が使う音符は使わない。** あちらは統合（TODO-038）・
+    機種の音階での絞り込みを経た「編曲された」列で、音が消えている。
+    ここは元のファイルを移調するだけで、テンポ・チャンネル・トラック
+    構成・音階に無い音も全部そのまま残す。
+
+    **`mido` は直接叩かない**（TODO-048）。MIDI を受け取って MIDI を
+    返すのは `ytmidilib` の仕事。`NoteInfo` も経由しない（絶対秒に
+    直したあとの形はテンポ変化・トラック分割・tick 単位を持たないので、
+    組み立て直すと複数テンポの曲でズレる）。
+
+    **ディスクには書かない**（`webroot/midi/` を太らせないため）。
+    候補は最大 7 行並ぶが、実際に持ち帰られるのは 1 つか 2 つ。
+
+    Args:
+        src (Path): 元の MIDI ファイル。
+        semitones (int): 移調する半音数（負なら下げる）。
+
+    Returns:
+        bytes: 移調後の MIDI（SMF）。
+
+    Note:
+        ``clip=True`` で呼ぶので、0 .. 127 をはみ出す音は丸められる
+        （既定の ``clip=False`` は 1 音でも外れると `ValueError`）。
+        移調の候補は元の音域から作っているので実際に外れることはまず
+        無く、そのために持ち帰れなくなるほうが困る。
+    """
+    buf = io.BytesIO()
+    with src.open('rb') as f:
+        transpose_file(f, buf, semitones, clip=True)
+
+    data = buf.getvalue()
+    logger.debug('src={}, semitones={}, len(data)={}',
+                 src, semitones, len(data))
+    return data
+
+
+def transposed_midi_name(name: str, semitones: int) -> str:
+    """持ち帰る MIDI のファイル名（``holy.t+3.mid``）。
+
+    同じ曲を複数の調で保存しても区別できるように、符号付きの半音数を
+    入れる。``±0`` の行にもボタンを出すので、``t+0`` もありうる。
+    """
+    return f'{Path(name).stem}.t{semitones:+d}.mid'
+
+
+def transposed_midi_zip_bytes(
+    src: Path, semitones_list: Sequence[int]
+) -> bytes:
+    """複数の調に移調した MIDI を、1 つの ZIP にまとめて返す（TODO-050）。
+
+    候補は最大 7 行あり、全部欲しいときに 1 行ずつ押させたくない。
+    中身の名前は 1 件ずつのときと同じ `transposed_midi_name()`。
+
+    **ディスクには書かない**（1 件版と同じ理由。`webroot/midi/` を
+    太らせない）。移調した MIDI は 1 曲で数十 KB なので、まとめても
+    メモリ上で足りる。
+
+    圧縮は `ZIP_DEFLATED`。SMF はそこそこ縮むうえ、`zipfile` の既定
+    （`ZIP_STORED`）だと 7 個ぶんがそのままの大きさになる。
+
+    Args:
+        src (Path): 元の MIDI ファイル。
+        semitones_list (Sequence[int]): 移調する半音数の並び。
+
+    Returns:
+        bytes: ZIP のバイト列。
+    """
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for semitones in semitones_list:
+            zf.writestr(
+                transposed_midi_name(src.name, semitones),
+                transpose_midi_bytes(src, semitones),
+            )
+
+    data = buf.getvalue()
+    logger.debug('src={}, semitones_list={}, len(data)={}',
+                 src, list(semitones_list), len(data))
+    return data
+
+
+def transposed_zip_name(name: str) -> str:
+    """まとめて持ち帰る ZIP のファイル名（``holy.transposed.zip``）。
+
+    中に何の調が入っているかは名前に入れない（最大 7 個ぶんの符号付き
+    半音数が並ぶと読めなくなる）。中身のほうに `t+3` が付いている。
+    """
+    return f'{Path(name).stem}.transposed.zip'
 
 
 def playable_notes(conf: ModelConf) -> set[int]:
