@@ -6,8 +6,6 @@
 **`__main__.py` は click の定義だけの薄い層に保つ**という決めごとがある
 （テストしやすくするため）。ロジックはここに置く。
 """
-import contextlib
-import io
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -26,25 +24,6 @@ from .rollbook import (
     transpose_notices,
     transpose_score,
 )
-
-
-class _StdoutToDebug(io.TextIOBase):
-    """`print()` の出力を DEBUG のログへ回す。
-
-    `Player.play()` は**音符 1 つごとに `print()` する**。再生の進みを
-    見るためのもので、普段は要らない。ytmidilib は別リポジトリの
-    パッケージなので向こうを直せない。こちらで stdout を差し替えて、
-    `-d` を付けたときだけ見えるようにする。
-
-    **loguru は stderr に書く**（`mylog.loggerInit()` の既定）ので、
-    ここで stdout を奪っても書き戻りにはならない。
-    """
-
-    def write(self, text: str) -> int:
-        for line in text.splitlines():
-            if line.strip():
-                logger.debug(line)
-        return len(text)
 
 
 def transpose_summary(
@@ -322,8 +301,8 @@ class MidiApp:
             if note2scale(ni.note, base_note, notes) >= 0
         ]
 
-        # **どう変換したのかを INFO で残す。** 音符 1 つずつの表示は
-        # DEBUG（`_StdoutToDebug`）なので、既定ではこれだけが出る
+        # **どう変換したのかを INFO で残す。** 候補の表は `parse` だけなので、
+        # `play` ではこれが唯一の手がかりになる
         if self._chosen is not None:
             logger.info(
                 transpose_summary(
@@ -380,11 +359,11 @@ class MidiApp:
         if self._parse_only:
             return
 
-        # `Player.play()` は音符 1 つごとに print() する。ytmidilib は
-        # 別リポジトリなので向こうを直せない。stdout を差し替えて DEBUG に回す
-        with contextlib.redirect_stdout(_StdoutToDebug()):
-            self._player.play(parsed_data, self._pos_sec,
-                              self._sec_min, self._sec_max)
+        # `Player.play()` は音符 1 つごとに print() する。**これは
+        # ytmidilib（別リポジトリ）の出力なので、こちらでは触らない。**
+        # 黙らせたいなら向こうを直す（TODO-040）
+        self._player.play(parsed_data, self._pos_sec,
+                          self._sec_min, self._sec_max)
 
     def end(self) -> None:
         """後片付け（いまは何もしない）。`main()` と対で呼ぶ。"""

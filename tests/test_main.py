@@ -183,18 +183,13 @@ def test_play_logs_how_it_transposed_at_info(
 
 @patch('ytstreetorgan.apps.Parser')
 @patch('ytstreetorgan.apps.Player')
-def test_play_does_not_print_each_note(mock_player, mock_parser, tmp_path, capsys):
-    """`play` は音符 1 つずつを標準出力に並べない（DEBUG へ回す）。
+def test_play_does_not_list_parsed_notes(mock_player, mock_parser, tmp_path, capsys):
+    """`play` は解析した音符の一覧を標準出力に並べない（DEBUG へ回す）。
 
-    `Player.play()` 側の print も `_StdoutToDebug` で DEBUG に回るので、
-    既定の出力に音符の行は出ない。
+    **再生中に出る行は別の話。** あれは `ytmidilib` の `Player.play()` が
+    出しているもので、こちらでは触らない（TODO-040）。
     """
     from ytmidilib import NoteInfo
-
-    def noisy_play(*_args, **_kwargs):
-        print('0003.214 / start:0003.214 channel:00 note:067')
-
-    mock_player.return_value.play.side_effect = noisy_play
 
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, parse_only=False)
@@ -209,7 +204,6 @@ def test_play_does_not_print_each_note(mock_player, mock_parser, tmp_path, capsy
     app.end()
 
     out = capsys.readouterr().out
-    assert 'start:' not in out, '再生中の音符が標準出力に出ている'
     assert '(   0)' not in out, '解析した音符の一覧が標準出力に出ている'
     assert 'channel_set=' in out, 'まとめの 1 行は残すこと'
 
