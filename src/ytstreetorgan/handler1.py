@@ -9,7 +9,7 @@ from loguru import logger
 from . import __author__, __copyright_year__
 from .conf import Conf
 from .mylog import exmsg
-from .rollbook import RollBook, transpose_has_improvement, transpose_notices
+from .rollbook import RollBook
 from .storage import (
     UNKNOWN,
     book_from_svg,
@@ -18,6 +18,7 @@ from .storage import (
     resolve_in,
     size_text,
 )
+from .transpose import transpose_has_improvement, transpose_notices
 from .utils import get_size_unit
 
 
@@ -200,8 +201,7 @@ class Handler1(StorganBaseHandler):
 
     def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None,
                 src_size='', msg_error=False, reused_name='',
-                from_history=False, candidates=None, notices=None,
-                midi_name=''):
+                from_history=False, candidates=None, midi_name=''):
         """テンプレートを描画する。
 
         ``svg_data`` が空なら「ファイル選択」、そうでなければ「生成結果」の
@@ -231,12 +231,16 @@ class Handler1(StorganBaseHandler):
             candidates (list | None): 移調の候補（TODO-039）。**移調を
                 指定していなくても渡す。** 最適解が 1 つに定まらないことが
                 多いので、画面で比べて選び直せるようにするのが目的。
-            notices (list | None): 候補について添える文
-                （`transpose_notices()`）。
+                **添える文（`transpose_notices()`）はここで作る**ので、
+                呼ぶ側は候補だけ渡せばよい（TODO-043）。
             midi_name (str): 候補を押したときに作り直す元の MIDI 名。
                 これが無いと再生成できないので、候補も出さない。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
+
+        # 候補から決まるものは、呼ぶ側に作らせず**ここでまとめて作る**。
+        # 片方だけ渡し忘れる余地を無くすため（TODO-043）
+        notices = transpose_notices(candidates) if candidates else []
 
         # ±0 より良い候補が無ければ、表は出さず notices の一文だけにする
         # （TODO-041）。1 行だけの表は、選ぶものが無いのに選べそうに見える
@@ -266,7 +270,7 @@ class Handler1(StorganBaseHandler):
                          book=book or {},
                          src_size=src_size,
                          candidates=candidates or [],
-                         notices=notices or [],
+                         notices=notices,
                          show_transpose_table=show_transpose_table,
                          midi_name=midi_name,
                          msg=msg)
@@ -357,7 +361,6 @@ class Handler1(StorganBaseHandler):
             reused_name=file1_fname if reuse else '',
             book=self._book_of(rollbook, svg1_path),
             candidates=rollbook.candidates,
-            notices=transpose_notices(rollbook.candidates),
             midi_name=file1_fname,
         )
 
@@ -491,6 +494,5 @@ class Handler1(StorganBaseHandler):
             src_size=size_text(midi_path),
             book=self._book_of(rollbook, svg_path),
             candidates=rollbook.candidates,
-            notices=transpose_notices(rollbook.candidates),
             midi_name=midi_path.name,
         )

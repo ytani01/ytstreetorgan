@@ -8,21 +8,18 @@
 """
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Literal
 
 from loguru import logger
 from ytmidilib import NoteInfo, Parser, Player
 
 from .conf import Conf, ModelConf, validate_config
-from .rollbook import (
-    RollBook,
+from .rollbook import RollBook, merge_overlapping_notes, note2scale
+from .transpose import (
     TransposeCandidate,
-    merge_overlapping_notes,
-    note2scale,
-    select_transpose_rows,
-    transpose_candidates,
-    transpose_notes,
+    parse_transpose_arg,
+    plan_transpose,
     transpose_notices,
-    transpose_score,
 )
 
 
@@ -230,8 +227,11 @@ class MidiApp:
         self._sec_max = sec_max
         self._pos_sec = pos_sec
 
-        # 検証は RollBook と同じものを使う（メッセージも揃う）
-        self._transpose_req = RollBook._check_transpose(transpose)
+        # 検証は RollBook と同じものを使う（メッセージも揃う）。
+        # **型注釈は省かないこと**（`RollBook.__init__` と同じ理由）
+        self._transpose_req: int | Literal['auto'] = parse_transpose_arg(
+            transpose
+        )
         self._transpose = 0 if self._transpose_req == 'auto' else int(
             self._transpose_req
         )
@@ -280,25 +280,15 @@ class MidiApp:
         # 候補の割合はこの数を分母にしている。画面の「◯/◯」も揃えること
         self._merged_count = len(merged)
 
-        # `auto` は**絞る前**（生の候補）から選ぶ。絞り込みは見せるときの都合
-        raw_candidates = transpose_candidates(merged, self._model_conf)
-        if self._transpose_req == 'auto':
-            self._transpose = (
-                raw_candidates[0]['transpose'] if raw_candidates else 0
-            )
-
-        # 比べやすい数に絞る（TODO-041）。±0 といまの値は必ず残る
-        self._candidates = select_transpose_rows(
-            raw_candidates, merged, self._model_conf, self._transpose
-        )
-        self._chosen = transpose_score(
-            merged, self._model_conf, self._transpose
-        )
-
-        shifted = transpose_notes(merged, self._transpose)
+        # 移調をどうするかは `plan_transpose()` が決める（TODO-043）。
+        # `RollBook` も同じものを呼ぶので、手順はここに写さない
+        plan = plan_transpose(merged, self._model_conf, self._transpose_req)
+        self._transpose = plan.transpose
+        self._candidates = plan.candidates
+        self._chosen = plan.chosen
 
         converted = [
-            ni for ni in shifted
+            ni for ni in plan.notes
             if note2scale(ni.note, base_note, notes) >= 0
         ]
 

@@ -38,6 +38,28 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 この分離を守ること。共通オプション（`-h` / `-d` / `-V`）は `click_utils.py` の
 `click_common_opts()` デコレータで付与する。
 
+**モジュールの依存は一方向に保つ**（TODO-043）。
+
+```
+conf.py → transpose.py → rollbook.py → apps.py / handler1.py
+```
+
+| モジュール | 受け持ち |
+|---|---|
+| `transpose.py` | 移調。候補の作成・絞り込み・注記、`plan_transpose()` |
+| `rollbook.py` | 穴の位置と SVG。`note2scale()` / `HoleInfo` / `RollBook` |
+
+**`transpose.py` から `rollbook.py` を import しないこと**（循環する）。
+移調は「どの高さで鳴らすか」だけの話で、穴の位置や SVG とは関係が無い。
+`play`（`MidiApp`）もブックを作らずに移調するので、切り離してある。
+
+`note2scale()`（穴の列を決める）と `merge_overlapping_notes()`（TODO-038。
+実機は 1 音に 1 パイプ）は移調の都合ではないので `rollbook.py` に残す。
+
+**移調の手順は `plan_transpose()` に 1 つだけ。** `RollBook.parse()` と
+`MidiApp._convert_for_model()` が同じ手順をそれぞれ持っていて、
+食い違いかけた（TODO-043）。増やさないこと。
+
 ### 設定ファイル（リポジトリ外にある）
 
 モデル設定は `storgan-conf.json`。**リポジトリには含まれていない**。`Conf` が
