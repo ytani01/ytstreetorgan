@@ -70,6 +70,12 @@ def test_viewer_zoom_controls(
     page.click('#zoom-out')
     expect(page.locator('#zoomval')).to_have_text('71%')
 
+    # 上限は 10 倍（viewer.js の Z_MAX）。それ以上は押しても止まる
+    page.click('#fit-actual')
+    for _ in range(8):
+        page.click('#zoom-in')
+    expect(page.locator('#zoomval')).to_have_text('1000%')
+
     # 「全体」は横スクロールが消えるところまで縮む
     page.click('#fit-all')
     page.wait_for_function(
