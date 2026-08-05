@@ -289,13 +289,99 @@ def add_transpose_rows(
     return rows
 
 
+def transpose_has_improvement(candidates: list[TransposeCandidate]) -> bool:
+    """``candidates`` の中に、±0（移調しない）より良いものが 1 つでもあるか。
+
+    音符の数・音の長さの**どちらか**が ±0 を上回っていれば「改善」とする
+    （TODO-039 で決めた「両方を出して選べるように」の考え方に合わせる）。
+
+    Args:
+        candidates (list[TransposeCandidate]): 比べる候補。``±0``
+            （``transpose == 0``）の行を含んでいること。
+
+    Returns:
+        bool: 改善が無ければ False（候補が空、または ``±0`` の行が
+            無いときも False。呼び方が誤っているとみなす）。
+    """
+    zero = next((c for c in candidates if c['transpose'] == 0), None)
+    if zero is None:
+        return False
+
+    return any(
+        c['transpose'] != 0
+        and (c['note_pct'] > zero['note_pct'] or c['sec_pct'] > zero['sec_pct'])
+        for c in candidates
+    )
+
+
+def select_transpose_rows(
+    candidates: list[TransposeCandidate],
+    note_info: list[NoteInfo], conf: ModelConf, transpose: int,
+    limit: int = 5,
+) -> list[TransposeCandidate]:
+    """比べやすい数に絞った候補を返す（TODO-041）。
+
+    `transpose_candidates()` は調ごとに 1 つ＝常に最大 12 行を返すが、
+    多すぎて比べにくいうえ、下のほうには「移調しないほうがまし」な行まで
+    並ぶ。ここで、画面に**出す**行だけに絞る。
+
+    - **±0 より改善しない候補は出さない。** 音符の数・音の長さの
+      どちらか一方でも ±0 を超えていれば残す（`transpose_has_improvement()`
+      と同じ判定）。**閾値は設けない**（TODO-039 で決めたとおり、
+      「◯ ポイント以上」の妥当性を延々と調整することになるため）。
+      その代わり `limit` で数を絞る
+    - **改善する候補は、上位 `limit` 個まで**（既定 5）
+    - **±0 といまの移調量は、上の 2 つの規則から外して必ず残す。**
+      ±0 が無いと一度移調したら戻れず、いまの値が無いと自分がどれを
+      見ているのか分からなくなる（TODO-039）
+
+    `transpose_candidates()` が返すものの決まり（調ごとに 1 つ・最大 12 個）
+    はここでは変えない。絞り込みは見せるときの都合。
+
+    Args:
+        candidates (list[TransposeCandidate]): `transpose_candidates()` の
+            結果（絞り込み前）。
+        note_info (list[NoteInfo]): 成績を測る対象（移調する**前**）。
+        conf (ModelConf): 機種の設定。
+        transpose (int): いま適用している移調量。
+        limit (int): 改善する候補として残す最大数。
+
+    Returns:
+        list[TransposeCandidate]: 鳴らせる音符の多い順。
+            最大 ``limit + 2``（±0 といまの値のぶん）個。
+    """
+    rows = add_transpose_rows(candidates, note_info, conf, (0, transpose))
+    if not rows:
+        return rows
+
+    zero = next(c for c in rows if c['transpose'] == 0)
+
+    kept: list[TransposeCandidate] = []
+    for c in rows:
+        if c['transpose'] in (0, transpose):
+            continue
+        if c['note_pct'] > zero['note_pct'] or c['sec_pct'] > zero['sec_pct']:
+            kept.append(c)
+        if len(kept) >= limit:
+            break
+
+    result = [*kept, zero]
+    if transpose != 0:
+        result.append(next(c for c in rows if c['transpose'] == transpose))
+
+    result.sort(key=lambda c: (-c['notes'], c['key'] != 0, abs(c['transpose'])))
+    return result
+
+
 def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
     """候補について、利用者に言っておくべきことを返す（TODO-039）。
 
     **最適解は 1 つに定まらないことのほうが多い。** 一覧を出すだけでは
-    気づけない状況だけを言葉にする。
+    気づけない状況だけを言葉にする。**`candidates` は画面に出す行そのもの
+    を渡すこと**（TODO-041）。見送った行を「こちらが上です」と言っても
+    確かめられない。
 
-    - 全部同じ → 移調しても改善しない（黙って ±0 を返すと壊れて見える）
+    - 改善が無い → 移調しても改善しない（黙って ±0 を返すと壊れて見える）
     - 音符の数の 1 位と、音の長さの 1 位が違う → 両方を示す
     - 調を変えない案が 1 位でないが上位にある → それで済むと知らせる
 
@@ -308,10 +394,11 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
     notices: list[str] = []
     best = candidates[0]
 
-    if all(c['notes'] == best['notes'] for c in candidates):
+    if not transpose_has_improvement(candidates):
+        zero = next(c for c in candidates if c['transpose'] == 0)
         notices.append(
-            'どの調にしても鳴らせる音符の数は変わりません'
-            f'（{best["note_pct"]:.0f}%）。移調しても改善しません。'
+            'どの調に移調しても、鳴らせる音符は増えません'
+            f'（そのまま {zero["note_pct"]:.0f}%）。移調しても改善しません。'
         )
         return notices
 
@@ -721,11 +808,10 @@ class RollBook:
         移調を指定していなくても作る。**画面で比べてから選べるように
         するのが目的**なので、選ばなかった場合こそ要る。
 
-        調ごとの最良（最大 12 行）に加えて、**±0（移調しない）**と
-        **いま適用している移調量**の行が入る。`transpose_candidates()` は
-        調ごとに「いちばん音域に収まるオクターブ」しか返さないので、
-        これらは並ばないことが多い。**それだと表から ±0 に戻せなくなる**うえ、
-        「移調しないと何 % なのか」も分からない。
+        `select_transpose_rows()` で絞ったもの（TODO-041）。±0 より
+        改善する候補のうち上位 5 個に、**±0（移調しない）**と
+        **いま適用している移調量**を必ず加えてある。±0 が無いと表から
+        戻せなくなるうえ、「移調しないと何 % なのか」も分からない。
         """
         return self._candidates
 
@@ -855,21 +941,20 @@ class RollBook:
 
         # 候補は**移調を指定していなくても**作る。画面で比べてから選べる
         # ようにするのが目的なので、選ばなかった場合こそ要る。
-        self._candidates = transpose_candidates(note_info, self._conf)
+        # `auto` はここで選ぶので、**絞る前**（`transpose_candidates()` の
+        # 生の結果）から選ぶ。絞り込みは見せるときの都合で、選ぶのとは別
+        raw_candidates = transpose_candidates(note_info, self._conf)
 
         if self._transpose_req == 'auto':
             # 1 位を採る。候補が空（音符 0 個）なら移調しない
             self._transpose = (
-                self._candidates[0]['transpose'] if self._candidates else 0
+                raw_candidates[0]['transpose'] if raw_candidates else 0
             )
             logger.info('transpose=auto -> {}', self._transpose)
 
-        # 候補に無い移調量でも、次の 2 つは必ず行にする。
-        #
-        # - **±0（移調しない）** — 戻る先。無いと一度移調したら元に戻せない
-        # - **いま適用している値** — 手で指定した値は候補に無いことがある
-        self._candidates = add_transpose_rows(
-            self._candidates, note_info, self._conf, (0, self._transpose)
+        # 比べやすい数に絞る（TODO-041）。±0 といまの値は必ず残る
+        self._candidates = select_transpose_rows(
+            raw_candidates, note_info, self._conf, self._transpose
         )
 
         if self._transpose:

@@ -199,11 +199,20 @@
         <!-- 移調の候補（TODO-039）。**最適解は 1 つに定まらないことのほうが
              多い**ので、選んで作り直して見比べられるようにする。
              midi_name が無い（履歴の SVG をそのまま出した）ときは、
-             作り直す元が無いので出さない。 -->
+             作り直す元が無いので出さない。
+
+             ±0（移調しない）より良い候補が無ければ、表は出さず notices の
+             一文だけにする（TODO-041）。1 行だけの表は、選ぶものが無いのに
+             選べそうに見える。 -->
         {% if candidates and midi_name %}
         <section class="panel" id="transpose-panel">
           <h2>キー（移調）を変えて作り直す</h2>
           <div class="panel__body">
+            {% if not show_transpose_table %}
+            {% for notice in notices %}
+            <p class="field__hint"><b>{{ notice }}</b></p>
+            {% end %}
+            {% else %}
             <p class="field__hint">
               曲全体を上下させると、鳴らせる音符が増えることがあります。
               <b>調</b> が <code>±0</code> の行は<b>キーが変わりません</b>
@@ -255,6 +264,7 @@
                 </tbody>
               </table>
             </div>
+            {% end %}
           </div>
         </section>
         {% end %}

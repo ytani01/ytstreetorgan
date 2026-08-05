@@ -16,9 +16,9 @@ from .conf import Conf, ModelConf, validate_config
 from .rollbook import (
     RollBook,
     TransposeCandidate,
-    add_transpose_rows,
     merge_overlapping_notes,
     note2scale,
+    select_transpose_rows,
     transpose_candidates,
     transpose_notes,
     transpose_notices,
@@ -280,15 +280,16 @@ class MidiApp:
         # 候補の割合はこの数を分母にしている。画面の「◯/◯」も揃えること
         self._merged_count = len(merged)
 
-        self._candidates = transpose_candidates(merged, self._model_conf)
+        # `auto` は**絞る前**（生の候補）から選ぶ。絞り込みは見せるときの都合
+        raw_candidates = transpose_candidates(merged, self._model_conf)
         if self._transpose_req == 'auto':
             self._transpose = (
-                self._candidates[0]['transpose'] if self._candidates else 0
+                raw_candidates[0]['transpose'] if raw_candidates else 0
             )
 
-        # ±0（戻る先）といま使う値は、候補に無くても必ず行にする
-        self._candidates = add_transpose_rows(
-            self._candidates, merged, self._model_conf, (0, self._transpose)
+        # 比べやすい数に絞る（TODO-041）。±0 といまの値は必ず残る
+        self._candidates = select_transpose_rows(
+            raw_candidates, merged, self._model_conf, self._transpose
         )
         self._chosen = transpose_score(
             merged, self._model_conf, self._transpose

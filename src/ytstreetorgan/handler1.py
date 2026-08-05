@@ -9,7 +9,7 @@ from loguru import logger
 from . import __author__, __copyright_year__
 from .conf import Conf
 from .mylog import exmsg
-from .rollbook import RollBook, transpose_notices
+from .rollbook import RollBook, transpose_has_improvement, transpose_notices
 from .storage import (
     UNKNOWN,
     book_from_svg,
@@ -238,6 +238,12 @@ class Handler1(StorganBaseHandler):
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
+        # ±0 より良い候補が無ければ、表は出さず notices の一文だけにする
+        # （TODO-041）。1 行だけの表は、選ぶものが無いのに選べそうに見える
+        show_transpose_table = bool(candidates) and transpose_has_improvement(
+            candidates
+        )
+
         self.render_page(self.HTML_FILE,
                          title=self.TITLE,
                          nav='top',
@@ -261,6 +267,7 @@ class Handler1(StorganBaseHandler):
                          src_size=src_size,
                          candidates=candidates or [],
                          notices=notices or [],
+                         show_transpose_table=show_transpose_table,
                          midi_name=midi_name,
                          msg=msg)
 

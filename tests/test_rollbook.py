@@ -10,13 +10,16 @@ from ytstreetorgan.rollbook import (
     HOLE_COLOR,
     HoleInfo,
     RollBook,
+    add_transpose_rows,
     key_label,
     merge_overlapping_notes,
     model_note_range,
     note2scale,
     playable_notes,
+    select_transpose_rows,
     svg_square,
     transpose_candidates,
+    transpose_has_improvement,
     transpose_notes,
     transpose_notices,
 )
@@ -71,11 +74,13 @@ def test_rollbook_parse(mock_parser):
     # Mock the return value of Parser.parse
     mock_note1 = MagicMock()
     mock_note1.abs_time = 1.0
+    mock_note1.end_time = 3.0
     mock_note1.length.return_value = 2.0
     mock_note1.note = 60
 
     mock_note2 = MagicMock()
     mock_note2.abs_time = 2.0
+    mock_note2.end_time = 3.0
     mock_note2.length.return_value = 1.0
     mock_note2.note = 999  # Invalid note to test scale < 0
 
@@ -489,6 +494,89 @@ def test_transpose_candidates_range_is_not_a_fixed_width():
     assert best['transpose'] == -60
 
 
+def test_transpose_has_improvement_true_when_something_beats_zero():
+    """**前提: ±0 の行が入っていること。** `transpose_candidates()` の
+    生の結果は、調ごとの最良しか残さないので `transpose == 0` の行が
+    無いことがある（この曲もそう）。`add_transpose_rows()` で補ってから渡す。
+    """
+    ni = [_note(n) for n in (72, 74, 76)]   # ±0 では 1 つも鳴らない
+    raw = transpose_candidates(ni, DIATONIC_CONF)
+    cands = add_transpose_rows(raw, ni, DIATONIC_CONF, (0,))
+
+    assert transpose_has_improvement(cands)
+
+
+def test_transpose_has_improvement_false_when_nothing_beats_zero():
+    """12 音すべて使う曲は、どう移調しても増えない。"""
+    ni = [_note(n) for n in (65, 66, 67)]
+    raw = transpose_candidates(ni, CHROMATIC_CONF)
+    cands = add_transpose_rows(raw, ni, CHROMATIC_CONF, (0,))
+
+    assert not transpose_has_improvement(cands)
+
+
+def test_transpose_has_improvement_false_without_a_zero_row():
+    """±0 の行が無ければ、比べようが無いので False（呼び方の誤り）。"""
+    ni = [_note(72)]
+    cands = [c for c in transpose_candidates(ni, DIATONIC_CONF)
+             if c['transpose'] != 0]
+    assert not transpose_has_improvement(cands)
+
+
+def test_select_transpose_rows_drops_non_improving_candidates():
+    """改善しない候補は出さない（TODO-041）。"""
+    ni = [_note(n) for n in (72, 74, 76)]   # 黒鍵ばかり
+    raw = transpose_candidates(ni, DIATONIC_CONF)
+
+    rows = select_transpose_rows(raw, ni, DIATONIC_CONF, transpose=0)
+
+    zero = next(c for c in rows if c['transpose'] == 0)
+    for c in rows:
+        if c['transpose'] == 0:
+            continue
+        assert (c['note_pct'] > zero['note_pct']
+                or c['sec_pct'] > zero['sec_pct']), c
+
+
+def test_select_transpose_rows_caps_at_limit_plus_zero_and_current():
+    """改善する候補は最大 `limit` 個。±0 といまの値は別枠で必ず残る。"""
+    ni = [_note(n) for n in (72, 74, 76)]
+    raw = transpose_candidates(ni, DIATONIC_CONF)
+    zeroed = add_transpose_rows(raw, ni, DIATONIC_CONF, (0,))
+    assert transpose_has_improvement(zeroed), '前提が崩れている'
+
+    rows = select_transpose_rows(raw, ni, DIATONIC_CONF, transpose=0, limit=2)
+
+    others = [c for c in rows if c['transpose'] != 0]
+    assert len(others) <= 2
+    assert any(c['transpose'] == 0 for c in rows)
+
+
+def test_select_transpose_rows_keeps_zero_and_current_even_if_not_improving():
+    """±0 といまの値は、改善しなくても・上位に入らなくても必ず残す。"""
+    ni = [_note(n) for n in (65, 66, 67)]   # CHROMATIC では何も改善しない
+    raw = transpose_candidates(ni, CHROMATIC_CONF)
+    assert not transpose_has_improvement(raw), '前提が崩れている'
+
+    rows = select_transpose_rows(raw, ni, CHROMATIC_CONF, transpose=-3)
+
+    got = [c['transpose'] for c in rows]
+    assert 0 in got
+    assert -3 in got
+    assert len(got) == 2, f'改善が無いのに余分な行がある: {got}'
+
+
+def test_select_transpose_rows_does_not_change_transpose_candidates():
+    """絞り込みは `transpose_candidates()` の結果そのものを書き換えない。"""
+    ni = [_note(n) for n in (72, 74, 76)]
+    raw = transpose_candidates(ni, DIATONIC_CONF)
+    before = len(raw)
+
+    select_transpose_rows(raw, ni, DIATONIC_CONF, transpose=0)
+
+    assert len(raw) == before
+
+
 def test_transpose_notices_reports_no_improvement():
     """どう移調しても変わらない曲は、はっきりそう言う。
 
@@ -571,8 +659,9 @@ def test_rollbook_makes_candidates_even_without_transposing():
     rb.parse(midi_file)
 
     assert rb.transpose == 0
-    # 調ごとの 12 行 + いまの ±0（この曲では候補に挙がらない）
-    assert len(rb.candidates) == 13
+    # 改善する候補は上位 5 個まで（TODO-041）＋ いまの ±0 で 6 個
+    assert len(rb.candidates) == 6
+    assert rb.candidates[-1]['transpose'] == 0
 
 
 def test_rollbook_candidates_always_include_zero_and_current():

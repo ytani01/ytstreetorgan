@@ -242,6 +242,8 @@ def test_transpose_table_lets_you_compare_and_go_back(
 
     rows = table.locator('tbody tr')
     assert rows.count() >= 2
+    # 改善する候補は最大 5 個 + ±0 + いまの値（TODO-041）
+    assert rows.count() <= 7
 
     # 「移調しない」（移調量 0）の行は必ずある。無いと戻れない
     zero = table.locator('tbody tr button[data-transpose="0"]')
@@ -266,6 +268,39 @@ def test_transpose_table_lets_you_compare_and_go_back(
     assert page.locator('#svgbox svg').get_attribute(
         'data-storgan-transpose'
     ) == '0'
+
+
+def test_transpose_table_is_capped_and_hidden_when_no_improvement(
+    live_server: str, page: Page
+) -> None:
+    """候補は改善する 5 個 + ±0 に絞る。改善が無ければ表そのものを隠す（TODO-041）。
+
+    - `holy.mid` は '20notes a' で大きく改善するので、表は最大 6 行
+      （改善 5 ＋ ±0）に収まる
+    - `sounstest.mid` は '20notes a' でどう移調しても改善しないので、
+      表を出さず、注記の一文だけにする（1 行だけの表は選べそうに見える）
+    """
+    holy = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+    page.goto(f'{live_server}/')
+    page.select_option('#model', '20notes a')
+    page.set_input_files('input[name="file1"]', str(holy))
+    if page.locator('#same-name-modal').is_visible():
+        page.click('#btn-same-replace')
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    rows = page.locator('#transpose-table tbody tr')
+    expect(rows).to_have_count(6)   # 改善 5 個 + ±0
+
+    sounstest = REPO_ROOT / 'webroot' / 'midi' / 'sounstest.mid'
+    page.goto(f'{live_server}/')
+    page.select_option('#model', '20notes a')
+    page.set_input_files('input[name="file1"]', str(sounstest))
+    if page.locator('#same-name-modal').is_visible():
+        page.click('#btn-same-replace')
+    expect(page.locator('#svgbox svg')).to_be_visible()
+
+    expect(page.locator('#transpose-table')).to_have_count(0)
+    expect(page.locator('#transpose-panel')).to_contain_text('改善しません')
 
 
 def test_static_assets_load(live_server: str, page: Page) -> None:
