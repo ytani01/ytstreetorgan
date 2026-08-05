@@ -53,6 +53,59 @@ def note2scale(midi_note: int, base_note: int, notes: list[NoteConf]) -> int:
     return scale
 
 
+def merge_overlapping_notes(note_info: list[NoteInfo]) -> list[NoteInfo]:
+    """同じ MIDI ノート番号どうしの、時間が重なる／接している音をまとめる。
+
+    実機は 1 つの音に 1 本のパイプしか無く、同じ高さの音を複数のパートが
+    同時に鳴らしても鳴るのは 1 本だけになる。まとめておかないと、
+    ロールブックでは同じトラックに穴が重なって描かれるうえ、
+    `divide_length_by_max_len()` によるブリッジ分割が、重なった相手の
+    穴に食われて紙が分離することがある（TODO-038）。
+
+    **トラック単位ではなく MIDI ノート番号単位でまとめる。** オルガンの
+    音階に無い音（`note2scale()` が -1 を返す音）は `HoleInfo.y` が
+    `scale = -1` の 1 行に集まるが、それは別の高さの音どうしが同じ行を
+    共有しているだけで、ここで統合してよい重なりではない。ノート番号単位
+    なら機種の設定を読まずに済むので、`MidiApp`（`play -m`）からも使える。
+
+    Args:
+        note_info (list[NoteInfo]): 対象の音符（並び順は問わない）。
+
+    Returns:
+        list[NoteInfo]: `abs_time` の昇順に並んだ、統合後の音符。
+            統合した音の `velocity` は大きいほう、`channel` は先に
+            鳴り始めたほうを採る。
+    """
+    by_note: dict[int, list[NoteInfo]] = {}
+    for ni in note_info:
+        by_note.setdefault(ni.note, []).append(ni)
+
+    merged: list[NoteInfo] = []
+    for group in by_note.values():
+        group.sort(key=lambda ni: ni.abs_time)
+
+        cur = group[0]
+        for nxt in group[1:]:
+            # 音符の end_time は Parser.parse() が必ず埋めている
+            assert cur.end_time is not None and nxt.end_time is not None
+            if nxt.abs_time <= cur.end_time:
+                # 重なっている（内包も含む）か、接している
+                cur = NoteInfo(
+                    abs_time=cur.abs_time,
+                    channel=cur.channel,
+                    note=cur.note,
+                    velocity=max(cur.velocity, nxt.velocity),
+                    end_time=max(cur.end_time, nxt.end_time),
+                )
+            else:
+                merged.append(cur)
+                cur = nxt
+        merged.append(cur)
+
+    merged.sort(key=lambda ni: ni.abs_time)
+    return merged
+
+
 def svg_square(
     x: float, y: float, w: float, h: float,
     color: str, line_width: float = DEF_LINE_WIDTH,
@@ -290,6 +343,7 @@ class RollBook:
         self._width = 0.0
         self._height = float(self._conf.get('book_height', 0.0))
         self._holes: list[HoleInfo] = []
+        self._raw_note_count = 0
         self._svg = ''
 
         self._midi_parser = Parser()
@@ -308,7 +362,9 @@ class RollBook:
 
     # 穴の数は 2 段階で数える。
     #
-    # 1. 音符の数 — MIDI から読んだそのままの数
+    # 1. 音符の数 — MIDI から読んだ音符を `merge_overlapping_notes()` で
+    #    まとめたあとの数（同じ MIDI ノート番号どうしの重なりは実機で
+    #    1 本のパイプにしかならないため。TODO-038）
     # 2. 分割後の数 — 長い穴は `divide_length_by_max_len()` が
     #    `'bridge_threshold'` ごとに分割するので、音符 1 個が穴 2 個以上になる。
     #    実際に開ける数はこちら。同じ MIDI でも機種によって変わる
@@ -318,8 +374,16 @@ class RollBook:
 
     @property
     def note_count(self) -> int:
-        """MIDI から読んだ音符の数（実線と破線の合計）。"""
+        """MIDI から読んだ音符の数（統合後。実線と破線の合計）。"""
         return len(self._holes)
+
+    @property
+    def merged_count(self) -> int:
+        """`merge_overlapping_notes()` でまとめられて減った音符の数。
+
+        0 なら重なりが無かった（＝統合の影響なし）。
+        """
+        return self._raw_note_count - self.note_count
 
     @property
     def hole_note_count(self) -> int:
@@ -363,6 +427,7 @@ class RollBook:
             'notes': str(self.note_count),
             'hole-notes': str(self.hole_note_count),
             'off-scale-notes': str(self.off_scale_note_count),
+            'merged': str(self.merged_count),
         }
 
         return ''.join(
@@ -429,13 +494,20 @@ class RollBook:
         # 前回の結果を捨てる。持ち越すと穴が二重になる
         self._width = 0.0
         self._holes = []
+        self._raw_note_count = 0
         self._svg = ''
 
         # ytmidilib は外部パッケージなので str に落として渡す
         midi = self._midi_parser.parse(str(midi_file), channel)
         logger.debug('midi[channel_set]={}', midi['channel_set'])
 
-        for ni in midi['note_info']:
+        self._raw_note_count = len(midi['note_info'])
+        note_info = merge_overlapping_notes(midi['note_info'])
+        logger.debug(
+            'raw={}, merged={}', self._raw_note_count, len(note_info)
+        )
+
+        for ni in note_info:
             hi = HoleInfo(ni, self._conf)
             logger.debug('hi={}', hi)
 

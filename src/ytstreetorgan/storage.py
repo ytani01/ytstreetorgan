@@ -179,6 +179,8 @@ def book_from_svg(svg: str) -> dict:
     - `notes` / `hole_notes` / `off_scale_notes` — 分割**前**の音符の数。
       長い穴は 1 音符が `<path>` 複数本になり、**分割は多対一なので
       逆算できない**
+    - `merged` — `merge_overlapping_notes()` でまとめられて減った数
+      （TODO-038）。属性が無い古い SVG では None
     - `mm_per_sec` — 図には現れない
     - `model` — どの機種で作ったか。図には現れない
 
@@ -209,6 +211,7 @@ def book_from_svg(svg: str) -> dict:
         'off_scale': (
             len(_OFF_SCALE_COLOR_RE.findall(svg)) if has_svg else None
         ),
+        'merged': _meta_int(svg, 'merged'),
     }
     logger.debug('book={}', book)
     return book

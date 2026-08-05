@@ -399,6 +399,7 @@ class Handler1(StorganBaseHandler):
             'holes': rollbook.hole_count,
             'off_scale_notes': rollbook.off_scale_note_count,
             'off_scale': rollbook.off_scale_count,
+            'merged': rollbook.merged_count,
         }
 
     def _show_stored_svg(self, name: str) -> None:

@@ -145,6 +145,11 @@
                  数えられない（穴 1 個が path 複数本になるため）ので、
                  サーバーが数えて渡している。 -->
             <span>音符 <b>{{ book['notes'] if book['notes'] is not None else unknown }}</b></span>
+            {% if book.get('merged') %}
+            <span title="同じ高さの音が重なっていたため、1 つにまとめた数">
+              （うち統合 <b>{{ book['merged'] }}</b>）
+            </span>
+            {% end %}
             <span title="ブリッジで分割する前 → 分割したあと">
               穴 <b>{{ book['hole_notes'] if book['hole_notes'] is not None else unknown }}</b>
               → <b>{{ book['holes'] if book['holes'] is not None else unknown }}</b> 個

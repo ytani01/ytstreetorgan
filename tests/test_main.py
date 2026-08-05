@@ -97,3 +97,71 @@ def test_midi_app_class(mock_player, mock_parser, tmp_path):
 
     mock_parser_instance.parse.assert_called_once()
     mock_player.return_value.play.assert_called_once()
+
+
+@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.Player')
+def test_midi_app_converts_for_model(mock_player, mock_parser, tmp_path):
+    """`-m` 指定時は、機種の音階に無い音を再生前に取り除く。"""
+    from ytmidilib import NoteInfo
+
+    midi_file = str(tmp_path / "test.mid")
+    app = MidiApp(midi_file, model_name='34notes')
+
+    # base_note=41, offset=0 -> 41 は音階にある。40 は無い
+    on_scale = NoteInfo(abs_time=0.0, channel=0, note=41,
+                        velocity=100, end_time=1.0)
+    off_scale = NoteInfo(abs_time=0.0, channel=0, note=40,
+                         velocity=100, end_time=1.0)
+
+    mock_parser_instance = mock_parser.return_value
+    mock_parser_instance.parse.return_value = {
+        'note_info': [on_scale, off_scale],
+        'channel_set': {0}
+    }
+
+    app.main()
+    app.end()
+
+    played = mock_player.return_value.play.call_args[0][0]
+    assert played['note_info'] == [on_scale]
+
+
+def test_midi_app_unknown_model_raises(tmp_path):
+    midi_file = str(tmp_path / "test.mid")
+    with pytest.raises(ValueError):
+        MidiApp(midi_file, model_name='no-such-model')
+
+
+@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.Player')
+def test_midi_app_merges_overlapping_same_note(mock_player, mock_parser, tmp_path):
+    """`-m` 指定時は、同じ音の重なりも 1 つにまとめてから再生する（TODO-038）。
+
+    実機は 1 つの音に 1 本のパイプしか無く、複数パートが同じ高さを
+    同時に鳴らしても鳴るのは 1 本だけになるため。
+    """
+    from ytmidilib import NoteInfo
+
+    midi_file = str(tmp_path / "test.mid")
+    app = MidiApp(midi_file, model_name='34notes')
+
+    # base_note=41, offset=0 -> 41 は音階にある。2 つのパートが重ねて鳴らす
+    a = NoteInfo(abs_time=0.0, channel=0, note=41, velocity=60, end_time=1.5)
+    b = NoteInfo(abs_time=0.5, channel=1, note=41, velocity=100, end_time=1.0)
+
+    mock_parser_instance = mock_parser.return_value
+    mock_parser_instance.parse.return_value = {
+        'note_info': [a, b],
+        'channel_set': {0, 1}
+    }
+
+    app.main()
+    app.end()
+
+    played = mock_player.return_value.play.call_args[0][0]
+    assert len(played['note_info']) == 1
+    merged = played['note_info'][0]
+    assert merged.abs_time == 0.0
+    assert merged.end_time == 1.5
+    assert merged.velocity == 100

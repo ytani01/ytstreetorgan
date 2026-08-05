@@ -10,9 +10,10 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from loguru import logger
-from ytmidilib import Parser, Player
+from ytmidilib import NoteInfo, Parser, Player
 
-from .rollbook import RollBook
+from .conf import Conf, ModelConf, validate_config
+from .rollbook import RollBook, merge_overlapping_notes, note2scale
 
 
 class RollBookApp:
@@ -86,6 +87,8 @@ class MidiApp:
                  sec_min: float = Player.SEC_MIN,
                  sec_max: float = Player.SEC_MAX,
                  pos_sec: float = 0.0,
+                 model_name: str | None = None,
+                 conf_file: str = RollBook.DEF_CONF_FILE,
                  debug: bool = False) -> None:
         """解析器と再生器を用意する。
 
@@ -98,7 +101,16 @@ class MidiApp:
             sec_min (float): 音の長さの下限 [秒]。
             sec_max (float): 音の長さの上限 [秒]。
             pos_sec (float): 再生を始める位置 [秒]。
+            model_name (str | None): 機種名。指定すると、その機種の音階に
+                無い MIDI ノート番号を再生前に取り除く（ロールブックで
+                穴が開かないのと同じ音だけを鳴らす）。`None` なら変換しない。
+            conf_file (str): 設定ファイル。空なら `Conf` が探す。
+                `model_name` を指定したときだけ使う。
             debug (bool): 解析器と再生器にそのまま渡す。
+
+        Raises:
+            ValueError: `model_name` を指定したのに設定に無い、または
+                設定の項目が足りないとき（`RollBook.__init__` と同じ理由）。
         """
         self._dbg = debug
         logger.debug('midi_file={}, channel={}', midi_file, channel)
@@ -106,6 +118,7 @@ class MidiApp:
         logger.debug('rate={}', rate)
         logger.debug('sec_min/max={}/{}', sec_min, sec_max)
         logger.debug('pos_sec={}', pos_sec)
+        logger.debug('model_name={}, conf_file={}', model_name, conf_file)
 
         self._midi_file = midi_file
         self._channel = list(channel)
@@ -116,14 +129,62 @@ class MidiApp:
         self._sec_max = sec_max
         self._pos_sec = pos_sec
 
+        self._model_name = model_name
+        self._model_conf: ModelConf | None = None
+        if self._model_name:
+            conf = Conf(conf_file).get(self._model_name)
+            if not conf:
+                raise ValueError(f"機種 '{self._model_name}' は設定にありません")
+
+            valid, msg = validate_config(conf)
+            if not valid:
+                raise ValueError(
+                    f"機種 '{self._model_name}' の設定が不正です: {msg}"
+                )
+            self._model_conf = conf
+
         self._parser = Parser(debug=self._dbg)
         self._player = Player(rate=self._rate, debug=self._dbg)
+
+    def _convert_for_model(self, note_info: list[NoteInfo]) -> list[NoteInfo]:
+        """その機種の音階に無い MIDI ノート番号を取り除き、重なりをまとめる。
+
+        ロールブックはこうした音を破線で描くだけで穴を開けない
+        （`HoleInfo.scale` が -1）。再生でも同じ音だけを鳴らして、
+        実機で聞こえる音を確かめられるようにする。
+
+        あわせて `merge_overlapping_notes()` で、同じ MIDI ノート番号の
+        重なりを 1 つにまとめる（TODO-038）。実機は 1 つの音に 1 本の
+        パイプしか無いため、複数パートが同じ高さを同時に鳴らしても
+        実際に聞こえるのは 1 本ぶんになる。
+        """
+        assert self._model_conf is not None
+
+        base_note = self._model_conf.get('base_note', 0)
+        notes = self._model_conf.get('notes', [])
+
+        merged = merge_overlapping_notes(note_info)
+        converted = [
+            ni for ni in merged
+            if note2scale(ni.note, base_note, notes) >= 0
+        ]
+
+        logger.info(
+            '[{}] {} -> {} (merge) -> {} (scale)', self._model_name,
+            len(note_info), len(merged), len(converted)
+        )
+        return converted
 
     def main(self) -> None:
         """解析し、必要なら図にして出し、`parse_only` でなければ再生する。"""
         logger.debug('')
 
         parsed_data = self._parser.parse(self._midi_file, self._channel)
+
+        if self._model_conf is not None:
+            parsed_data['note_info'] = self._convert_for_model(
+                parsed_data['note_info']
+            )
 
         logger.debug('parsed_data=')
         if self._dbg or self._parse_only:

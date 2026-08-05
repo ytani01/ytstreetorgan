@@ -4,11 +4,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from ytmidilib import NoteInfo as RealNoteInfo
 
 from ytstreetorgan.rollbook import (
     HOLE_COLOR,
     HoleInfo,
     RollBook,
+    merge_overlapping_notes,
     note2scale,
     svg_square,
 )
@@ -239,6 +241,118 @@ def test_hole_count_grows_when_holes_are_divided_more():
     assert coarse.hole_note_count == fine.hole_note_count
     # 分割後は大きく違う
     assert fine.hole_count > coarse.hole_count * 2
+
+
+def test_merge_overlapping_notes_merges_overlap():
+    """TODO-038: 同じ MIDI ノート番号どうしの重なりを 1 つにまとめる。"""
+    a = RealNoteInfo(abs_time=1.0, channel=0, note=60, velocity=50, end_time=3.0)
+    b = RealNoteInfo(abs_time=2.0, channel=1, note=60, velocity=80, end_time=4.0)
+
+    merged = merge_overlapping_notes([a, b])
+
+    assert len(merged) == 1
+    assert merged[0].abs_time == 1.0
+    assert merged[0].end_time == 4.0
+    assert merged[0].velocity == 80   # 大きいほうを採る
+    assert merged[0].channel == 0     # 先に鳴り始めたほうを採る
+
+
+def test_merge_overlapping_notes_merges_containment():
+    """内包（短い音が長い音の中にすっぽり入る）でも end_time が縮まない。"""
+    a = RealNoteInfo(abs_time=1.0, channel=0, note=60, velocity=50, end_time=5.0)
+    b = RealNoteInfo(abs_time=2.0, channel=1, note=60, velocity=80, end_time=3.0)
+
+    merged = merge_overlapping_notes([a, b])
+
+    assert len(merged) == 1
+    assert merged[0].abs_time == 1.0
+    assert merged[0].end_time == 5.0
+
+
+def test_merge_overlapping_notes_merges_touching():
+    """前の終わり＝次の始まりも、繋がっている 1 つの穴としてまとめる。"""
+    a = RealNoteInfo(abs_time=1.0, channel=0, note=60, velocity=50, end_time=2.0)
+    b = RealNoteInfo(abs_time=2.0, channel=1, note=60, velocity=50, end_time=3.0)
+
+    merged = merge_overlapping_notes([a, b])
+
+    assert len(merged) == 1
+    assert merged[0].abs_time == 1.0
+    assert merged[0].end_time == 3.0
+
+
+def test_merge_overlapping_notes_keeps_different_notes_apart():
+    """違う MIDI ノート番号（違うトラック）はまとめない。"""
+    a = RealNoteInfo(abs_time=1.0, channel=0, note=60, velocity=50, end_time=3.0)
+    b = RealNoteInfo(abs_time=1.0, channel=1, note=61, velocity=50, end_time=3.0)
+
+    merged = merge_overlapping_notes([a, b])
+
+    assert len(merged) == 2
+
+
+def test_merge_overlapping_notes_keeps_non_overlapping_apart():
+    """重なっても接してもいなければまとめない。"""
+    a = RealNoteInfo(abs_time=1.0, channel=0, note=60, velocity=50, end_time=2.0)
+    b = RealNoteInfo(abs_time=5.0, channel=0, note=60, velocity=50, end_time=6.0)
+
+    merged = merge_overlapping_notes([a, b])
+
+    assert len(merged) == 2
+
+
+def test_merge_overlapping_notes_sorts_by_abs_time():
+    """入力の並び順に関わらず、結果は abs_time の昇順になる。"""
+    a = RealNoteInfo(abs_time=5.0, channel=0, note=60, velocity=50, end_time=6.0)
+    b = RealNoteInfo(abs_time=1.0, channel=0, note=60, velocity=50, end_time=2.0)
+
+    merged = merge_overlapping_notes([a, b])
+
+    assert [ni.abs_time for ni in merged] == [1.0, 5.0]
+
+
+@patch('ytstreetorgan.rollbook.Parser')
+def test_overlapping_same_note_does_not_starve_bridges(mock_parser):
+    """TODO-038: 統合前は、重なった相手の穴がブリッジを食い、紙が分離した。
+
+    A（0.0〜3.0秒）に B（1.0〜2.0秒）が内包される、同じ音階の音。
+    統合しないと A を分割したブリッジの一部が B の穴と重なって消える。
+    """
+    mock_instance = mock_parser.return_value
+
+    a = RealNoteInfo(abs_time=0.0, channel=0, note=60, velocity=50, end_time=3.0)
+    b = RealNoteInfo(abs_time=1.0, channel=1, note=60, velocity=80, end_time=2.0)
+
+    mock_instance.parse.return_value = {
+        'channel_set': {0, 1},
+        'note_info': [a, b],
+    }
+
+    rb = RollBook()
+    rb._conf = {
+        'base_note': 60,
+        'notes': [{'name': 'C', 'offset': 0}],
+        'mm_per_sec': 100,   # 300mm の全長になる
+        'pitch': 5,
+        'margin': 2,
+        'hole_height': 3,
+        'book_height': 100,
+        'bridge_threshold': 50,
+        'bridge_width': 1,
+    }
+
+    rb.parse('dummy.mid')
+
+    assert rb.note_count == 1
+    assert rb.merged_count == 1
+    assert len(rb._holes) == 1
+
+    segments = rb._holes[0].segments
+    assert len(segments) > 1   # 実際に分割されている
+
+    # ブリッジ（セグメント間の隙間）が重ならず、紙が繋がったままであること
+    for (_, end1), (start2, _) in zip(segments, segments[1:], strict=False):
+        assert end1 <= start2
 
 
 def test_css_selects_holes_by_the_same_color():

@@ -161,11 +161,24 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     type=float, default=Player.SEC_MAX, show_default=True,
     help=f'max sound length, default={Player.SEC_MAX}'
 )
+@click.option(
+    '--model', '-m', 'model_name', type=str,
+    default=None,
+    help='指定すると、その機種の音階に無い音を除いて再生する'
+)
+@click.option(
+    '--conf_file', '-f', 'conf_file',
+    type=click.Path(exists=False),
+    default=RollBook.DEF_CONF_FILE,
+    show_default=True,
+    help='configuration file（--model 指定時のみ使う）'
+)
 @click_common_opts(__version__)
 def play(
-    ctx, midi_file, pos_sec, channel, rate, sec_min, sec_max, debug
+    ctx, midi_file, pos_sec, channel, rate, sec_min, sec_max,
+    model_name, conf_file, debug
 ) -> None:
-    """MIDI を再生する。"""
+    """MIDI を再生する（-m で機種を指定すると、その機種用に変換して再生する）。"""
     loggerInit(debug)
     logger.debug('command={!r}', ctx.command.name)
 
@@ -173,6 +186,7 @@ def play(
         midi_file, channel, parse_only=False,
         visual_flag=False, rate=rate,
         sec_min=sec_min, sec_max=sec_max, pos_sec=pos_sec,
+        model_name=model_name, conf_file=conf_file,
         debug=debug
     )
     try:
