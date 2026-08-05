@@ -15,6 +15,17 @@ document.addEventListener("DOMContentLoaded", function () {
   // 知らせの出し方は alert.js（履歴と機種設定で共通）
   const showAlert = window.StorganAlert.show;
 
+  /* ---- 機種の選択を画面間で引き継ぐ（storgan.js / config_editor.js と同じ） */
+
+  if (modelSelect) {
+    const names = Array.from(modelSelect.options).map(o => o.value);
+    modelSelect.value = window.ModelStore.pick(names, modelSelect.value);
+
+    modelSelect.addEventListener("change", () => {
+      window.ModelStore.save(modelSelect.value);
+    });
+  }
+
   /* ---- 再生成 / 表示 ---------------------------------------------------- */
 
   // どちらも生成結果の画面を出すので、隠しフォームを submit して遷移する。
@@ -23,6 +34,9 @@ document.addEventListener("DOMContentLoaded", function () {
     $("act-model").value = modelSelect ? modelSelect.value : "";
     $("act-midi").value = field === "midi" ? name : "";
     $("act-svg").value = field === "svg" ? name : "";
+    if (modelSelect) {
+      window.ModelStore.save(modelSelect.value);
+    }
     form.submit();
   }
 
