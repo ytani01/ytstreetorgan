@@ -39,6 +39,19 @@
             <!-- 選んだ機種の寸法を先に見せる。生成してから気づくのを避けるため -->
             <dl class="specs" id="specs"></dl>
 
+            <!-- 移調（TODO-039）。「おまかせ」は鳴らせる音符が最多になる
+                 移調量を選ぶ。生成後に候補の表が出るので、そこで選び直せる -->
+            <label for="transpose">キー（移調）</label>
+            <select id="transpose" name="transpose">
+              <option value="0" selected>そのまま</option>
+              <option value="auto">おまかせ（鳴らせる音符を最多に）</option>
+            </select>
+            <p class="field__hint">
+              機種の音階に無い音は穴が開きません。曲全体を上下させると
+              鳴らせる音が増えることがあります。
+              <b>生成すると候補の一覧が出る</b>ので、そこで選び直せます。
+            </p>
+
             <hr>
             {% end %}
 
@@ -150,6 +163,11 @@
               （うち統合 <b>{{ book['merged'] }}</b>）
             </span>
             {% end %}
+            {% if book.get('transpose') %}
+            <span title="曲全体を上下させた半音数。下の表で変えられる">
+              移調 <b>{{ '%+d' % book['transpose'] }}</b> 半音
+            </span>
+            {% end %}
             <span title="ブリッジで分割する前 → 分割したあと">
               穴 <b>{{ book['hole_notes'] if book['hole_notes'] is not None else unknown }}</b>
               → <b>{{ book['holes'] if book['holes'] is not None else unknown }}</b> 個
@@ -177,6 +195,69 @@
           <span><i style="border-color: var(--hole);"></i>オルガンの音階にある音 — 穴を開けます</span>
           <span><i style="border-color: currentColor; border-top-style: dashed;"></i>オルガンの音階に無い音 — 破線で描き、穴は開けません</span>
         </div>
+
+        <!-- 移調の候補（TODO-039）。**最適解は 1 つに定まらないことのほうが
+             多い**ので、選んで作り直して見比べられるようにする。
+             midi_name が無い（履歴の SVG をそのまま出した）ときは、
+             作り直す元が無いので出さない。 -->
+        {% if candidates and midi_name %}
+        <section class="panel" id="transpose-panel">
+          <h2>キー（移調）を変えて作り直す</h2>
+          <div class="panel__body">
+            <p class="field__hint">
+              曲全体を上下させると、鳴らせる音符が増えることがあります。
+              <b>調</b> が <code>±0</code> の行は<b>キーが変わりません</b>
+              （オクターブだけの移動）。押すとその設定で作り直します。
+            </p>
+
+            {% for notice in notices %}
+            <p class="field__hint"><b>※ {{ notice }}</b></p>
+            {% end %}
+
+            <form id="transpose-form" method="post" action="{{urlprefix}}/">
+              <input type="hidden" name="model" value="{{ book['model'] }}">
+              <input type="hidden" name="stored_midi" value="{{ midi_name }}">
+              <input type="hidden" name="transpose" id="transpose-value" value="">
+            </form>
+
+            <div class="hist-scroll">
+              <table class="hist" id="transpose-table">
+                <thead>
+                  <tr>
+                    <th>調</th>
+                    <th>オクターブ</th>
+                    <th>移調</th>
+                    <th>音符</th>
+                    <th title="鳴らせる音符の長さ（秒）の合計。ブック全体の演奏時間とは別">音の長さ</th>
+                    <th>移調後の音域</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in candidates %}
+                  <tr{% if c['transpose'] == book['transpose'] %} class="is-current"{% end %}>
+                    <!-- 調の欄が ±0 でも「変更なし」ではない。オクターブが
+                         動いていればキーだけが同じ。両方 ±0 の行にだけ
+                         「移調しない」と添える -->
+                    <td class="hist__name">
+                      <button type="button" class="hist__open"
+                        data-transpose="{{ c['transpose'] }}"
+                        title="この設定で作り直す"
+                        aria-label="調 {{ c['key'] }}、{{ c['octave'] }} オクターブで作り直す"
+                        >{% if c['key'] == 0 %}±0{% else %}{{ '%+d' % c['key'] }}{% end %}</button>
+                    </td>
+                    <td class="num">{% if c['octave'] == 0 %}±0{% else %}{{ '%+d' % c['octave'] }}{% end %}</td>
+                    <td class="num">{% if c['transpose'] == 0 %}移調しない{% else %}{{ '%+d' % c['transpose'] }}{% end %}</td>
+                    <td class="num">{{ '%.1f' % c['note_pct'] }}%</td>
+                    <td class="num">{{ '%.1f' % c['sec_pct'] }}%</td>
+                    <td class="num">{{ c['lo'] }}–{{ c['hi'] }}</td>
+                  </tr>
+                  {% end %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        {% end %}
       </section>
       {% end %}
 {% end %}

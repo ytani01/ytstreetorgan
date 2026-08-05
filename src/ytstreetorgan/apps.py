@@ -13,7 +13,57 @@ from loguru import logger
 from ytmidilib import NoteInfo, Parser, Player
 
 from .conf import Conf, ModelConf, validate_config
-from .rollbook import RollBook, merge_overlapping_notes, note2scale
+from .rollbook import (
+    RollBook,
+    TransposeCandidate,
+    merge_overlapping_notes,
+    note2scale,
+    transpose_candidates,
+    transpose_notes,
+    transpose_notices,
+)
+
+
+def format_transpose_table(
+    candidates: Sequence[TransposeCandidate], chosen: int | None = None
+) -> str:
+    """移調の候補を、端末に出す表にする（TODO-039）。
+
+    **移調量を生で見せない。** 「-18」では何が起きるか分からないので、
+    「調 +6・2 オクターブ下」に分けて出す。並び順は鳴らせる音符の数。
+
+    Args:
+        candidates (Sequence[TransposeCandidate]): `transpose_candidates()`
+            が返したもの。
+        chosen (int | None): いま選ばれている移調量。その行に印を付ける。
+
+    Returns:
+        str: 複数行の文字列（末尾に改行は付けない）。
+    """
+    if not candidates:
+        return '移調の候補がありません（音符が読めませんでした）。'
+
+    lines = [
+        '  調  ｵｸﾀｰﾌﾞ   移調     音符   音の長さ      音域',
+        '  ---------------------------------------------------',
+    ]
+    for c in candidates:
+        mark = ''
+        if c['key'] == 0:
+            mark += ' 調そのまま'
+        if chosen is not None and c['transpose'] == chosen:
+            mark += ' ←選択'
+
+        lines.append(
+            f'  {c["key"]:+3d} {c["octave"]:+6d} {c["transpose"]:+6d} '
+            f'{c["note_pct"]:7.1f}% {c["sec_pct"]:8.1f}% '
+            f'{c["lo"]:5d}-{c["hi"]:<5d}{mark}'
+        )
+
+    for notice in transpose_notices(list(candidates)):
+        lines.append(f'  * {notice}')
+
+    return '\n'.join(lines)
 
 
 class RollBookApp:
@@ -29,6 +79,7 @@ class RollBookApp:
         model_name: str,
         channel: Sequence[int] = (),
         out_file: str | None = None,
+        transpose: int | str = 0,
     ) -> None:
         """出力先を決めて、`RollBook` を用意する。
 
@@ -39,6 +90,8 @@ class RollBookApp:
             channel (Sequence[int]): 対象の MIDI チャンネル（空なら全部）。
             out_file (str | None): 出力先。**省略すると
                 `DEF_OUT_DIR` に「MIDI 名 + .svg」で書く。**
+            transpose (int | str): 移調する半音数。``'auto'`` なら
+                候補の 1 位を選ぶ（TODO-039）。
 
         Note:
             version と debug は受け取っていたが使っていなかったので外した
@@ -48,11 +101,13 @@ class RollBookApp:
         logger.debug('model_name={}', model_name)
         logger.debug('channel={}', channel)
         logger.debug('out_file={}', out_file)
+        logger.debug('transpose={}', transpose)
 
         self._midi_file = midi_file
         self._conf_file = conf_file
         self._model_name = model_name
         self._channel = list(channel)
+        self._transpose = transpose
 
         if out_file:
             # 明示指定されたパスはそのまま使う（相対パスは cwd 基準）
@@ -63,15 +118,27 @@ class RollBookApp:
             self._out_file = str((Path(self.DEF_OUT_DIR) / name).expanduser())
         logger.debug('[fix] out_file={}', self._out_file)
 
-        self._rollbook = RollBook(self._model_name, self._conf_file)
+        self._rollbook = RollBook(
+            self._model_name, self._conf_file, self._transpose
+        )
 
     def main(self) -> None:
-        """MIDI を解析して SVG を書き出す。"""
+        """MIDI を解析して SVG を書き出す。
+
+        移調の候補は**指定の有無によらず**出す。1 つに定まらないことが
+        多いので、選び直せるように見せておく（TODO-039）。
+        """
         logger.debug('')
 
         self._rollbook.parse_to_file(
             self._midi_file, self._out_file, self._channel
         )
+
+        rb = self._rollbook
+        print(f'移調: {rb.transpose:+d} 半音'
+              f'  鳴らせる音符: {rb.hole_note_count}/{rb.note_count}',
+              flush=True)
+        print(format_transpose_table(rb.candidates, rb.transpose), flush=True)
 
     def end(self) -> None:
         """後片付け（いまは何もしない）。`main()` と対で呼ぶ。"""
@@ -89,6 +156,7 @@ class MidiApp:
                  pos_sec: float = 0.0,
                  model_name: str | None = None,
                  conf_file: str = RollBook.DEF_CONF_FILE,
+                 transpose: int | str = 0,
                  debug: bool = False) -> None:
         """解析器と再生器を用意する。
 
@@ -106,11 +174,15 @@ class MidiApp:
                 穴が開かないのと同じ音だけを鳴らす）。`None` なら変換しない。
             conf_file (str): 設定ファイル。空なら `Conf` が探す。
                 `model_name` を指定したときだけ使う。
+            transpose (int | str): 移調する半音数。``'auto'`` なら候補の
+                1 位を選ぶ（TODO-039）。**`model_name` と併用する**
+                （どの機種に合わせるか決まらないと候補を出せない）。
             debug (bool): 解析器と再生器にそのまま渡す。
 
         Raises:
-            ValueError: `model_name` を指定したのに設定に無い、または
-                設定の項目が足りないとき（`RollBook.__init__` と同じ理由）。
+            ValueError: `model_name` を指定したのに設定に無い、設定の項目が
+                足りない（`RollBook.__init__` と同じ理由）、または
+                `transpose` が整数にも ``'auto'`` にもならないとき。
         """
         self._dbg = debug
         logger.debug('midi_file={}, channel={}', midi_file, channel)
@@ -119,6 +191,7 @@ class MidiApp:
         logger.debug('sec_min/max={}/{}', sec_min, sec_max)
         logger.debug('pos_sec={}', pos_sec)
         logger.debug('model_name={}, conf_file={}', model_name, conf_file)
+        logger.debug('transpose={}', transpose)
 
         self._midi_file = midi_file
         self._channel = list(channel)
@@ -129,8 +202,16 @@ class MidiApp:
         self._sec_max = sec_max
         self._pos_sec = pos_sec
 
+        # 検証は RollBook と同じものを使う（メッセージも揃う）
+        self._transpose_req = RollBook._check_transpose(transpose)
+        self._transpose = 0 if self._transpose_req == 'auto' else int(
+            self._transpose_req
+        )
+
         self._model_name = model_name
         self._model_conf: ModelConf | None = None
+        self._candidates: list[TransposeCandidate] = []
+        self._merged_count = 0
         if self._model_name:
             conf = Conf(conf_file).get(self._model_name)
             if not conf:
@@ -147,16 +228,19 @@ class MidiApp:
         self._player = Player(rate=self._rate, debug=self._dbg)
 
     def _convert_for_model(self, note_info: list[NoteInfo]) -> list[NoteInfo]:
-        """その機種の音階に無い MIDI ノート番号を取り除き、重なりをまとめる。
+        """機種に合わせて変換する。重なりの統合 → 移調 → 音階での絞り込み。
 
-        ロールブックはこうした音を破線で描くだけで穴を開けない
+        ロールブックは音階に無い音を破線で描くだけで穴を開けない
         （`HoleInfo.scale` が -1）。再生でも同じ音だけを鳴らして、
         実機で聞こえる音を確かめられるようにする。
 
-        あわせて `merge_overlapping_notes()` で、同じ MIDI ノート番号の
-        重なりを 1 つにまとめる（TODO-038）。実機は 1 つの音に 1 本の
-        パイプしか無いため、複数パートが同じ高さを同時に鳴らしても
-        実際に聞こえるのは 1 本ぶんになる。
+        `merge_overlapping_notes()` は、同じ MIDI ノート番号の重なりを
+        1 つにまとめる（TODO-038）。実機は 1 つの音に 1 本のパイプしか
+        無いため、複数パートが同じ高さを同時に鳴らしても実際に聞こえるのは
+        1 本ぶんになる。
+
+        移調（TODO-039）は `'auto'` なら候補の 1 位を選ぶ。**候補は移調を
+        指定していなくても作る**（表として見せるため）。
         """
         assert self._model_conf is not None
 
@@ -164,14 +248,27 @@ class MidiApp:
         notes = self._model_conf.get('notes', [])
 
         merged = merge_overlapping_notes(note_info)
+        # 候補の割合はこの数を分母にしている。画面の「◯/◯」も揃えること
+        self._merged_count = len(merged)
+
+        self._candidates = transpose_candidates(merged, self._model_conf)
+        if self._transpose_req == 'auto':
+            self._transpose = (
+                self._candidates[0]['transpose'] if self._candidates else 0
+            )
+            logger.info('transpose=auto -> {}', self._transpose)
+
+        shifted = transpose_notes(merged, self._transpose)
+
         converted = [
-            ni for ni in merged
+            ni for ni in shifted
             if note2scale(ni.note, base_note, notes) >= 0
         ]
 
         logger.info(
-            '[{}] {} -> {} (merge) -> {} (scale)', self._model_name,
-            len(note_info), len(merged), len(converted)
+            '[{}] {} -> {} (merge) -> {} (transpose={:+d}, scale)',
+            self._model_name,
+            len(note_info), len(merged), len(converted), self._transpose
         )
         return converted
 
@@ -184,6 +281,16 @@ class MidiApp:
         if self._model_conf is not None:
             parsed_data['note_info'] = self._convert_for_model(
                 parsed_data['note_info']
+            )
+            # 分母は**統合後**の数。候補の割合と揃えないと食い違って見える
+            print(f'機種: {self._model_name}'
+                  f'  移調: {self._transpose:+d} 半音'
+                  f'  鳴らせる音符: {len(parsed_data["note_info"])}'
+                  f'/{self._merged_count}',
+                  flush=True)
+            print(
+                format_transpose_table(self._candidates, self._transpose),
+                flush=True
             )
 
         logger.debug('parsed_data=')

@@ -226,6 +226,48 @@ def test_holes_are_readable_on_screen_only(
     assert 'fill:none' in res.text()
 
 
+def test_transpose_table_lets_you_compare_and_go_back(
+    live_server: str, page: Page, sample_midi: Path
+) -> None:
+    """移調の候補を押すと作り直され、±0 へ戻れる（TODO-039）。
+
+    **最適解は 1 つに定まらないことのほうが多い**ので、実際に作って
+    見比べられることが要。戻れないと比較にならないため、`±0` の行は
+    候補に挙がらなくても必ず出す。
+    """
+    upload_midi(page, live_server, sample_midi)
+
+    table = page.locator('#transpose-table')
+    expect(table).to_be_visible()
+
+    rows = table.locator('tbody tr')
+    assert rows.count() >= 2
+
+    # 「移調しない」（移調量 0）の行は必ずある。無いと戻れない
+    zero = table.locator('tbody tr button[data-transpose="0"]')
+    expect(zero).to_have_count(1)
+
+    # いま出しているブックの行が分かる（最初は移調なし）
+    expect(table.locator('tbody tr.is-current')).to_have_count(1)
+
+    # 1 位の候補で作り直す
+    top = rows.first.locator('button[data-transpose]')
+    best = top.get_attribute('data-transpose')
+    assert best is not None
+    top.click()
+
+    expect(page.locator('#svgbox svg')).to_be_visible()
+    svg_el = page.locator('#svgbox svg')
+    assert svg_el.get_attribute('data-storgan-transpose') == best
+
+    # 戻れること
+    page.locator('#transpose-table button[data-transpose="0"]').click()
+    expect(page.locator('#svgbox svg')).to_be_visible()
+    assert page.locator('#svgbox svg').get_attribute(
+        'data-storgan-transpose'
+    ) == '0'
+
+
 def test_static_assets_load(live_server: str, page: Page) -> None:
     """CSS/JS が 404 しない。
 

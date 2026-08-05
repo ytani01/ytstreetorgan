@@ -10,10 +10,43 @@ from ytstreetorgan.rollbook import (
     HOLE_COLOR,
     HoleInfo,
     RollBook,
+    key_label,
     merge_overlapping_notes,
+    model_note_range,
     note2scale,
+    playable_notes,
     svg_square,
+    transpose_candidates,
+    transpose_notes,
+    transpose_notices,
 )
+
+# 移調のテスト用。C から 1 オクターブの、白鍵だけの機種
+DIATONIC_CONF = {
+    'base_note': 60,
+    'notes': [
+        {'name': 'C', 'offset': 0},
+        {'name': 'D', 'offset': 2},
+        {'name': 'E', 'offset': 4},
+        {'name': 'F', 'offset': 5},
+        {'name': 'G', 'offset': 7},
+        {'name': 'A', 'offset': 9},
+        {'name': 'B', 'offset': 11},
+    ],
+}
+
+
+# 12 音すべてを 2 オクターブぶん鳴らせる機種。曲がこの音域に収まっていれば
+# **どの調でも 100% 鳴る**ので、「移調しても改善しない」場合を作れる
+CHROMATIC_CONF = {
+    'base_note': 60,
+    'notes': [{'name': str(i), 'offset': i} for i in range(24)],
+}
+
+
+def _note(note, start=0.0, end=1.0, channel=0, velocity=100):
+    return RealNoteInfo(abs_time=start, channel=channel, note=note,
+                        velocity=velocity, end_time=end)
 
 
 def test_note2scale():
@@ -353,6 +386,230 @@ def test_overlapping_same_note_does_not_starve_bridges(mock_parser):
     # ブリッジ（セグメント間の隙間）が重ならず、紙が繋がったままであること
     for (_, end1), (start2, _) in zip(segments, segments[1:], strict=False):
         assert end1 <= start2
+
+
+def test_playable_notes_and_range():
+    """機種が鳴らせる MIDI ノート番号の集合と、その最低・最高。"""
+    assert playable_notes(DIATONIC_CONF) == {60, 62, 64, 65, 67, 69, 71}
+    assert model_note_range(DIATONIC_CONF) == (60, 71)
+
+
+def test_model_note_range_without_tracks():
+    """トラックが 1 つも無ければ、最低も最高も base_note。"""
+    assert model_note_range({'base_note': 55, 'notes': []}) == (55, 55)
+
+
+def test_key_label_folds_into_minus5_to_plus6():
+    """調の動きは -5〜+6 で表す（+7 は -5 と同じ調で、下げるほうが近い）。"""
+    assert key_label(0) == 0
+    assert key_label(12) == 0     # オクターブは調を変えない
+    assert key_label(-12) == 0
+    assert key_label(3) == 3
+    assert key_label(7) == -5     # 上に 7 = 下に 5
+    assert key_label(6) == 6      # ちょうど半分は + のまま
+    assert key_label(-18) == 6
+
+
+def test_transpose_notes_shifts_every_note():
+    """全 MIDI ノート番号に同じ数を足す。他の項目は変えない。"""
+    src = [_note(60, 0.0, 1.0), _note(64, 1.0, 2.5, channel=3)]
+
+    out = transpose_notes(src, -12)
+
+    assert [ni.note for ni in out] == [48, 52]
+    assert [ni.abs_time for ni in out] == [0.0, 1.0]
+    assert [ni.end_time for ni in out] == [1.0, 2.5]
+    assert out[1].channel == 3
+    # 元のリストは変えない
+    assert [ni.note for ni in src] == [60, 64]
+
+
+def test_transpose_notes_zero_copies():
+    """0 半音でも写しを返す（呼ぶ側が破壊しても元が残る）。"""
+    src = [_note(60)]
+    out = transpose_notes(src, 0)
+
+    assert out is not src
+    assert out[0].note == 60
+
+
+def test_transpose_candidates_are_one_per_key():
+    """候補は調ごとに 1 つずつ。同じ調が 2 行出てはいけない。"""
+    ni = [_note(n) for n in (72, 74, 76)]
+
+    cands = transpose_candidates(ni, DIATONIC_CONF)
+
+    keys = [c['key'] for c in cands]
+    assert len(keys) == len(set(keys)), '同じ調が重複している'
+    assert all(-5 <= k <= 6 for k in keys)
+    # transpose は key と octave から復元できる
+    for c in cands:
+        assert c['transpose'] == c['key'] + c['octave'] * 12
+
+
+def test_transpose_candidates_are_sorted_by_note_count():
+    """鳴らせる音符の多い順に並ぶ。"""
+    ni = [_note(n) for n in (73, 75, 78)]   # 黒鍵ばかり
+
+    cands = transpose_candidates(ni, DIATONIC_CONF)
+
+    counts = [c['notes'] for c in cands]
+    assert counts == sorted(counts, reverse=True)
+
+
+def test_transpose_candidates_finds_the_octave_shift():
+    """音域から外れているだけなら、調を変えずにオクターブで収まる。"""
+    # C-D-E の 2 オクターブ上。調は合っているが音域外
+    ni = [_note(n) for n in (84, 86, 88)]
+
+    cands = transpose_candidates(ni, DIATONIC_CONF)
+
+    best = cands[0]
+    assert best['note_pct'] == 100.0
+    assert best['key'] == 0, '調を変えずに済むはず'
+    assert best['transpose'] == -24
+    assert (best['lo'], best['hi']) == (60, 64)
+
+
+def test_transpose_candidates_empty_for_no_notes():
+    assert transpose_candidates([], DIATONIC_CONF) == []
+
+
+def test_transpose_candidates_range_is_not_a_fixed_width():
+    """探索範囲は曲と機種の音域から決める。
+
+    **固定幅（±24 など）にすると、遠く離れた曲で端に張り付く。**
+    ここでは 4 オクターブ以上高い曲を置いて、それでも見つかることを見る。
+    """
+    ni = [_note(n) for n in (120, 122, 124)]   # 5 オクターブ上
+
+    best = transpose_candidates(ni, DIATONIC_CONF)[0]
+
+    assert best['note_pct'] == 100.0
+    assert best['transpose'] == -60
+
+
+def test_transpose_notices_reports_no_improvement():
+    """どう移調しても変わらない曲は、はっきりそう言う。
+
+    12 音すべて鳴らせる機種に、その音域へ収まる曲を渡すと、どの調でも
+    100% 鳴る（＝選ぶ意味が無い）。
+    """
+    ni = [_note(n) for n in (65, 66, 67)]
+
+    cands = transpose_candidates(ni, CHROMATIC_CONF)
+    assert all(c['note_pct'] == 100.0 for c in cands), '前提が崩れている'
+
+    notices = transpose_notices(cands)
+
+    assert len(notices) == 1
+    assert '改善しません' in notices[0]
+
+
+def test_transpose_notices_reports_metric_disagreement():
+    """音符の数の 1 位と、音の長さの 1 位が違うときは両方を示す。
+
+    短い音 2 つが鳴る案と、長い音が鳴る案を作って食い違わせる。
+    """
+    ni = [
+        _note(60, 0.0, 0.1),     # 短い
+        _note(62, 1.0, 1.1),     # 短い
+        _note(61, 2.0, 12.0),    # 長い（調を動かさないと鳴らない）
+    ]
+
+    cands = transpose_candidates(ni, DIATONIC_CONF)
+    best = cands[0]
+    best_sec = max(cands, key=lambda c: c['sec_pct'])
+    assert best['transpose'] != best_sec['transpose'], '前提が崩れている'
+
+    notices = transpose_notices(cands)
+
+    assert any('音の長さでは' in n for n in notices)
+
+
+def test_transpose_notices_empty_for_no_candidates():
+    assert transpose_notices([]) == []
+
+
+def test_rollbook_applies_the_transpose():
+    """`transpose` を渡すと、その半音数だけずれた穴になる。"""
+    midi_file = Path('webroot/midi/holy.mid')
+    if not midi_file.exists():
+        return
+
+    plain = RollBook('20notes a')
+    plain.parse(midi_file)
+
+    shifted = RollBook('20notes a', transpose=-24)
+    svg = shifted.parse(midi_file)
+
+    assert shifted.transpose == -24
+    assert shifted.hole_note_count > plain.hole_note_count
+    assert 'data-storgan-transpose="-24"' in svg
+
+
+def test_rollbook_auto_picks_the_best_candidate():
+    """`'auto'` は候補の 1 位を採り、`transpose` に実際の値が入る。"""
+    midi_file = Path('webroot/midi/holy.mid')
+    if not midi_file.exists():
+        return
+
+    rb = RollBook('20notes a', transpose='auto')
+    rb.parse(midi_file)
+
+    assert rb.transpose == rb.candidates[0]['transpose']
+    assert rb.transpose == -24   # 調そのままで 2 オクターブ下
+
+
+def test_rollbook_makes_candidates_even_without_transposing():
+    """移調しなくても候補は作る。**選び直せるように見せるのが目的。**"""
+    midi_file = Path('webroot/midi/holy.mid')
+    if not midi_file.exists():
+        return
+
+    rb = RollBook('20notes a')
+    rb.parse(midi_file)
+
+    assert rb.transpose == 0
+    # 調ごとの 12 行 + いまの ±0（この曲では候補に挙がらない）
+    assert len(rb.candidates) == 13
+
+
+def test_rollbook_candidates_always_include_zero_and_current():
+    """表に ±0 といまの値が必ずあること。
+
+    `transpose_candidates()` は調ごとに「いちばん音域に収まるオクターブ」
+    しか返さないので、`±0` は並ばないことが多い。**無いと、一度移調したら
+    元に戻せない。**
+    """
+    midi_file = Path('webroot/midi/holy.mid')
+    if not midi_file.exists():
+        return
+
+    for t in (0, -24, -3):
+        rb = RollBook('20notes a', transpose=t)
+        rb.parse(midi_file)
+
+        got = [c['transpose'] for c in rb.candidates]
+        assert t in got, f'いまの値 {t} が表に無い'
+        assert 0 in got, f'±0 が表に無い（t={t} から戻れない）'
+        # 同じ移調量が二重に並ばない
+        assert len(got) == len(set(got)), t
+        # 足した行も並び順（音符の多い順）を守る
+        counts = [c['notes'] for c in rb.candidates]
+        assert counts == sorted(counts, reverse=True), t
+
+
+def test_rollbook_refuses_a_bad_transpose():
+    """整数にも 'auto' にもならない値は、作る前に断る。"""
+    with pytest.raises(ValueError, match='整数'):
+        RollBook('20notes a', transpose='なんとなく')
+
+
+def test_rollbook_accepts_a_numeric_string():
+    """Web のフォームは文字列で送ってくるので、数字の文字列も通す。"""
+    rb = RollBook('20notes a', transpose='-12')
+    assert rb.transpose == -12
 
 
 def test_css_selects_holes_by_the_same_color():

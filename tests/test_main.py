@@ -75,6 +75,13 @@ def test_rollbook_app_class(mock_rollbook, tmp_path):
 
     mock_instance.parse_to_file.side_effect = fake_parse_to_file
 
+    # main() は生成後に移調の候補を表にして出す（TODO-039）ので、
+    # そこで読む値も持たせる（MagicMock のままだと書式指定で落ちる）
+    mock_instance.transpose = 0
+    mock_instance.hole_note_count = 1
+    mock_instance.note_count = 1
+    mock_instance.candidates = []
+
     app.main()
     app.end()
 

@@ -546,6 +546,15 @@ table.hist th:last-child, table.hist td:last-child { padding-right: .7rem; }
 .hist__open:focus-visible { outline: 2px solid var(--cut); outline-offset: 1px; }
 .hist__act { white-space: nowrap; text-align: right; font-size: 0; }
 .hist__act > * { margin-left: .15rem; }
+
+/* 移調の候補（TODO-039）。いま出しているブックの行を目立たせる。
+   どれを見ているか分からないと、押して見比べる意味が薄れる */
+#transpose-table tr.is-current > td {
+  background: color-mix(in srgb, var(--cut) 12%, transparent);
+  font-weight: 600;
+}
+/* この表は名前ではなく数字が並ぶので、1 列目を広げない */
+#transpose-table .hist__name { max-width: none; width: auto; white-space: nowrap; }
 /* 数字は等幅なので、少し小さくすると見た目を保ったまま幅が空く */
 table.hist .num {
   white-space: nowrap; color: var(--pico-muted-color); font-size: .74rem;

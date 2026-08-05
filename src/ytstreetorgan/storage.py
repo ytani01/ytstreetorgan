@@ -181,6 +181,7 @@ def book_from_svg(svg: str) -> dict:
       逆算できない**
     - `merged` — `merge_overlapping_notes()` でまとめられて減った数
       （TODO-038）。属性が無い古い SVG では None
+    - `transpose` — 移調した半音数（TODO-039）。同上
     - `mm_per_sec` — 図には現れない
     - `model` — どの機種で作ったか。図には現れない
 
@@ -212,6 +213,7 @@ def book_from_svg(svg: str) -> dict:
             len(_OFF_SCALE_COLOR_RE.findall(svg)) if has_svg else None
         ),
         'merged': _meta_int(svg, 'merged'),
+        'transpose': _meta_int(svg, 'transpose'),
     }
     logger.debug('book={}', book)
     return book

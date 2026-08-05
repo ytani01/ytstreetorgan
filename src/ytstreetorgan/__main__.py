@@ -92,15 +92,22 @@ def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
     default=None,
     help='Output SVG file path'
 )
+@click.option(
+    '--transpose', '-t', 'transpose', type=str,
+    default='0', show_default=True,
+    help="移調する半音数。'auto' で鳴らせる音符が最多になる値を選ぶ"
+)
 @click_common_opts(__version__)
 def rollbook(
-    ctx, midi_file, conf_file, model_name, channel, out_file, debug
+    ctx, midi_file, conf_file, model_name, channel, out_file, transpose, debug
 ) -> None:
     """MIDI からロールブックの SVG を作る（-o 省略時は ~/Desktop）。"""
     loggerInit(debug)
     logger.debug('command={!r}', ctx.command.name)
 
-    app = RollBookApp(midi_file, conf_file, model_name, channel, out_file)
+    app = RollBookApp(
+        midi_file, conf_file, model_name, channel, out_file, transpose
+    )
     try:
         app.main()
     finally:
@@ -119,14 +126,35 @@ def rollbook(
     default=False,  show_default=True,
     help='Visual flag'
 )
+@click.option(
+    '--model', '-m', 'model_name', type=str,
+    default=None,
+    help='機種名。指定すると移調の候補を表にして出す'
+)
+@click.option(
+    '--conf_file', '-f', 'conf_file',
+    type=click.Path(exists=False),
+    default=RollBook.DEF_CONF_FILE,
+    show_default=True,
+    help='configuration file（--model 指定時のみ使う）'
+)
+@click.option(
+    '--transpose', '-t', 'transpose', type=str,
+    default='0', show_default=True,
+    help="移調する半音数。'auto' で最多になる値を選ぶ（--model と併用）"
+)
 @click_common_opts(__version__, use_v=False)
-def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
-    """MIDI を解析して中身を表示する（-v で図にする）。"""
+def parse(
+    ctx, midi_file, channel, visual_flag, model_name, conf_file, transpose,
+    debug
+) -> None:
+    """MIDI を解析して中身を表示する（-v で図、-m で移調の候補）。"""
     loggerInit(debug)
     logger.debug('command={!r}', ctx.command.name)
 
     app = MidiApp(
         midi_file, channel, parse_only=True, visual_flag=visual_flag,
+        model_name=model_name, conf_file=conf_file, transpose=transpose,
         debug=debug
     )
     try:
@@ -173,10 +201,15 @@ def parse(ctx, midi_file, channel, visual_flag, debug) -> None:
     show_default=True,
     help='configuration file（--model 指定時のみ使う）'
 )
+@click.option(
+    '--transpose', '-t', 'transpose', type=str,
+    default='0', show_default=True,
+    help="移調する半音数。'auto' で最多になる値を選ぶ（--model と併用）"
+)
 @click_common_opts(__version__)
 def play(
     ctx, midi_file, pos_sec, channel, rate, sec_min, sec_max,
-    model_name, conf_file, debug
+    model_name, conf_file, transpose, debug
 ) -> None:
     """MIDI を再生する（-m で機種を指定すると、その機種用に変換して再生する）。"""
     loggerInit(debug)
@@ -186,7 +219,7 @@ def play(
         midi_file, channel, parse_only=False,
         visual_flag=False, rate=rate,
         sec_min=sec_min, sec_max=sec_max, pos_sec=pos_sec,
-        model_name=model_name, conf_file=conf_file,
+        model_name=model_name, conf_file=conf_file, transpose=transpose,
         debug=debug
     )
     try:

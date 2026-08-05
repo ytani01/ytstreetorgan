@@ -158,3 +158,23 @@
   });
   updateSpecs(select.value);
 })();
+
+/* ---- 移調の候補（TODO-039）--------------------------------------------- */
+// 生成結果の画面にだけ出る表。押した行の移調量で作り直す。
+// 履歴からの再生成と同じ経路（stored_midi）に乗せてある。
+(function () {
+  const form = document.getElementById("transpose-form");
+  const value = document.getElementById("transpose-value");
+  if (!form || !value) {
+    return;  // ファイル選択の画面と、履歴から出したときは表が無い
+  }
+
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-transpose]");
+    if (!btn) {
+      return;
+    }
+    value.value = btn.dataset.transpose;
+    form.submit();
+  });
+})();

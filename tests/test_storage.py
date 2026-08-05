@@ -235,6 +235,7 @@ class TestBookFromSvgMatchesRollBook:
                 'off_scale_notes': rb.off_scale_note_count,
                 'off_scale': rb.off_scale_count,
                 'merged': rb.merged_count,
+                'transpose': rb.transpose,
             }, model
 
 

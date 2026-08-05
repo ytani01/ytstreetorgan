@@ -9,7 +9,7 @@ from loguru import logger
 from . import __author__, __copyright_year__
 from .conf import Conf
 from .mylog import exmsg
-from .rollbook import RollBook
+from .rollbook import RollBook, transpose_notices
 from .storage import (
     UNKNOWN,
     book_from_svg,
@@ -200,7 +200,8 @@ class Handler1(StorganBaseHandler):
 
     def _render(self, svg_data='', svg_filename='', msg=DEF_MSG, book=None,
                 src_size='', msg_error=False, reused_name='',
-                from_history=False):
+                from_history=False, candidates=None, notices=None,
+                midi_name=''):
         """テンプレートを描画する。
 
         ``svg_data`` が空なら「ファイル選択」、そうでなければ「生成結果」の
@@ -227,6 +228,13 @@ class Handler1(StorganBaseHandler):
             from_history (bool): 履歴から保存済みの SVG をそのまま出した
                 場合は True。諸元が SVG から読めるぶんしか無いことを
                 画面に断る。
+            candidates (list | None): 移調の候補（TODO-039）。**移調を
+                指定していなくても渡す。** 最適解が 1 つに定まらないことが
+                多いので、画面で比べて選び直せるようにするのが目的。
+            notices (list | None): 候補について添える文
+                （`transpose_notices()`）。
+            midi_name (str): 候補を押したときに作り直す元の MIDI 名。
+                これが無いと再生成できないので、候補も出さない。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
@@ -251,6 +259,9 @@ class Handler1(StorganBaseHandler):
                          svg_filename=svg_filename,
                          book=book or {},
                          src_size=src_size,
+                         candidates=candidates or [],
+                         notices=notices or [],
+                         midi_name=midi_name,
                          msg=msg)
 
     async def post(self):
@@ -279,7 +290,9 @@ class Handler1(StorganBaseHandler):
         self._model = self.get_argument('model')
         logger.debug('model=\'{}\'', self._model)
 
-        rollbook = self._rollbook_of(self._model)
+        rollbook = self._rollbook_of(
+            self._model, self.get_argument('transpose', '0')
+        )
         if rollbook is None:
             return
 
@@ -336,20 +349,30 @@ class Handler1(StorganBaseHandler):
             src_size=src_size,
             reused_name=file1_fname if reuse else '',
             book=self._book_of(rollbook, svg1_path),
+            candidates=rollbook.candidates,
+            notices=transpose_notices(rollbook.candidates),
+            midi_name=file1_fname,
         )
 
-    def _rollbook_of(self, model: str) -> RollBook | None:
+    def _rollbook_of(
+        self, model: str, transpose: str = '0'
+    ) -> RollBook | None:
         """機種名から `RollBook` を作る。作れなければ画面に理由を出す。
 
-        `RollBook` は知らない機種名や項目の足りない設定を `ValueError` で
-        断る。捕まえないと tornado 既定の 500 ページに置き換わり、
-        選び直すこともできなくなる。
+        `RollBook` は知らない機種名や項目の足りない設定、整数にも
+        ``'auto'`` にもならない移調量を `ValueError` で断る。捕まえないと
+        tornado 既定の 500 ページに置き換わり、選び直すこともできなくなる。
+
+        Args:
+            model (str): 機種名。フォームから来る。
+            transpose (str): 移調量。フォームから来るので**文字列**
+                （``'auto'`` もありうる）。
 
         Returns:
             RollBook | None: 作れなければ None（描画はここで済ませてある）。
         """
         try:
-            return RollBook(model, self._conf_file)
+            return RollBook(model, self._conf_file, transpose)
         except ValueError as e:
             logger.error(exmsg(e))
             self._render(msg=str(e), msg_error=True)
@@ -400,6 +423,7 @@ class Handler1(StorganBaseHandler):
             'off_scale_notes': rollbook.off_scale_note_count,
             'off_scale': rollbook.off_scale_count,
             'merged': rollbook.merged_count,
+            'transpose': rollbook.transpose,
         }
 
     def _show_stored_svg(self, name: str) -> None:
@@ -428,13 +452,18 @@ class Handler1(StorganBaseHandler):
         )
 
     def _generate_from_stored(self, name: str) -> None:
-        """保存済みの MIDI から、いま選んでいる機種で作り直す。"""
+        """保存済みの MIDI から、いま選んでいる機種・移調量で作り直す。
+
+        履歴の画面からも、生成結果の画面の移調の候補からも、ここへ来る。
+        """
         midi_path = self._stored_path('midi', name)
         if midi_path is None:
             return
 
         self._model = self.get_argument('model')
-        rollbook = self._rollbook_of(self._model)
+        rollbook = self._rollbook_of(
+            self._model, self.get_argument('transpose', '0')
+        )
         if rollbook is None:
             return
 
@@ -454,4 +483,7 @@ class Handler1(StorganBaseHandler):
             svg_filename=svg_path.name,
             src_size=size_text(midi_path),
             book=self._book_of(rollbook, svg_path),
+            candidates=rollbook.candidates,
+            notices=transpose_notices(rollbook.candidates),
+            midi_name=midi_path.name,
         )
