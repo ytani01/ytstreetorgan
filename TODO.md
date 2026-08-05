@@ -20,7 +20,7 @@ TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項�
 
 **［回答待ち］** TODO-042 の実装方針を変えるための要求。
 
-- [ ] 要求書を書く
+- [x] 要求書を書く → [`docs/20260806c-ytmidilib-requests-2.md`](docs/20260806c-ytmidilib-requests-2.md)
 - [ ] `ytmidilib` 側の回答・修正を待つ
 - [ ] タグを上げて取り込み、TODO-042 に着手する
 
@@ -44,12 +44,16 @@ transpose_file(src, dst, n, clip=False)   # src / dst とも path | file-like
 transpose(note_info, n, clip=False)       # 既存にも同じ引数を足す
 ```
 
-- **file-like を受ける**こと（TODO-042 はディスクに残さずメモリ上で返す）
+- **file-like を受ける**こと（TODO-042 はディスクに残さずメモリ上で返す）。
+  `mido.MidiFile` を返す形にはしない。**`mido` を公開 API に出させない**
 - **範囲外の扱いを既存の `transpose()` と揃える。** いまは `ValueError`
   （回答書 #8。「クリップは曲が変わったのに成功して返る」は妥当）。
   ファイル版だけ黙って丸めると、同じ「移調」で意味論が 2 つになる。
   `clip=True` を**呼び出し側が明示的に書く**なら、曲が変わることを承知で
   丸めたという判断が呼び出しに現れる
+
+ほかに、打楽器チャンネル（ch 9）を移調するかどうかと、`write()` の
+docstring に「何が失われるか」を書くことも要求した。
 
 ---
 
