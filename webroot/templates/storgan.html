@@ -39,19 +39,18 @@
             <!-- 選んだ機種の寸法を先に見せる。生成してから気づくのを避けるため -->
             <dl class="specs" id="specs"></dl>
 
-            <!-- 移調（TODO-039）。「おまかせ」は鳴らせる音符が最多になる
-                 移調量を選ぶ。生成後に候補の表が出るので、そこで選び直せる -->
-            <label for="transpose">キー（移調）</label>
-            <select id="transpose" name="transpose">
-              <option value="0" selected>そのまま</option>
-              <option value="auto">おまかせ（鳴らせる音符を最多に）</option>
-            </select>
+            <!-- 移調の選択はここには出さない（TODO-055）。**生成すると
+                 候補の表が出て、そこで選べる**ので、選ぶ前に決める場所が
+                 2 か所あっても迷うだけ。サーバー側は `transpose` が
+                 無ければ 0（そのまま）として扱う。
+                 **用語の説明（`_terms.html`）もここには出さない**（TODO-056）。
+                 操作するものが無い画面で先に用語を説明しても読まれない。
+                 説明は候補の表と同じ場所（生成結果）にだけ置く -->
             <p class="field__hint">
               機種の音階に無い音は穴が開きません。曲全体を上下させると
               鳴らせる音が増えることがあります。
-              <b>生成すると候補の一覧が出る</b>ので、そこで選び直せます。
+              <b>生成すると候補の一覧が出る</b>ので、そこで選べます。
             </p>
-            {% include "_terms.html" %}
 
             <hr>
             {% end %}
@@ -217,8 +216,7 @@
             {% else %}
             <p class="field__hint">
               曲全体を上下させると、鳴らせる音符が増えることがあります。
-              <b>調</b> が <code>±0</code> の行は<b>キーが変わりません</b>
-              （オクターブだけの移動）。押すとその設定で作り直します。
+              <b>移調</b> の値を押すと、その設定で作り直します。
             </p>
             <!-- 「音符は増えるが長さは減る」候補も出す（TODO-039 / 051）。
                  どちらを取るかは曲による。決めるのは利用者。
@@ -245,30 +243,29 @@
               <table class="hist" id="transpose-table">
                 <thead>
                   <tr>
-                    <th>調</th>
-                    <th>オクターブ</th>
-                    <th>移調</th>
-                    <th>音符</th>
-                    <th title="鳴らせる音符の長さ（秒）の合計。ブック全体の演奏時間とは別">音の長さ</th>
-                    <th>移調後の音域</th>
-                    <th title="元の MIDI をその調に移調して持ち帰る（ロールブックではありません）">MIDI</th>
+                    <!-- 見出しにも中身と同じ寄せ方の class を付ける
+                         （`.num` は右、`.hist__act` も右）。付け忘れると
+                         見出しだけ左に残って列がずれて見える（TODO-055） -->
+                    <th title="実際に上下させる半音数。押すとその設定で作り直す">移調</th>
+                    <th class="num">音符</th>
+                    <th class="num" title="鳴らせる音符の長さ（秒）の合計。ブック全体の演奏時間とは別">音の長さ</th>
+                    <th class="num">移調後の音域</th>
+                    <th class="act" title="元の MIDI をその移調量で移調して持ち帰る（ロールブックではありません）">MIDI</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for c in candidates %}
                   <tr{% if c['transpose'] == book['transpose'] %} class="is-current"{% end %}>
-                    <!-- 調の欄が ±0 でも「変更なし」ではない。オクターブが
-                         動いていればキーだけが同じ。両方 ±0 の行にだけ
-                         「移調しない」と添える -->
+                    <!-- 作り直すリンクは移調の列に付ける（TODO-054）。
+                         「調」「オクターブ」の列は削除した。実際に効くのは
+                         合計の半音数だけで、3 列に分けると読みにくい -->
                     <td class="hist__name">
                       <button type="button" class="hist__open"
                         data-transpose="{{ c['transpose'] }}"
                         title="この設定で作り直す"
-                        aria-label="調 {{ c['key'] }}、{{ c['octave'] }} オクターブで作り直す"
-                        >{% if c['key'] == 0 %}±0{% else %}{{ '%+d' % c['key'] }}{% end %}</button>
+                        aria-label="{% if c['transpose'] == 0 %}移調しないで作り直す{% else %}{{ '%+d' % c['transpose'] }} 半音の移調で作り直す{% end %}"
+                        >{% if c['transpose'] == 0 %}移調しない{% else %}{{ '%+d' % c['transpose'] }}{% end %}</button>
                     </td>
-                    <td class="num">{% if c['octave'] == 0 %}±0{% else %}{{ '%+d' % c['octave'] }}{% end %}</td>
-                    <td class="num">{% if c['transpose'] == 0 %}移調しない{% else %}{{ '%+d' % c['transpose'] }}{% end %}</td>
                     <!-- ±0 を下回る値には ▼ を付ける（TODO-051）。
                          表には「片方だけ改善する行」といまの移調量の行が
                          残るので、印が無いと「良くない候補が出ている」と
@@ -281,7 +278,7 @@
                       {% if c['sec_pct'] < zero_sec_pct %}title="移調しない場合（{{ '%.1f' % zero_sec_pct }}%）より短い"{% end %}
                       >{{ '%.1f' % c['sec_pct'] }}%{% if c['sec_pct'] < zero_sec_pct %}<span aria-label="移調しない場合より短い"> ▼</span>{% end %}</td>
                     <td class="num">{{ c['lo'] }}–{{ c['hi'] }}</td>
-                    <!-- 元の MIDI をその調に移調して持ち帰る（TODO-042）。
+                    <!-- 元の MIDI をその移調量で移調して持ち帰る（TODO-042）。
                          ロールブックの音符ではなく、上げた元のファイルを
                          移調するだけなので、音階に無い音も残る。
                          ±0 の行にも出す（元のキーのまま MIDI だけ欲しい
@@ -289,7 +286,7 @@
                     <td class="hist__act">
                       <a class="btn-row btn-icon" download
                         href="{{urlprefix}}/download/midi-transpose/{{ url_escape(midi_name) }}?t={{ c['transpose'] }}"
-                        title="この調に移調した MIDI をダウンロード"
+                        title="この移調量で移調した MIDI をダウンロード"
                         aria-label="移調 {{ '%+d' % c['transpose'] }} 半音の MIDI をダウンロード">
                         <svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>
                       </a>
@@ -303,10 +300,12 @@
             <!-- 候補ぶんの MIDI をまとめて（TODO-050）。1 行ずつ押すと
                  最大 7 回になる。半音数はクエリで渡す（サーバー側で
                  候補を作り直さない）。中身の名前は 1 件ずつのときと同じ -->
-            <p class="field__hint">
+            <!-- 表と同じく中央に置く（TODO-056）。表だけ中央だと、
+                 その表に付いているリンクが遠く離れて見える -->
+            <p class="field__hint field__hint--center">
               <a class="btn-row btn-labeled" id="transpose-zip" download
                 href="{{urlprefix}}/download/midi-transpose-zip/{{ url_escape(midi_name) }}?t={{ ','.join(str(c['transpose']) for c in candidates) }}"
-                title="表の全ての調に移調した MIDI を、1 つの ZIP にまとめてダウンロード">
+                title="表の全ての移調量で移調した MIDI を、1 つの ZIP にまとめてダウンロード">
                 <svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>
                 すべての候補の MIDI をダウンロード（ZIP）
               </a>

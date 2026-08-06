@@ -66,21 +66,32 @@ class TestRollBookPage(WebAppTestCase):
         # It should render the SVG data variable injected into HTML
         self.assertIn(b"<svg ", response.body)
 
-    def test_terms_note_on_the_upload_page(self):
-        """「調」「移調」の説明は、選ぶ前の画面に出る（TODO-053）。"""
+    def test_no_transpose_ui_on_the_upload_page(self):
+        """選ぶ前の画面には、移調のメニューも用語の説明も出さない。
+
+        メニューを削除し（TODO-055）、操作するものが無くなったので説明も
+        削除した（TODO-056）。選ぶ場所は生成後の候補の表だけ。
+        """
         response = self.fetch(f'{TEST_URL_PREFIX}/')
 
         self.assertEqual(response.code, 200)
-        self.assertIn(b'class="terms"', response.body)
-        self.assertIn("1 オクターブ".encode(), response.body)
+        self.assertNotIn(b'<select id="transpose"', response.body)
+        self.assertNotIn(b'class="terms"', response.body)
 
     def test_terms_note_on_the_result_page(self):
-        """生成結果（移調の候補のところ）にも出る（TODO-053）。"""
+        """「移調」の説明は、生成結果（候補の表のところ）に出る。
+
+        TODO-053 で足し、TODO-055 で「移調とは何か」の一段落だけにした。
+        見出しで見る（本文の HTML コメントにも語が出るので、本文全体の
+        有無では判定できない）。
+        """
         response = self._upload()
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="transpose-panel"', response.body)
         self.assertIn(b'class="terms"', response.body)
+        self.assertIn("<summary>「移調」とは？</summary>".encode(), response.body)
+        self.assertIn("カラオケの「キー +1 / −1」".encode(), response.body)
 
     def test_post_unknown_model_shows_a_message(self):
         """知らない機種名は 500 にせず、理由を画面に出す。

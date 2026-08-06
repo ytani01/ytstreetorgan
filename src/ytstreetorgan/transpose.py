@@ -467,6 +467,7 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
     - 改善が無い → 移調しても改善しない（黙って ±0 を返すと壊れて見える）
     - 音符の数の 1 位と、音の長さの 1 位が違う → 両方を示す
     - 調を変えない案が 1 位でないが上位にある → それで済むと知らせる
+      （文面は**移調量**で書く。画面の表には調の列が無い。TODO-054）
 
     Returns:
         list[str]: 画面に出す文（日本語）。何も無ければ空。
@@ -481,7 +482,7 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
     if not transpose_has_improvement(candidates):
         zero = next(c for c in candidates if c['transpose'] == 0)
         notices.append(
-            'どの調に移調しても、鳴らせる音符は増えません'
+            'どう移調しても、鳴らせる音符は増えません'
             f'（そのまま {zero["note_pct"]:.0f}%）。移調しても改善しません。'
         )
         return notices
@@ -496,9 +497,9 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
     )
     if best_sec['transpose'] != best_note['transpose']:
         notices.append(
-            f'音符の数では 調{best_note["key"]:+d}'
+            f'音符の数では 移調{best_note["transpose"]:+d}'
             f'（{best_note["note_pct"]:.0f}%）ですが、'
-            f'音の長さでは 調{best_sec["key"]:+d}'
+            f'音の長さでは 移調{best_sec["transpose"]:+d}'
             f'（{best_sec["sec_pct"]:.0f}%）が上です。'
         )
 
@@ -507,7 +508,7 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
         # 1 位に迫るなら、キーを変えずに済むことを知らせる
         if same_key and best['note_pct'] - same_key['note_pct'] <= 5.0:
             notices.append(
-                '調を変えずに（オクターブだけで）'
+                f'キーを変えない 移調{same_key["transpose"]:+d} でも'
                 f'{same_key["note_pct"]:.0f}% 鳴らせます。'
             )
 

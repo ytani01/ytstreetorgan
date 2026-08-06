@@ -573,6 +573,19 @@ table.hist th:last-child, table.hist td:last-child { padding-right: .7rem; }
 }
 /* この表は名前ではなく数字が並ぶので、1 列目を広げない */
 #transpose-table .hist__name { max-width: none; width: auto; white-space: nowrap; }
+/* 列を揃える（TODO-055）。数値と操作は右寄せなので、**見出しも同じ側へ
+   寄せる**。`table.hist thead th` が左寄せなので、放っておくと見出しだけ
+   列の左端に残ってずれて見える。
+   見出しの字は `.num`（.74rem・数字用）ではなく、他の表と同じ .7rem に戻す */
+#transpose-table th.num, #transpose-table td.num,
+#transpose-table th.act { text-align: right; }
+#transpose-table thead th.num { font-size: .7rem; }
+/* 表は中身の幅だけにして、画面の中央に置く（TODO-055 / 056）。
+   画面幅いっぱいに引き伸ばすと、列の間が間延びして、どの数字が
+   どの行のものか追いにくい。幅が中身なりなので、左端に寄せると
+   広いパネルの隅に取り残されて見える */
+#transpose-table { width: auto; margin-inline: auto; }
+.field__hint--center { text-align: center; }
 /* 数字は等幅なので、少し小さくすると見た目を保ったまま幅が空く */
 table.hist .num {
   white-space: nowrap; color: var(--pico-muted-color); font-size: .74rem;
