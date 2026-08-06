@@ -46,7 +46,7 @@ conf.py → transpose.py → rollbook.py → apps.py / handler1.py
 
 | モジュール | 受け持ち |
 |---|---|
-| `transpose.py` | 移調。候補の作成・絞り込み・注記、`plan_transpose()` |
+| `transpose.py` | 移調。候補の作成・絞り込み・注記、`plan_transpose()`。並び順は `transpose_rank_key()`（TODO-052） |
 | `rollbook.py` | 穴の位置と SVG。`note2scale()` / `HoleInfo` / `RollBook` |
 
 **`transpose.py` から `rollbook.py` を import しないこと**（循環する）。

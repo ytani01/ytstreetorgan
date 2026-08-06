@@ -24,6 +24,7 @@ from ytstreetorgan.transpose import (
     transpose_has_improvement,
     transpose_notes,
     transpose_notices,
+    transpose_rank_key,
 )
 
 # 移調のテスト用。C から 1 オクターブの、白鍵だけの機種
@@ -454,14 +455,47 @@ def test_transpose_candidates_are_one_per_key():
         assert c['transpose'] == c['key'] + c['octave'] * 12
 
 
-def test_transpose_candidates_are_sorted_by_note_count():
-    """鳴らせる音符の多い順に並ぶ。"""
+def _cand(transpose, note_pct, sec_pct):
+    """並べ替えだけを試すための、最小限の候補。"""
+    return {
+        'key': key_label(transpose), 'octave': 0, 'transpose': transpose,
+        'notes': 0, 'note_pct': note_pct, 'sec_pct': sec_pct, 'lo': 0, 'hi': 0,
+    }
+
+
+def test_transpose_rank_key_uses_both_metrics():
+    """音符の数だけでは決めない（TODO-052）。
+
+    音符は少なくても、鳴る長さが大きく勝てば上に来る。
+    """
+    many_notes = _cand(3, note_pct=60.0, sec_pct=10.0)
+    long_notes = _cand(5, note_pct=50.0, sec_pct=40.0)
+
+    assert transpose_rank_key(long_notes) < transpose_rank_key(many_notes)
+
+
+def test_transpose_rank_key_tie_prefers_the_same_key():
+    """合計が同じなら、調を変えない案 → 移調量の小さい順（従来どおり）。"""
+    same_key = _cand(12, note_pct=50.0, sec_pct=50.0)     # 調は ±0
+    other_key = _cand(3, note_pct=50.0, sec_pct=50.0)
+    far = _cand(-24, note_pct=50.0, sec_pct=50.0)         # 調は ±0 だが遠い
+
+    assert transpose_rank_key(same_key) < transpose_rank_key(other_key)
+    assert transpose_rank_key(same_key) < transpose_rank_key(far)
+
+
+def test_transpose_candidates_are_sorted_by_total_score():
+    """音符の数 % ＋ 音の長さ % の大きい順に並ぶ（TODO-052）。
+
+    **音符の数だけではない。** 音の長さも表に出しているので、
+    順位にも効かせる。
+    """
     ni = [_note(n) for n in (73, 75, 78)]   # 黒鍵ばかり
 
     cands = transpose_candidates(ni, DIATONIC_CONF)
 
-    counts = [c['notes'] for c in cands]
-    assert counts == sorted(counts, reverse=True)
+    totals = [c['note_pct'] + c['sec_pct'] for c in cands]
+    assert totals == sorted(totals, reverse=True)
 
 
 def test_transpose_candidates_finds_the_octave_shift():
@@ -608,9 +642,12 @@ def test_transpose_notices_reports_metric_disagreement():
     ]
 
     cands = transpose_candidates(ni, DIATONIC_CONF)
-    best = cands[0]
-    best_sec = max(cands, key=lambda c: c['sec_pct'])
-    assert best['transpose'] != best_sec['transpose'], '前提が崩れている'
+    # **1 位は数え直す。** 並び順は 2 つの合計なので、cands[0] は
+    # 音符の数の 1 位とは限らない（TODO-052）。同点の解き方も
+    # `transpose_notices()` と揃える（この曲は音符の数が同点になる）
+    best_note = max(cands, key=lambda c: (c['note_pct'], -abs(c['transpose'])))
+    best_sec = max(cands, key=lambda c: (c['sec_pct'], -abs(c['transpose'])))
+    assert best_note['transpose'] != best_sec['transpose'], '前提が崩れている'
 
     notices = transpose_notices(cands)
 

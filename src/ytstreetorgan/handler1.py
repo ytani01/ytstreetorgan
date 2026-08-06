@@ -375,6 +375,10 @@ class Handler1(StorganBaseHandler):
                 呼ぶ側は候補だけ渡せばよい（TODO-043）。
             midi_name (str): 候補を押したときに作り直す元の MIDI 名。
                 これが無いと再生成できないので、候補も出さない。
+
+        Note:
+            候補から決まるもの（注記・表を出すか・±0 の成績）は、
+            **呼ぶ側に作らせずここでまとめて作る**（TODO-043）。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
@@ -386,6 +390,22 @@ class Handler1(StorganBaseHandler):
         # （TODO-041）。1 行だけの表は、選ぶものが無いのに選べそうに見える
         show_transpose_table = bool(candidates) and transpose_has_improvement(
             candidates
+        )
+
+        # ±0 の行の成績。テンプレートが、これを下回るセルに印を付ける
+        # （TODO-051）。表には「片方だけ改善する行」といまの移調量の行が
+        # 残るので、見分けが付かないと「良くない候補が出ている」と読める
+        zero = next(
+            (c for c in candidates if c['transpose'] == 0), None
+        ) if candidates else None
+
+        zero_note_pct = zero['note_pct'] if zero else 0.0
+        zero_sec_pct = zero['sec_pct'] if zero else 0.0
+
+        # 印が 1 つも出ない表で「▼ は …」と説明しても意味が無い
+        has_worse = zero is not None and any(
+            c['note_pct'] < zero_note_pct or c['sec_pct'] < zero_sec_pct
+            for c in (candidates or [])
         )
 
         self.render_page(self.HTML_FILE,
@@ -410,6 +430,9 @@ class Handler1(StorganBaseHandler):
                          book=book or {},
                          src_size=src_size,
                          candidates=candidates or [],
+                         zero_note_pct=zero_note_pct,
+                         zero_sec_pct=zero_sec_pct,
+                         has_worse=has_worse,
                          notices=notices,
                          show_transpose_table=show_transpose_table,
                          midi_name=midi_name,

@@ -218,6 +218,16 @@
               <b>調</b> が <code>±0</code> の行は<b>キーが変わりません</b>
               （オクターブだけの移動）。押すとその設定で作り直します。
             </p>
+            <!-- 「音符は増えるが長さは減る」候補も出す（TODO-039 / 051）。
+                 どちらを取るかは曲による。決めるのは利用者。
+                 印が 1 つも出ない表では、この説明そのものを出さない -->
+            {% if has_worse %}
+            <p class="field__hint">
+              <b class="is-worse">▼</b> は、<b>移調しない場合より下がる</b>
+              ことを表します。音符の数と音の長さは、片方だけ増えることが
+              あります。
+            </p>
+            {% end %}
 
             {% for notice in notices %}
             <p class="field__hint"><b>※ {{ notice }}</b></p>
@@ -257,8 +267,17 @@
                     </td>
                     <td class="num">{% if c['octave'] == 0 %}±0{% else %}{{ '%+d' % c['octave'] }}{% end %}</td>
                     <td class="num">{% if c['transpose'] == 0 %}移調しない{% else %}{{ '%+d' % c['transpose'] }}{% end %}</td>
-                    <td class="num">{{ '%.1f' % c['note_pct'] }}%</td>
-                    <td class="num">{{ '%.1f' % c['sec_pct'] }}%</td>
+                    <!-- ±0 を下回る値には ▼ を付ける（TODO-051）。
+                         表には「片方だけ改善する行」といまの移調量の行が
+                         残るので、印が無いと「良くない候補が出ている」と
+                         読める。行を減らさないのは、「音符は増えるが
+                         長さは減る」が実在の選択肢だから -->
+                    <td class="num{% if c['note_pct'] < zero_note_pct %} is-worse{% end %}"
+                      {% if c['note_pct'] < zero_note_pct %}title="移調しない場合（{{ '%.1f' % zero_note_pct }}%）より少ない"{% end %}
+                      >{{ '%.1f' % c['note_pct'] }}%{% if c['note_pct'] < zero_note_pct %}<span aria-label="移調しない場合より少ない"> ▼</span>{% end %}</td>
+                    <td class="num{% if c['sec_pct'] < zero_sec_pct %} is-worse{% end %}"
+                      {% if c['sec_pct'] < zero_sec_pct %}title="移調しない場合（{{ '%.1f' % zero_sec_pct }}%）より短い"{% end %}
+                      >{{ '%.1f' % c['sec_pct'] }}%{% if c['sec_pct'] < zero_sec_pct %}<span aria-label="移調しない場合より短い"> ▼</span>{% end %}</td>
                     <td class="num">{{ c['lo'] }}–{{ c['hi'] }}</td>
                     <!-- 元の MIDI をその調に移調して持ち帰る（TODO-042）。
                          ロールブックの音符ではなく、上げた元のファイルを

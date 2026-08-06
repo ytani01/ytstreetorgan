@@ -156,6 +156,50 @@ class TestRollBookPage(WebAppTestCase):
         self.assertNotIn("前回アップロードした".encode(), response.body)
 
 
+class TestTransposeWorseMark(WebAppTestCase):
+    """±0 を下回る値に印を付ける（TODO-051）。
+
+    表には「片方だけ改善する候補」と「いま適用している移調量」が残るので、
+    印が無いと「良くない候補が出ている」と読める。
+    """
+
+    PORT = 10088
+
+    def setup_files(self):
+        self.put_midi('holy.mid')
+
+    def _regenerate(self, transpose: int):
+        body = f'stored_midi=holy.mid&model=34notes&transpose={transpose}'
+        return self.fetch(
+            f'{TEST_URL_PREFIX}/', method='POST', body=body,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        )
+
+    def test_current_row_below_zero_is_marked(self):
+        """いまの移調量の行は、改善しなくても残る。そこに印が出る。
+
+        `holy.mid` を `34notes` で +1 すると、音符も音の長さも ±0 を
+        下回る（それでも自分がどれを見ているか分かるように残している）。
+        """
+        response = self._regenerate(1)
+
+        self.assertEqual(response.code, 200)
+        self.assertIn(b'class="num is-worse"', response.body)
+        self.assertIn('移調しない場合'.encode(), response.body)
+
+    def test_nothing_is_marked_when_every_row_improves(self):
+        """全部の行が ±0 以上なら、印は出ない。"""
+        response = self._regenerate(0)
+
+        self.assertEqual(response.code, 200)
+        # 表そのものは出ている
+        self.assertIn(b'id="transpose-table"', response.body)
+        self.assertNotIn(b'class="num is-worse"', response.body)
+        # 印が出ないなら、印の説明も出さない（HTML コメントの中の ▼ が
+        # 引っかかるので、説明の文言のほうで見る）
+        self.assertNotIn('移調しない場合より下がる'.encode(), response.body)
+
+
 class TestLiveReload(WebAppTestCase):
     """``webapp --debug`` のときだけ live reload が有効になること。"""
 

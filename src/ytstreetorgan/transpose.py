@@ -194,11 +194,15 @@ class TransposeCandidate(TypedDict):
         octave: どのオクターブに置くか。
         transpose: 合計の半音数（＝実際に足す数）。``key + octave * 12``。
         notes: 鳴らせる音符の数。
-        note_pct: 鳴らせる音符の数の割合 [%]。**並び順はこれ**。
+        note_pct: 鳴らせる音符の数の割合 [%]。
         sec_pct: 鳴らせる音符の長さ（秒）の合計の割合 [%]。
             画面では「音の長さ」と呼ぶ（ブック全体の「演奏時間」とは別物）。
         lo: 移調後の最低 MIDI ノート番号。
         hi: 移調後の最高 MIDI ノート番号。
+
+    Note:
+        **並び順は `transpose_rank_key()`**（`note_pct + sec_pct`）。
+        どちらか一方ではない（TODO-052）。
     """
 
     key: int
@@ -253,6 +257,27 @@ class _NoteTally:
         }
 
 
+def transpose_rank_key(c: TransposeCandidate) -> tuple[float, bool, int]:
+    """候補を並べる物差し（TODO-052）。**小さいほど上**。
+
+    **音符の数（%）と音の長さ（%）を足した値**で比べる。どちらも同じ
+    分母（曲全体）に対する割合なので、そのまま足して比べられる。
+    かつては音符の数だけで並べていたが、音の長さは表に出しているのに
+    順位に効かず、「上の行のほうが長さは短い」が起きていた。
+
+    同点のときは **調を変えない案を上に**する。キーを変えずに済むなら
+    そのほうが良いのに、僅差で下に沈むと気づかれない。次いで移調量が
+    小さい順。
+
+    **並べ替えはここに 1 つだけ。** `transpose_candidates()` /
+    `add_transpose_rows()` / `select_transpose_rows()` が同じ物差しを
+    使う（別々の `key=` を持つと、片方だけ直して食い違う）。
+    """
+    return (
+        -(c['note_pct'] + c['sec_pct']), c['key'] != 0, abs(c['transpose'])
+    )
+
+
 def transpose_score(
     note_info: list[NoteInfo], conf: ModelConf, semitones: int
 ) -> TransposeCandidate | None:
@@ -270,7 +295,7 @@ def transpose_score(
 def transpose_candidates(
     note_info: list[NoteInfo], conf: ModelConf
 ) -> list[TransposeCandidate]:
-    """移調の候補を、鳴らせる音符の多い順に返す（TODO-039）。
+    """移調の候補を、成績の良い順に返す（TODO-039 / 052）。
 
     移調量を総当たりして、**調ごとに 1 つずつ残す**。
 
@@ -282,10 +307,10 @@ def transpose_candidates(
        最適値が範囲の端に張り付き、その先を見ていないことに気づけない。
     2. `t` を `t % 12` でグループ分けする（12 個）。同じグループの `t` は
        **調が同じで、違いはオクターブだけ**。
-    3. 各グループから、鳴らせる音符が最多の `t` を 1 つ選ぶ。同点なら
-       `|t|` が小さいほう。これで「その調で、いちばん音域に収まる
-       オクターブ」が選ばれる。
-    4. 音符の多い順に並べて返す。
+    3. 各グループから、成績の良い `t` を 1 つ選ぶ（`transpose_rank_key()`。
+       音符の数 % ＋ 音の長さ %）。これで「その調で、いちばん音域に
+       収まるオクターブ」が選ばれる。
+    4. 同じ物差しで並べて返す。
 
     Returns:
         list[TransposeCandidate]: 最大 12 個。音符が 0 個の曲なら空。
@@ -304,19 +329,12 @@ def transpose_candidates(
         key = cand['key']
 
         cur = best_of_key.get(key)
-        # 同じ調なら、音符が多いほう → 同点なら移調量が小さいほう
-        if cur is None or (
-            (cand['notes'], -abs(t))
-            > (cur['notes'], -abs(cur['transpose']))
-        ):
+        # 同じ調の中でどのオクターブを残すかも、並べるときと同じ物差しで
+        # 決める（グループ内では key が同じなので、実質は成績と |t| で決まる）
+        if cur is None or transpose_rank_key(cand) < transpose_rank_key(cur):
             best_of_key[key] = cand
 
-    # 数が同じなら**調を変えない案を上に**する。キーを変えずに済むなら
-    # そのほうが良いのに、僅差で下に沈むと気づかれない。次いで移調量が小さい順。
-    return sorted(
-        best_of_key.values(),
-        key=lambda c: (-c['notes'], c['key'] != 0, abs(c['transpose']))
-    )
+    return sorted(best_of_key.values(), key=transpose_rank_key)
 
 
 def add_transpose_rows(
@@ -336,7 +354,8 @@ def add_transpose_rows(
         wanted (Sequence[int]): 必ず行にしたい移調量。既にあるものは飛ばす。
 
     Returns:
-        list[TransposeCandidate]: 鳴らせる音符の多い順。元のリストは変えない。
+        list[TransposeCandidate]: `transpose_rank_key()` の順。
+            元のリストは変えない。
     """
     if not candidates:
         return list(candidates)
@@ -349,7 +368,7 @@ def add_transpose_rows(
         if row is not None:
             rows.append(row)
 
-    rows.sort(key=lambda c: (-c['notes'], c['key'] != 0, abs(c['transpose'])))
+    rows.sort(key=transpose_rank_key)
     return rows
 
 
@@ -411,7 +430,7 @@ def select_transpose_rows(
         limit (int): 改善する候補として残す最大数。
 
     Returns:
-        list[TransposeCandidate]: 鳴らせる音符の多い順。
+        list[TransposeCandidate]: `transpose_rank_key()` の順。
             最大 ``limit + 2``（±0 といまの値のぶん）個。
     """
     rows = add_transpose_rows(candidates, note_info, conf, (0, transpose))
@@ -433,7 +452,7 @@ def select_transpose_rows(
     if transpose != 0:
         result.append(next(c for c in rows if c['transpose'] == transpose))
 
-    result.sort(key=lambda c: (-c['notes'], c['key'] != 0, abs(c['transpose'])))
+    result.sort(key=transpose_rank_key)
     return result
 
 
@@ -456,6 +475,7 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
         return []
 
     notices: list[str] = []
+    # 表の 1 行目（総合 1 位）。音符の数の 1 位とは限らない（TODO-052）
     best = candidates[0]
 
     if not transpose_has_improvement(candidates):
@@ -466,13 +486,18 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
         )
         return notices
 
+    # **1 位はその場で数え直す。** 並び順は 2 つの合計なので、
+    # `candidates[0]` は音符の数の 1 位とは限らない（TODO-052）
+    best_note = max(
+        candidates, key=lambda c: (c['note_pct'], -abs(c['transpose']))
+    )
     best_sec = max(
         candidates, key=lambda c: (c['sec_pct'], -abs(c['transpose']))
     )
-    if best_sec['transpose'] != best['transpose']:
+    if best_sec['transpose'] != best_note['transpose']:
         notices.append(
-            f'音符の数では 調{best["key"]:+d}'
-            f'（{best["note_pct"]:.0f}%）ですが、'
+            f'音符の数では 調{best_note["key"]:+d}'
+            f'（{best_note["note_pct"]:.0f}%）ですが、'
             f'音の長さでは 調{best_sec["key"]:+d}'
             f'（{best_sec["sec_pct"]:.0f}%）が上です。'
         )

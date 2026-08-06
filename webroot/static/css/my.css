@@ -565,3 +565,9 @@ table.hist th:last-child, table.hist td:last-child { padding-right: .7rem; }
 table.hist .num {
   white-space: nowrap; color: var(--pico-muted-color); font-size: .74rem;
 }
+/* 移調しない場合（±0 の行）を下回る値（TODO-051）。片方だけ改善する
+   候補が表に残るので、印が無いと見分けが付かない。
+   --hole は破壊的操作の色でもあるが、ここは「良くない」を示す唯一の
+   注意色として共用する（明暗テーマの両方に定義があるのはこれと --ok
+   だけで、--ok は逆の意味になる） */
+table.hist .num.is-worse, .field__hint .is-worse { color: var(--hole); }
