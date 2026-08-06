@@ -23,6 +23,9 @@ uv run ytstreetorgan parse FILE.mid -v    # MIDI 解析結果を表示（-v で�
 uv run ytstreetorgan play FILE.mid        # MIDI 再生
 ```
 
+**完了と報告する前に、`pytest` / `ruff` / `mypy` を通すこと。** 画面を変えたら
+ブラウザで描画も確かめる（`docs/Developer.md` の「コミット前に通すもの」）。
+
 - **実行方法の詳細は `docs/Developer.md`** — 環境の用意、絞り込み、
   カバレッジ、basedpyright、ruff の設定方針、コミット前に通すもの、
   テストを書くときの注意
