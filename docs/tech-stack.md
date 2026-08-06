@@ -22,7 +22,7 @@
 
 ### `ytmidilib`（別リポジトリ）
 
-**タグで固定してある**（`tag = "0.1.0"`。`v` は付かない）。既定ブランチを
+**タグで固定してある**（`tag = "0.2.1"`。`v` は付かない）。既定ブランチを
 追わせない。上流を直したらタグを打ち、こちらで上げる。
 
 ```bash
@@ -34,9 +34,15 @@ uv sync --upgrade-package ytmidilib
 入らず、hatch-vcs の `git describe` が古いタグからの距離を返すため。
 db と checkouts を消してから入れ直す（TODO-047 に手順がある）。
 
-`ytmidilib` は**標準 `logging`** を使い、**ハンドラを付けない**
-（0.1.0 から。ライブラリとして正しい作り）。こちらは loguru なので、
-**向こうのログはどこにも出ない**。`-d` を付けて出るのはこちらのログだけ。
+`ytmidilib` も **loguru** を使う（0.2.0 から。それまでは標準 `logging` で、
+**向こうのログはどこにも出なかった**）。同じグローバル `logger` なので、
+こちらの `loggerInit()` が張ったシンクへ向こうのログも流れる。
+**`-d` を付けると `ytmidilib` の DEBUG も混ざって出る**（`Player.play()` の
+音符ごとの行など）。
+
+向こうの `Parser(debug=)` / `Player(debug=)` は引数としては残っているが、
+**水準には影響しない**（上流が互換のために残しただけ）。水準を決めるのは
+`loggerInit()` だけなので、こちらからは渡していない（TODO-058）。
 
 `pygame` は import されるだけでバナーを出す。`ytmidilib.Player` 経由で
 必ず読み込まれるので、`src/ytstreetorgan/__init__.py` の先頭で

@@ -181,8 +181,7 @@ class MidiApp:
                  pos_sec: float = 0.0,
                  model_name: str | None = None,
                  conf_file: str = RollBook.DEF_CONF_FILE,
-                 transpose: int | str = 0,
-                 debug: bool = False) -> None:
+                 transpose: int | str = 0) -> None:
         """解析器と再生器を用意する。
 
         Args:
@@ -202,14 +201,17 @@ class MidiApp:
             transpose (int | str): 移調する半音数。``'auto'`` なら候補の
                 1 位を選ぶ（TODO-039）。**`model_name` と併用する**
                 （どの機種に合わせるか決まらないと候補を出せない）。
-            debug (bool): 解析器と再生器にそのまま渡す。
 
         Raises:
             ValueError: `model_name` を指定したのに設定に無い、設定の項目が
                 足りない（`RollBook.__init__` と同じ理由）、または
                 `transpose` が整数にも ``'auto'`` にもならないとき。
+
+        Note:
+            debug は `Parser` / `Player` へ渡すためだけに受け取っていたが、
+            渡しても水準は変わらなくなったので外した（TODO-058。
+            `RollBookApp` と同じ理由）。
         """
-        self._dbg = debug
         logger.debug('midi_file={}, channel={}', midi_file, channel)
         logger.debug('parse_only={}, visual_flag={}', parse_only, visual_flag)
         logger.debug('rate={}', rate)
@@ -253,8 +255,8 @@ class MidiApp:
                 )
             self._model_conf = conf
 
-        self._parser = Parser(debug=self._dbg)
-        self._player = Player(rate=self._rate, debug=self._dbg)
+        self._parser = Parser()
+        self._player = Player(rate=self._rate)
 
     def _convert_for_model(self, note_info: list[NoteInfo]) -> list[NoteInfo]:
         """機種に合わせて変換する。重なりの統合 → 移調 → 音階での絞り込み。
@@ -351,7 +353,9 @@ class MidiApp:
             return
 
         # `Player.play()` は既定では何も出さない（ytmidilib 0.1.0。
-        # 音符ごとの行は向こうの DEBUG ログへ回った）
+        # 音符ごとの行は向こうの DEBUG ログへ回った）。
+        # **0.2.1 からは -d を付けるとその行もこちらに出る**（向こうも
+        # loguru になり、`loggerInit()` が張ったシンクへ流れるため）
         self._player.play(parsed_data, self._pos_sec,
                           self._sec_min, self._sec_max)
 

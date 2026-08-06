@@ -154,8 +154,7 @@ def parse(
 
     app = MidiApp(
         midi_file, channel, parse_only=True, visual_flag=visual_flag,
-        model_name=model_name, conf_file=conf_file, transpose=transpose,
-        debug=debug
+        model_name=model_name, conf_file=conf_file, transpose=transpose
     )
     try:
         app.main()
@@ -219,8 +218,7 @@ def play(
         midi_file, channel, parse_only=False,
         visual_flag=False, rate=rate,
         sec_min=sec_min, sec_max=sec_max, pos_sec=pos_sec,
-        model_name=model_name, conf_file=conf_file, transpose=transpose,
-        debug=debug
+        model_name=model_name, conf_file=conf_file, transpose=transpose
     )
     try:
         app.main()
