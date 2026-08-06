@@ -66,6 +66,22 @@ class TestRollBookPage(WebAppTestCase):
         # It should render the SVG data variable injected into HTML
         self.assertIn(b"<svg ", response.body)
 
+    def test_terms_note_on_the_upload_page(self):
+        """「調」「移調」の説明は、選ぶ前の画面に出る（TODO-053）。"""
+        response = self.fetch(f'{TEST_URL_PREFIX}/')
+
+        self.assertEqual(response.code, 200)
+        self.assertIn(b'class="terms"', response.body)
+        self.assertIn("1 オクターブ".encode(), response.body)
+
+    def test_terms_note_on_the_result_page(self):
+        """生成結果（移調の候補のところ）にも出る（TODO-053）。"""
+        response = self._upload()
+
+        self.assertEqual(response.code, 200)
+        self.assertIn(b'id="transpose-panel"', response.body)
+        self.assertIn(b'class="terms"', response.body)
+
     def test_post_unknown_model_shows_a_message(self):
         """知らない機種名は 500 にせず、理由を画面に出す。
 

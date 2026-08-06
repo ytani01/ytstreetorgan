@@ -51,6 +51,7 @@
               鳴らせる音が増えることがあります。
               <b>生成すると候補の一覧が出る</b>ので、そこで選び直せます。
             </p>
+            {% include "_terms.html" %}
 
             <hr>
             {% end %}
@@ -208,6 +209,7 @@
         <section class="panel" id="transpose-panel">
           <h2>キー（移調）を変えて作り直す</h2>
           <div class="panel__body">
+            {% include "_terms.html" %}
             {% if not show_transpose_table %}
             {% for notice in notices %}
             <p class="field__hint"><b>{{ notice }}</b></p>

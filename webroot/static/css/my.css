@@ -431,6 +431,18 @@ footer.appfoot .spacer { margin-left: auto; }
 }
 .field__hint { grid-column: 1 / -1; font-size: .72rem; color: var(--pico-muted-color); margin: -.1rem 0 .2rem; }
 
+/* 用語の説明（TODO-053）。畳んであるので、開くまでは 1 行しか占めない。
+   Pico の <details> は下に余白を付けるので、ヒントと同じ詰め方に戻す */
+.terms { grid-column: 1 / -1; margin: 0 0 .4rem; font-size: .74rem; }
+.terms > summary { font-size: .74rem; color: var(--pico-muted-color); }
+.terms__body {
+  margin-top: .3rem; padding: .5rem .7rem;
+  border-left: 2px solid var(--rule);
+  color: var(--pico-muted-color); line-height: 1.7;
+}
+.terms__body p { margin: 0 0 .4rem; }
+.terms__body p:last-child { margin-bottom: 0; }
+
 .notes-scroll { max-height: 460px; overflow-y: auto; }
 table.notes { margin: 0; font-size: .82rem; }
 table.notes thead th {
