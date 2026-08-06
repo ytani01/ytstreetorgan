@@ -1,9 +1,9 @@
 # TODO-048. `ytmidilib` に 2 通目の要求書を出す（ファイルの移調）
 
 TODO-042 の実装方針を変えるための要求。要求書
-（[`docs/20260806c-ytmidilib-requests-2.md`](../../docs/20260806c-ytmidilib-requests-2.md)）
+（[`20260806c-ytmidilib-requests-2.md`](../20260806c-ytmidilib-requests-2.md)）
 を出し、回答
-（[`docs/20260806d-ytmidilib-responses-2.md`](../../docs/20260806d-ytmidilib-responses-2.md)）
+（[`20260806d-ytmidilib-responses-2.md`](../20260806d-ytmidilib-responses-2.md)）
 で 4 項目すべて対応されたので、`0.1.0` → `0.1.1` に上げて取り込んだ。
 
 ## なぜ

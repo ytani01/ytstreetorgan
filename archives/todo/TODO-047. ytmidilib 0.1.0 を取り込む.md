@@ -1,7 +1,7 @@
 # TODO-047. `ytmidilib` 0.1.0 を取り込む
 
 TODO-045 で出した要求書への回答が来た
-（[`docs/20260806b-ytmidilib-responses.md`](../../docs/20260806b-ytmidilib-responses.md)）。
+（[`20260806b-ytmidilib-responses.md`](../20260806b-ytmidilib-responses.md)）。
 **13 項目すべて対応済み**とのことだったので、`0.0.3` → `0.1.0` に上げ、
 こちら側の手当てを剥がした。
 

@@ -1,8 +1,8 @@
 # TODO-045. `ytmidilib` への要求書を出す
 
-- [x] 要求書を書く → [`docs/20260806a-ytmidilib-requests.md`](../../docs/20260806a-ytmidilib-requests.md)
+- [x] 要求書を書く → [`20260806a-ytmidilib-requests.md`](../20260806a-ytmidilib-requests.md)
 - [x] `ytmidilib` 側の回答・修正を待つ →
-      [`docs/20260806b-ytmidilib-responses.md`](../../docs/20260806b-ytmidilib-responses.md)
+      [`20260806b-ytmidilib-responses.md`](../20260806b-ytmidilib-responses.md)
 - [x] 取り込んで、こちら側の手当てを剥がす → TODO-047
 
 ## 何を出したか
