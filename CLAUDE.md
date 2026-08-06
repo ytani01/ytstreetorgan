@@ -28,7 +28,7 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 
 - **実行方法の詳細は `docs/Developer.md`** — 環境の用意、絞り込み、
   カバレッジ、basedpyright、ruff の設定方針、コミット前に通すもの、
-  テストを書くときの注意
+  タグを打つ手順、テストを書くときの注意
 - **依存とその選定理由は `docs/tech-stack.md`** — `ytmidilib` が git 依存
   であること、hatch-vcs によるバージョン、フロントエンドの方針
 

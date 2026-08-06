@@ -122,6 +122,31 @@ uv run basedpyright src && \
 uv run pytest -m ""
 ```
 
+## タグを打つ
+
+版は **hatch-vcs が git タグから作る**ので、タグを打つこと自体が版を上げる
+操作になる（`docs/tech-stack.md`）。`v` は付けず、注釈付きタグにする
+（過去のタグはすべてこの形で、`develop` の上にある）。
+
+```bash
+git tag -a 0.6.1 -m "..."               # メッセージはそのコミットのものを使う
+uv sync --reinstall-package ytstreetorgan   # ← これを省かない
+```
+
+**`uv sync --reinstall-package ytstreetorgan` を必ず通すこと。** タグを
+打っただけでは `.venv` の中は古い版のままで、`uv run ytstreetorgan --version`
+も画面のフッターも古い版を出し続ける。`uv` は「もう入っている」と見なして
+入れ直さないので、`uv sync` や `uv run` を素で叩いても直らない。
+
+- **`uv.lock` は変わらない。** `ytstreetorgan` の項目は
+  `source = { editable = "." }` だけで `version` 行を持たない（動的な版
+  なので lock に書かれない）。タグを打っても `git status` はきれいなまま
+- `--reinstall-package` は**インストールの段階にだけ効く**。依存の解決や
+  lock の更新には関係しない
+- `uv pip install -e .` でも版は直る（`[tool.uv.sources]` も読まれるので
+  `ytmidilib` を git から取ってくる）。ただし **`uv.lock` を経由せずに
+  その場で解決し直す**うえ、dev 依存が入らない。使わない
+
 ## テストを書くときの注意
 
 ### HTTP テストは `WebAppTestCase` を継承すること
