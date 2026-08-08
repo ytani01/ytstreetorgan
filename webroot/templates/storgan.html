@@ -22,8 +22,8 @@
       {% if svg_data == '' %}
       <!-- ==================== ファイル選択 ==================== -->
       <section class="wrap wrap--narrow">
-        <h1 class="page-title">ロールブックを作る</h1>
-        <p class="page-lead">MIDI ファイルを選ぶと、穴あけ用の SVG を生成します。</p>
+        <h1 class="page-title">MIDIアプロード</h1>
+        <p class="page-lead">MIDIファイルから、手回しオルガン(Street Organ)用ロールブックを作成します。</p>
 
         <article>
           <form id="upload-form" enctype="multipart/form-data"
@@ -47,9 +47,8 @@
                  操作するものが無い画面で先に用語を説明しても読まれない。
                  説明は候補の表と同じ場所（生成結果）にだけ置く -->
             <p class="field__hint">
-              機種の音階に無い音は穴が開きません。曲全体を上下させると
-              鳴らせる音が増えることがあります。
-              <b>生成すると候補の一覧が出る</b>ので、そこで選べます。
+              機種の音階に無い音は穴が開きませんが、キーを変えることで出来る限り音源に近いメロディーを再現できるよう最適化することができます。
+              生成後、候補の一覧を表示します。
             </p>
 
             <hr>
@@ -93,25 +92,86 @@
           {% if from_history %}
           <!-- 履歴からそのまま出した場合。作っていないので「生成しました」とは
                言わない。添えるサイズも元 MIDI ではなく SVG 自身のもの。 -->
-          <span class="badge-info">履歴から表示</span>
+          <span class="badge-info">履歴表示</span>
           <span class="result-file">{{ svg_filename }}</span>
-          <span class="result-src">SVG <span class="num">{{ src_size }}</span></span>
-          <span class="result-src">生成
-            <span class="num">{{ book['created'] if book['created'] else unknown }}</span></span>
-          {% else %}
-          <span class="badge-ok">生成しました</span>
-          <span class="result-file">{{ svg_filename }}</span>
-          <span class="result-src">元 MIDI <span class="num">{{ src_size }}</span></span>
-          <span class="result-src">生成
-            <span class="num">{{ book['created'] if book['created'] else unknown }}</span></span>
+          <span class="result-src">SVGファイルサイズ: <span class="num">{{ src_size }}</span></span>
+          <span class="result-src">生成日時:
+            <span class="num">{{ book['created'] if book['created'] else unknown }}</span>
+          </span>
           {% if reused_name %}
-          <span class="result-src">前回アップロードした
-            <b>{{ reused_name }}</b> から作りました</span>
+          <span class="result-src">前回アップロードした <b>{{ reused_name }}</b> から作りました</span>
           {% end %}
+          {% else %}
+          <span class="badge-ok">生成結果</span>
+          <span class="result-file">{{ svg_filename }}</span>
+          <span class="result-src">元のMIDIファイルのサイズ: <span class="num">{{ src_size }}</span></span>
+          <span class="result-src">生成日時:
+            <span class="num">{{ book['created'] if book['created'] else unknown }}</span></span>
           {% end %}
         </div>
+        <span>機種 <b>{{ book['model'] if book['model'] else unknown }}</b></span>
+        <a class="dlbtn spacer" role="button" download
+          href="{{urlprefix}}/download/{{ svg_filename }}">
+          <svg width="14" height="14" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/>
+            <path d="M4 19h16"/>
+          </svg>
+          SVG をダウンロード
+        </a>
 
         <div class="viewer-card">
+          <!-- ブックの諸元はここに一度だけ。総時間 (#dur-t) は storgan.js が入れる -->
+          <div class="viewer-head">
+            <div class="viewer-head">
+            <span>演奏時間 <b id="dur-t">{{ unknown }}</b></span>
+            <span>全長 <b>{% if book['width'] is None %}{{ unknown }}{% else %}{{ '%.1f' % book['width'] }}{% end %}</b> mm</span>
+            <span>
+              高さ
+              <b>
+                {% if book['height'] is None %}{{ unknown }}{% else %}{{ '%.1f' % book['height'] }}{% end %}
+              </b>
+              mm
+            </span>
+            <span>
+              1 秒 =
+              <b>
+                {% if book['mm_per_sec'] is None %}{{ unknown }}{% else %}{{ '%.0f' % book['mm_per_sec'] }}{% end %}
+              </b>
+              mm
+            </span>
+            </div>
+            <div class="viewer-head">
+              {% if book.get('transpose') %}
+              <span title="曲全体を上下させた半音数。下の表で変えられる">
+                移調 <b>{{ '%+d' % book['transpose'] }}</b> 半音
+              </span>
+              {% end %}
+              <!-- 「音符の数 → ブリッジで分割したあとの数」。実線は実際に開ける
+                   穴、破線は音階に無くて開けない音。分割後の数は SVG から
+                   数えられない（穴 1 個が path 複数本になるため）ので、
+                   サーバーが数えて渡している。 -->
+              <span>
+                音符
+                <b>{{ book['notes'] if book['notes'] is not None else unknown }}</b>
+                音
+              </span>
+              {% if book.get('merged') %}
+              <span title="同じ高さの音が重なっていたため、1 つにまとめた数">
+                （うち統合 <b>{{ book['merged'] }}</b>）
+              </span>
+              {% end %}
+              <span title="ブリッジで分割する前 → 分割したあと">
+                演奏 <b>{{ book['hole_notes'] if book['hole_notes'] is not None else unknown }}</b>音
+                → 穴 <b>{{ book['holes'] if book['holes'] is not None else unknown }}</b> 個
+              </span>
+              <span title="オルガンの音階に無い音。破線で描くだけで穴は開けない">
+                無音 <b>{{ book['off_scale_notes'] if book['off_scale_notes'] is not None else unknown }}</b> 音
+                → 穴 <b>{{ book['off_scale'] if book['off_scale'] is not None else unknown }}</b> 個
+              </span>
+            </div>
+          </div>
           <div class="toolbar">
             <div class="zoomgrp">
               <button type="button" class="zoombtn" id="zoom-out" aria-label="縮小">−</button>
@@ -125,14 +185,13 @@
             <button type="button" class="secondary outline" id="fit-all">全体</button>
             <button type="button" class="secondary outline" id="fit-actual"
               title="画面上で実際の紙と同じ大きさ（96dpi 換算）">原寸</button>
-            <button type="button" class="secondary outline" id="to-start">先頭へ</button>
-            <!-- 現在位置だけ。全長・総時間はフッターに一度だけ出す -->
             <div class="readout">
               <span class="readout__label">現在位置</span>
               <b id="pos-mm">0</b> mm
               <span class="readout__sep">·</span>
               <b id="pos-t">0:00</b>
             </div>
+            <button type="button" class="secondary outline" id="to-start">先頭へ</button>
           </div>
 
           <div class="svgbox" id="svgbox">
@@ -147,53 +206,13 @@
             <div class="minimap__window" id="mmwin"></div>
           </div>
 
-          <!-- ブックの諸元はここに一度だけ。総時間 (#dur-t) は storgan.js が入れる -->
-          <div class="viewer-foot">
-            <span>機種 <b>{{ book['model'] if book['model'] else unknown }}</b></span>
-            <span>全長 <b>{% if book['width'] is None %}{{ unknown }}{% else %}{{ '%.1f' % book['width'] }}{% end %}</b> mm</span>
-            <span>演奏時間 <b id="dur-t">{{ unknown }}</b></span>
-            <span>高さ <b>{% if book['height'] is None %}{{ unknown }}{% else %}{{ '%.1f' % book['height'] }}{% end %}</b> mm</span>
-            <!-- 「音符の数 → ブリッジで分割したあとの数」。実線は実際に開ける
-                 穴、破線は音階に無くて開けない音。分割後の数は SVG から
-                 数えられない（穴 1 個が path 複数本になるため）ので、
-                 サーバーが数えて渡している。 -->
-            <span>音符 <b>{{ book['notes'] if book['notes'] is not None else unknown }}</b></span>
-            {% if book.get('merged') %}
-            <span title="同じ高さの音が重なっていたため、1 つにまとめた数">
-              （うち統合 <b>{{ book['merged'] }}</b>）
-            </span>
-            {% end %}
-            {% if book.get('transpose') %}
-            <span title="曲全体を上下させた半音数。下の表で変えられる">
-              移調 <b>{{ '%+d' % book['transpose'] }}</b> 半音
-            </span>
-            {% end %}
-            <span title="ブリッジで分割する前 → 分割したあと">
-              穴 <b>{{ book['hole_notes'] if book['hole_notes'] is not None else unknown }}</b>
-              → <b>{{ book['holes'] if book['holes'] is not None else unknown }}</b> 個
-            </span>
-            <span title="オルガンの音階に無い音。破線で描くだけで穴は開けない">
-              破線 <b>{{ book['off_scale_notes'] if book['off_scale_notes'] is not None else unknown }}</b>
-              → <b>{{ book['off_scale'] if book['off_scale'] is not None else unknown }}</b> 個
-            </span>
-            <span>1 秒 = <b>{% if book['mm_per_sec'] is None %}{{ unknown }}{% else %}{{ '%.0f' % book['mm_per_sec'] }}{% end %}</b> mm</span>
-            <a class="dlbtn spacer" role="button" download
-              href="{{urlprefix}}/download/{{ svg_filename }}">
-              <svg width="14" height="14" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" aria-hidden="true">
-                <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/>
-                <path d="M4 19h16"/>
-              </svg>
-              SVG をダウンロード
-            </a>
-          </div>
         </div>
 
         <div class="legend">
+          <!--
           <span>演奏は右から左へ（右端が曲の先頭）</span>
-          <span><i style="border-color: var(--hole);"></i>オルガンの音階にある音 — 穴を開けます</span>
-          <span><i style="border-color: currentColor; border-top-style: dashed;"></i>オルガンの音階に無い音 — 破線で描き、穴は開けません</span>
+          <span><i style="border-color: var(--hole);"></i>穴を開ける部分(オルガンの音階にある音)</span>
+          <span><i style="border-color: currentColor; border-top-style: dashed;"></i>オルガンの音階に無い音</span> -->
         </div>
 
         <!-- 移調の候補（TODO-039）。**最適解は 1 つに定まらないことのほうが
@@ -206,33 +225,35 @@
              選べそうに見える。 -->
         {% if candidates and midi_name %}
         <section class="panel" id="transpose-panel">
-          <h2>キー（移調）を変えて作り直す</h2>
+          <h2>キーを変えて作り直す(移調) 候補</h2>
           <div class="panel__body">
-            {% include "_terms.html" %}
             {% if not show_transpose_table %}
             {% for notice in notices %}
             <p class="field__hint"><b>{{ notice }}</b></p>
             {% end %}
             {% else %}
-            <p class="field__hint">
-              曲全体を上下させると、鳴らせる音符が増えることがあります。
-              <b>移調</b> の値を押すと、その設定で作り直します。
-            </p>
+            <!--
+                 <p class="field__hint">
+                 キーを変えて曲全体をずらすと、鳴らせる音符や長さが増えることがあります。
+                 <b>移調</b> の値を押すと、その設定で作り直します。
+                 </p> -->
             <!-- 「音符は増えるが長さは減る」候補も出す（TODO-039 / 051）。
                  どちらを取るかは曲による。決めるのは利用者。
                  印が 1 つも出ない表では、この説明そのものを出さない -->
-            {% if has_worse %}
-            <p class="field__hint">
-              <b class="is-worse">▼</b> は、<b>移調しない場合より下がる</b>
-              ことを表します。音符の数と音の長さは、片方だけ増えることが
-              あります。
-            </p>
-            {% end %}
-
-            {% for notice in notices %}
-            <p class="field__hint"><b>※ {{ notice }}</b></p>
-            {% end %}
-
+            <!--
+                 {% if has_worse %}
+                 <p class="field__hint">
+                 <b class="is-worse">▼</b> は、<b>移調しない場合より下がる</b>
+                 ことを表します。音符の数と音の長さは、片方だけ増えることが
+                 あります。
+                 </p>
+                 {% end %}
+            -->
+            <!--
+                 {% for notice in notices %}
+                 <p class="field__hint"><b>※ {{ notice }}</b></p>
+                 {% end %}
+            -->
             <form id="transpose-form" method="post" action="{{urlprefix}}/">
               <input type="hidden" name="model" value="{{ book['model'] }}">
               <input type="hidden" name="stored_midi" value="{{ midi_name }}">

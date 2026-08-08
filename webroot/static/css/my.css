@@ -102,8 +102,11 @@ body > main { flex: 1 0 auto; }
   background: var(--pico-card-background-color);
 }
 .appbar__inner {
-  max-width: 1180px; margin: 0 auto; padding: .55rem 1rem;
-  display: flex; align-items: center; gap: 1rem;
+    max-width: 1180px; margin: 0 auto;
+    padding: .2rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 .brand { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: inherit; }
 .brand__name { font-weight: 700; font-size: 1rem; letter-spacing: .01em; }
@@ -252,7 +255,7 @@ footer.appfoot .spacer { margin-left: auto; }
    こうするとブラウザ標準のスクロールがそのまま効き、スクロールバーが
    全体の中の現在位置を示す。SVG が mm 単位なので倍率 1.0 が原寸になる。 */
 .svgbox {
-  overflow: auto; height: clamp(300px, 48vh, 560px); padding: 1rem;
+  overflow: auto; height: clamp(200px, 33vh, 400px); padding: 1rem;
   background: var(--pico-background-color);
   background-image: linear-gradient(var(--rule) 1px, transparent 1px),
                     linear-gradient(90deg, var(--rule) 1px, transparent 1px);
@@ -325,6 +328,17 @@ footer.appfoot .spacer { margin-left: auto; }
 }
 .minimap__edge--l { left: 0; }
 .minimap__edge--r { right: 0; }
+
+.viewer-head {
+  display: flex; flex-wrap: wrap; gap: .35rem 1.5rem;
+  padding: .05rem .8rem;
+  font-size: .78rem; color: var(--pico-muted-color);
+}
+.viewer-head b {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--pico-color); font-weight: 600;
+}
+.viewer-head .spacer { margin-left: auto; }
 
 .viewer-foot {
   display: flex; flex-wrap: wrap; gap: .35rem 1.5rem;
@@ -523,8 +537,10 @@ table.notes td.track-num {
 /* ---- 履歴 -------------------------------------------------------------- */
 /* MIDI と SVG を並べる。狭いときは縦に積む */
 .hist-grid {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: .9rem; align-items: start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: .9rem;
+    align-items: start;
 }
 @media (max-width: 900px) {
   .hist-grid { grid-template-columns: minmax(0, 1fr); }

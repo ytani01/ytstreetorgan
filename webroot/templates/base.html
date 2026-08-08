@@ -34,13 +34,13 @@
               <rect x="12" y="14" width="8" height="2" rx="1"/>
             </g>
           </svg>
-          <span class="brand__name">Roll Book Maker</span>
-          <span class="brand__sub">storgan</span>
+          <span class="brand__name">Street Organ Roll Book Maker</span>
+          <span class="brand__sub">v{{ version }}</span>
         </a>
         <!-- いま居るページは各ハンドラが nav で渡す（'top' / 'history' / 'config'） -->
         <nav>
           <a href="{{urlprefix}}/"
-            {% if nav == 'top' %}aria-current="page"{% end %}>ロールブック作成</a>
+            {% if nav == 'top' %}aria-current="page"{% end %}>MIDIアプロード</a>
           <a href="{{urlprefix}}/history"
             {% if nav == 'history' %}aria-current="page"{% end %}>履歴</a>
           <a href="{{urlprefix}}/config"
