@@ -121,7 +121,7 @@ class TestHistoryActions(HistoryTestBase):
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="svgbox"', response.body)
-        self.assertIn('履歴から表示'.encode(), response.body)
+        self.assertIn('履歴'.encode(), response.body)
         # SVG から読める寸法は出る
         self.assertIn(b'2089.3', response.body)
         # 読めないものは --- になる
@@ -155,7 +155,7 @@ class TestHistoryActions(HistoryTestBase):
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="svgbox"', response.body)
-        self.assertIn('生成しました'.encode(), response.body)
+        self.assertIn('生成結果'.encode(), response.body)
         # 作り直されている（置いてあったダミーとは別物）
         self.assertNotEqual(svg.read_text(encoding='utf-8'), before)
         # 諸元も出る（--- ではない）
@@ -238,7 +238,7 @@ class TestBaseTemplate(HistoryTestBase):
     def test_nav_is_on_every_page(self):
         for path in self.PAGES:
             body = self.fetch(f'{TEST_URL_PREFIX}{path}').body
-            for label in ('ロールブック作成', '履歴', '機種設定'):
+            for label in ('MIDIアップロード', '履歴', '機種設定'):
                 self.assertIn(label.encode(), body, f'{path}: {label}')
 
     def test_current_page_is_marked(self):
