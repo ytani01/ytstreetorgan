@@ -40,15 +40,15 @@ def test_show_stored_svg_keeps_all_values(
     midi = tmp_path / 'hist-show.mid'
     midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
     upload_midi(page, live_server, midi)
-    generated = page.locator('.viewer-foot').inner_text()
+    generated = page.locator('.viewer-card > .viewer-head').inner_text()
 
     page.goto(f'{live_server}/history')
     page.click('#svg-table tr[data-name="hist-show.mid.svg"] [data-show]')
 
     expect(page.locator('#svgbox svg')).to_be_visible()
-    expect(page.locator('.result-head')).to_contain_text('履歴から表示')
+    expect(page.locator('.result-head')).to_contain_text('履歴表示')
 
-    foot = page.locator('.viewer-foot')
+    foot = page.locator('.viewer-card > .viewer-head')
     assert '---' not in foot.inner_text()
     assert foot.inner_text() == generated
     # 演奏時間も出る（mm_per_sec が読めるため）
@@ -68,8 +68,8 @@ def test_regenerate_from_stored_midi(
     page.click('#midi-table tr[data-name="hist-regen.mid"] [data-regen]')
 
     expect(page.locator('#svgbox svg')).to_be_visible()
-    expect(page.locator('.result-head')).to_contain_text('生成しました')
-    assert '---' not in page.locator('.viewer-foot').inner_text()
+    expect(page.locator('.result-head')).to_contain_text('生成結果')
+    assert '---' not in page.locator('.viewer-card > .viewer-head').inner_text()
 
 
 def test_file_name_is_the_action(
@@ -99,7 +99,7 @@ def test_file_name_is_the_action(
     name.click()
 
     expect(page.locator('#svgbox svg')).to_be_visible()
-    expect(page.locator('.result-head')).to_contain_text('生成しました')
+    expect(page.locator('.result-head')).to_contain_text('生成結果')
 
 
 def test_delete_one_file(

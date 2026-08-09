@@ -107,6 +107,9 @@
           <span class="result-src">元のMIDIファイルのサイズ: <span class="num">{{ src_size }}</span></span>
           <span class="result-src">生成日時:
             <span class="num">{{ book['created'] if book['created'] else unknown }}</span></span>
+          {% if reused_name %}
+          <span class="result-src">前回アップロードした <b>{{ reused_name }}</b> から作りました</span>
+          {% end %}
           {% end %}
         </div>
         <span>機種 <b>{{ book['model'] if book['model'] else unknown }}</b></span>

@@ -78,20 +78,13 @@ class TestRollBookPage(WebAppTestCase):
         self.assertNotIn(b'<select id="transpose"', response.body)
         self.assertNotIn(b'class="terms"', response.body)
 
-    # def test_terms_note_on_the_result_page(self):
-    #     """「移調」の説明は、生成結果（候補の表のところ）に出る。
+    def test_terms_note_on_the_result_page(self):
+        """生成結果に「移調」の候補パネルが出る。"""
+        response = self._upload()
 
-    #     TODO-053 で足し、TODO-055 で「移調とは何か」の一段落だけにした。
-    #     見出しで見る（本文の HTML コメントにも語が出るので、本文全体の
-    #     有無では判定できない）。
-    #     """
-    #     response = self._upload()
-
-    #     self.assertEqual(response.code, 200)
-    #     self.assertIn(b'id="transpose-panel"', response.body)
-    #     self.assertIn(b'class="terms"', response.body)
-    #     self.assertIn("<summary>「移調」とは？</summary>".encode(), response.body)
-    #     self.assertIn("カラオケの「キー +1 / −1」".encode(), response.body)
+        self.assertEqual(response.code, 200)
+        self.assertIn(b'id="transpose-panel"', response.body)
+        self.assertIn("キーを変えて作り直す(移調) 候補".encode(), response.body)
 
     def test_post_unknown_model_shows_a_message(self):
         """知らない機種名は 500 にせず、理由を画面に出す。

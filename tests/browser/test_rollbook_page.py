@@ -491,8 +491,8 @@ def test_upload_over_size_limit_is_stopped_before_sending(
 
 
 def _book_size(page: Page) -> str:
-    """ビューアのフッターから、ブックの諸元を読む。"""
-    return page.locator('.viewer-foot').inner_text()
+    """ビューアのヘッダーから、ブックの諸元を読む。"""
+    return page.locator('.viewer-card > .viewer-head').inner_text()
 
 
 def test_same_name_replaces_after_confirming(

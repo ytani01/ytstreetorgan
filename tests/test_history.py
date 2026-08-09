@@ -121,7 +121,7 @@ class TestHistoryActions(HistoryTestBase):
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="svgbox"', response.body)
-        self.assertIn('履歴'.encode(), response.body)
+        self.assertIn('履歴表示'.encode(), response.body)
         # SVG から読める寸法は出る
         self.assertIn(b'2089.3', response.body)
         # 読めないものは --- になる
@@ -159,7 +159,7 @@ class TestHistoryActions(HistoryTestBase):
         # 作り直されている（置いてあったダミーとは別物）
         self.assertNotEqual(svg.read_text(encoding='utf-8'), before)
         # 諸元も出る（--- ではない）
-        self.assertIn('音符'.encode(), response.body)
+        self.assertIn('穴'.encode(), response.body)
 
     def test_regenerate_broken_midi_is_reported(self):
         response = self._post_root(stored_midi='other.mid', model='34notes')
