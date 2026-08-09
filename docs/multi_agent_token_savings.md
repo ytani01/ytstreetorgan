@@ -73,6 +73,7 @@ graph TD
     Orch --> Dev
 ```
 
+
 | エージェント | モデル | 役割 | 起動する場面 |
 |---|---|---|---|
 | オーケストレータ | flash | ユーザーの要求を受け、振り先を判断。結果を集約して報告 | 常時（メインエージェント） |
@@ -81,6 +82,17 @@ graph TD
 | 開発者 | pro | 設計判断を伴うコード変更・リファクタリング | 本当にコードを書くときだけ |
 
 ---
+
+### サブエージェント・メインエージェント別推奨設定
+
+| エージェント | Gemini 推奨モデル & Effort | Claude 推奨モデル & Effort | 選定理由・特徴 |
+|---|---|---|---|
+| ci-runner<br>(単体テスト / Linter / 型チェック) | Gemini 2.5 / 3.0 Flash Lite<br>(effort: none または low) | Claude 3.5 Haiku<br>(effort: none または low) | トークン単価が最安かつ最速。コマンド実行と失敗ログの抽出・要約に推論思考（Thinking）は不要。 |
+| browser-test-runner<br>(ブラウザ E2E テスト) | Gemini 2.5 / 3.5 Flash / Flash Lite<br>(effort: low) | Claude 3.5 Haiku / 3.7 Sonnet<br>(effort: low または standard) | Playwrightのログ要約やUIテスト失敗ステップの判定。簡単なコンテキスト理解。 |
+| repo-status-checker<br>(Git & TODO運用確認) | Gemini 2.5 / 3.0 Flash Lite<br>(effort: none または low) | Claude 3.5 Haiku<br>(effort: none または low) | git status や TODO.md のフォーマット・リンク検証。推論コスト最小化。 |
+| doc-style-auditor<br>(ドキュメント・用語規約監査) | Gemini 2.5 / 3.0 Flash Lite<br>(effort: low) | Claude 3.5 Haiku<br>(effort: low) | ファイルパスの存在チェックおよび grep結果（用語規約「ノート」禁止等）の確認。 |
+| (参考)<br>メインエージェント / 開発者(設計判断・複雑なコード変更) | Gemini 3.5 Pro / 3.6 Flash<br>(effort: medium〜high) | Claude 3.7 Sonnet / 3 Opus<br>(thinking effort: medium〜high) | リポジトリ固有の制約遵守、影響範囲の把握、品質の高い設計判断。 |
+
 
 ## タスク別の使い方
 
