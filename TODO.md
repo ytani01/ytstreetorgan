@@ -16,7 +16,39 @@ TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項�
 
 ## 着手前 / 検討中
 
-- **TODO-062.** 定型検証サブエージェントドキュメントに Gemini/Claude のモデル名および Effort 設定を追記する
+### **TODO-063** MIDIファイルをダウンロードせずに簡単に再生する機能について検討
+
+**候補**: html-midi-player (**TBD**: 他にもっと良い方法がないか？)
+- CDNを使うことも容認
+- サンプルコード
+```
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>MIDI Player</title>
+  <!-- 必要なライブラリ（Tone.js, Magenta.js, html-midi-player等）を一括で読み込む -->
+  <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
+</head>
+<body>
+
+  <!-- MIDIプレイヤー -->
+  <!-- src属性に再生したいMIDIファイルのパスを指定します -->
+  <midi-player
+    src="foo.mid"
+    sound-font
+    visualizer="#myVisualizer">
+  </midi-player>
+
+  <!-- （任意）再生に合わせて音が降ってくるピアノロール UI -->
+  <midi-visualizer type="piano-roll" id="myVisualizer"></midi-visualizer>
+
+</body>
+</html>
+```
+
+
+### **TODO-062** 定型検証サブエージェントドキュメントに Gemini/Claude のモデル名および Effort 設定を追記する
 
 ---
 
