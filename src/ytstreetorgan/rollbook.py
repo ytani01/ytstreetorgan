@@ -430,9 +430,23 @@ class RollBook:
         return self._candidates
 
     @property
+    def playable_note_info(self) -> list[NoteInfo]:
+        """実機で実際に鳴る音符（`load()` を呼ぶまでは空）。
+
+        重なりの統合（`merge_overlapping_notes()`。TODO-038）と移調
+        （`plan_transpose()`）を経たあと、**機種の音階にある音だけ**を
+        残したもの。実線で描く穴（`scale >= 0`）と 1 対 1 に対応する。
+
+        ブラウザでの試聴（TODO-063）が、鳴らす音符としてこれを使う。
+        **絞り込みは移調したあとでなければ決まらない**ので、順番は
+        `load()` の中の 1 通りだけにしてある（TODO-043 と同じ理由）。
+        """
+        return [hi.note_info for hi in self._holes if hi.scale >= 0]
+
+    @property
     def hole_note_count(self) -> int:
         """実線で描く音符の数（オルガンの音階にあるもの）。"""
-        return sum(1 for hi in self._holes if hi.scale >= 0)
+        return len(self.playable_note_info)
 
     @property
     def hole_count(self) -> int:
@@ -516,16 +530,18 @@ class RollBook:
         svg += '</svg>\n'
         return svg
 
-    def parse(self, midi_file: str | Path, channel: list | None = None) -> str:
-        """MIDIファイルを解析して穴情報を生成し、SVGデータを作成する。
+    def load(self, midi_file: str | Path, channel: list | None = None) -> None:
+        """MIDIファイルを解析して、穴の情報と移調の候補を作る（SVG は作らない）。
+
+        `parse()` から切り出したもの（TODO-063）。ブラウザでの試聴は
+        鳴らす音符（`playable_note_info`）だけが要るので、**SVG を
+        組み立てずにここまでで止められる**ようにしてある。
+        **`parse()` の手順はここに 1 通りだけ**（写さないこと）。
 
         Args:
             midi_file (str | Path): 解析対象のMIDIファイルパス。
             channel (list | None, optional): 対象とするMIDIチャンネルのリスト
                 （None または空リストの場合は全チャンネル）。デフォルトは None。
-
-        Returns:
-            str: 生成されたSVG形式のテキスト文字列。
 
         Note:
             **同じインスタンスで何度呼んでも同じ結果になる。** かつては
@@ -573,8 +589,22 @@ class RollBook:
 
         logger.debug('width={}, len(hole)={}', self._width, len(self._holes))
 
-        svg = self.svg()
-        return svg
+    def parse(self, midi_file: str | Path, channel: list | None = None) -> str:
+        """MIDIファイルを解析して穴情報を生成し、SVGデータを作成する。
+
+        中身は `load()`（解析）＋ `svg()`（描画）。**呼ぶ側から見た
+        振る舞いは切り出す前と同じ。**
+
+        Args:
+            midi_file (str | Path): 解析対象のMIDIファイルパス。
+            channel (list | None, optional): 対象とするMIDIチャンネルのリスト
+                （None または空リストの場合は全チャンネル）。デフォルトは None。
+
+        Returns:
+            str: 生成されたSVG形式のテキスト文字列。
+        """
+        self.load(midi_file, channel)
+        return self.svg()
 
     def parse_to_file(
             self, midi_file: str | Path, out_file: str | Path,

@@ -12,6 +12,7 @@ from . import __version__
 from .conf import Conf
 from .config_handler import ConfigHandler
 from .handler1 import (
+    AuditionMidi,
     Download,
     DownloadTransposedMidi,
     DownloadTransposedMidiZip,
@@ -107,6 +108,9 @@ class WebServer:
             (rf'{self._urlprefix}/download/midi-transpose-zip/(.*)',
              DownloadTransposedMidiZip),
             (rf'{self._urlprefix}/download/(.*)', Download, {'kind': 'svg'}),
+            # ブラウザでの試聴（TODO-063）。実機で鳴る音だけを返す。
+            # 持ち帰る素材とは目的が違うので /download/ とは分けてある
+            (rf'{self._urlprefix}/audition/midi/(.*)', AuditionMidi),
         ]
         if self._debug:
             # 開発用。ブラウザはこれが切れたのを合図に再読み込みする

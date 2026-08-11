@@ -38,13 +38,13 @@
 
 **区切り A（サーバー側だけで完結。ここまでで `curl` と `ytstreetorgan play` で音を確かめられる）**
 
-- [ ] `rollbook.py` に継ぎ目を入れる: `parse()` から `load()` を切り出し、`playable_note_info` プロパティ（`scale >= 0` の音符）を追加、`hole_note_count` をそれに寄せる
-- [ ] `uv run pytest -q` で既存のロールブックのテストが全部緑であること（`parse()` の外形を変えていない確認）
-- [ ] `audition.py` を新設し `playable_midi_bytes()` を実装（channel を 0 に揃える。`ytmidilib.write()` がパスしか受けないので当面は一時ファイル経由にし、その詳細をこの関数の中だけに閉じ込める）
-- [ ] `tests/test_audition.py` を書く（音階外の音が入っていない／移調が効く／数が `hole_note_count` と一致／統合が効く／channel が全部 0／何も保存しない／未知の機種名は `ValueError`）
-- [ ] `handler1.py` に `AuditionMidi` を追加、`webapp.py` にルートを 1 行追加（`Content-Type: audio/midi`、`Content-Disposition` は付けない、保存しない）
-- [ ] HTTP テストを書く（200 と `MThd`／不正な `t` は 400／未知の機種は 400／`..` を含む名前は 400／無いファイルは 404）
-- [ ] サーバーを起動して `curl` で取り、`ytstreetorgan play` で実際に聴いて確かめる
+- [x] `rollbook.py` に継ぎ目を入れる: `parse()` から `load()` を切り出し、`playable_note_info` プロパティ（`scale >= 0` の音符）を追加、`hole_note_count` をそれに寄せる
+- [x] `uv run pytest -q` で既存のロールブックのテストが全部緑であること（`parse()` の外形を変えていない確認）
+- [x] `audition.py` を新設し `playable_midi_bytes()` を実装（channel を 0 に揃える。`ytmidilib.write()` がパスしか受けないので当面は一時ファイル経由にし、その詳細をこの関数の中だけに閉じ込める）
+- [x] `tests/test_audition.py` を書く（音階外の音が入っていない／移調が効く／数が `hole_note_count` と一致／統合が効く／channel が全部 0／何も保存しない／未知の機種名は `ValueError`）
+- [x] `handler1.py` に `AuditionMidi` を追加、`webapp.py` にルートを 1 行追加（`Content-Type: audio/midi`、`Content-Disposition` は付けない、保存しない）
+- [x] HTTP テストを書く（200 と `MThd`／不正な `t` は 400／未知の機種は 400／`..` を含む名前は 400／無いファイルは 404）
+- [x] サーバーを起動して `curl` で取り、`ytstreetorgan play` で実際に聴いて確かめる
 
 **区切り B（画面から聴けるようになる。ここまでで利用者に出せる）**
 

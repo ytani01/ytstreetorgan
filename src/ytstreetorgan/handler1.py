@@ -7,6 +7,7 @@ import tornado.web
 from loguru import logger
 
 from . import __author__, __copyright_year__
+from .audition import playable_midi_bytes
 from .conf import Conf
 from .mylog import exmsg
 from .rollbook import RollBook
@@ -291,6 +292,62 @@ class DownloadTransposedMidiZip(StorganBaseHandler):
             raise tornado.web.HTTPError(400, reason='bad transpose')
 
         return uniq
+
+
+class AuditionMidi(StorganBaseHandler):
+    """ブラウザで試聴するための MIDI を返す（TODO-063）。
+
+    URL は `/audition/midi/<name>?t=<半音数>&model=<機種名>`。
+
+    **`DownloadTransposedMidi` とは別にしてある。** あちらは持ち帰る
+    素材（元のファイルを移調しただけ）で、こちらは実機の再現
+    （音階に無い音は鳴らない）。目的が違うものを同じ URL から返すと、
+    同じ名前で中身の違う MIDI が 2 種類出回ることになる。
+
+    **`Content-Disposition` は付けない**（持ち帰らせない。試聴のための
+    ものなので、欲しくなったらここに足すのが答え）。**保存もしない。**
+    """
+
+    def get(self, fname: str = ''):
+        """鳴る音だけの MIDI を返す。
+
+        Args:
+            fname (str): 元の MIDI のファイル名。URL から来る。
+        """
+        transpose = self.get_argument('t', '')
+        model = self.get_argument('model', '')
+        logger.debug('fname={}, t={}, model={}', fname, transpose, model)
+
+        try:
+            # 名前は URL から来る。置き場の外を指していないか必ず確かめる
+            path_name = resolve_in(self._webroot / 'midi', fname)
+        except ValueError as e:
+            logger.error(exmsg(e))
+            raise tornado.web.HTTPError(400, reason='bad file name') from e
+
+        try:
+            semitones = int(transpose)
+        except ValueError as e:
+            logger.error(exmsg(e))
+            raise tornado.web.HTTPError(400, reason='bad transpose') from e
+
+        if not path_name.is_file():
+            raise tornado.web.HTTPError(404)
+
+        try:
+            data = playable_midi_bytes(path_name, model, semitones)
+        except ValueError as e:
+            # 知らない機種名、設定の項目が足りない
+            logger.error(exmsg(e))
+            raise tornado.web.HTTPError(400, reason='bad model') from e
+        except Exception as e:
+            # 読めない MIDI など。既定の 500 ページより理由が分かる
+            logger.error(exmsg(e))
+            raise tornado.web.HTTPError(400, reason='cannot audition') from e
+
+        self.set_header('Content-Type', 'audio/midi')
+        self.write(data)
+        self.finish()
 
 
 class Handler1(StorganBaseHandler):
