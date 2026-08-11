@@ -44,13 +44,14 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 **モジュールの依存は一方向に保つ**（TODO-043）。
 
 ```
-conf.py → transpose.py → rollbook.py → apps.py / handler1.py
+conf.py → transpose.py → rollbook.py → audition.py → handler1.py
 ```
 
 | モジュール | 受け持ち |
 |---|---|
 | `transpose.py` | 移調。候補の作成・絞り込み・注記、`plan_transpose()`。並び順は `transpose_rank_key()`（TODO-052） |
 | `rollbook.py` | 穴の位置と SVG。`note2scale()` / `HoleInfo` / `RollBook` |
+| `audition.py` | 試聴用の MIDI。`playable_midi_bytes()` |
 
 **`transpose.py` から `rollbook.py` を import しないこと**（循環する）。
 移調は「どの高さで鳴らすか」だけの話で、穴の位置や SVG とは関係が無い。
@@ -104,6 +105,7 @@ conf.py → transpose.py → rollbook.py → apps.py / handler1.py
 | 移調 | 曲全体を上下させる半音数 | （設定項目ではない） |
 | 調 | 移調量のうち、キーを動かすぶん（-5〜+6）。**CLI の表示だけ** | （同上） |
 | 音の長さ | 鳴らせる音符の**長さの合計**が占める割合 | （同上） |
+| 試聴 | その機種で実際に鳴る音だけを、ブラウザで鳴らして確かめること | （設定項目ではない） |
 
 - **「ノート」は必ず「MIDI ノート番号」と書く**（音名と紛れるため）。
   裸の「ノート」は使わない
@@ -154,6 +156,11 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 - `DownloadTransposedMidi` — `/download/midi-transpose/<name>?t=<半音数>`。
   **アップロード済みの MIDI を、その場で移調して返す**（TODO-042）。
   ロールブックの音符ではなく元のファイルを移調するだけ。**保存しない**
+- `AuditionMidi` — `/audition/midi/<name>?t=<半音数>&model=<機種名>`。
+  **その機種で実際に鳴る音だけ**を返す（移調・統合・音階での絞り込みを
+  経たもの）。`Content-Type: audio/midi`、`Content-Disposition` は付けない、
+  **保存しない**（TODO-063）。`DownloadTransposedMidi`（持ち帰る素材）とは
+  目的が違うので経路を分けてある
 - `DownloadTransposedMidiZip` — `/download/midi-transpose-zip/<name>?t=-5,0,3`。
   候補ぶんをまとめて ZIP で返す（TODO-050）。**半音数はクエリで受け取り、
   候補を作り直さない**（1 件版と同じく、名前と半音数だけから作れる形に
@@ -200,9 +207,10 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 
 注意点:
 
-- `<script>` の 1 行は**全ページに要る**。`storgan.html` と
-  `config_editor.html` は `<head>` も appbar も同じ内容をそれぞれ持っていて
-  （共通の親テンプレートが無い）、両方に書いてある。ページを増やすときは忘れずに
+- `<script>` の 1 行は `base.html` に 1 か所あれば全ページに効く。
+  `storgan.html` / `config_editor.html` / `history.html` はどれも
+  `base.html` を継承している（`{% extends "base.html" %}`）ので、
+  ページを増やしてもここは触らなくてよい
 - `tornado.autoreload.watch()` は**起動時にあるファイルしか見ない**。
   テンプレートを新規に足したら一度手で再起動する
 - 生成結果の画面でリロードすると、表示中のブックは消えて作り直しになる

@@ -60,6 +60,24 @@ db と checkouts を消してから入れ直す（TODO-047 に手順がある）
 - ビルド工程は無い。`webroot/static/js/*.js` を素の JS で書いて、
   テンプレートから `static_url()` で読む
 
+### MIDI の試聴（TODO-063）に同梱した 3 本
+
+`https://unpkg.com/<パッケージ>@<版>/<パス>` から curl で取得した。
+ライセンス全文と sha256 は `webroot/static/vendor/LICENSES.md` にある。
+
+| ファイル | パッケージ | 版 | サイズ | ライセンス |
+|---|---|---|---|---|
+| `webroot/static/vendor/Tone.js` | tone | 14.7.58 | 347,852 バイト | MIT |
+| `webroot/static/vendor/core.js` | @magenta/music の `es6/core.js` | 1.23.1 | 241,786 バイト | Apache-2.0 |
+| `webroot/static/vendor/html-midi-player.js` | html-midi-player の `dist/midi-player.min.js` | 1.6.0 | 13,994 バイト | BSD 2-Clause |
+
+- **Tone は 14.x に固定する。** @magenta/music 1.23.1 が想定しているのが
+  14 系で、上げると鳴らなくなる
+- **`sound-font` 属性は付けない。** 付けると音源を
+  `storage.googleapis.com` から取りに行く。「外部 CDN は 1 本も読まない」
+  方針に反する
+- **`.map`（ソースマップ）は同梱しない**
+
 詳しくは `webroot/CLAUDE.md`。
 
 ## ロギング設計
