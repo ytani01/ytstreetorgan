@@ -612,3 +612,34 @@ table.hist .num {
    注意色として共用する（明暗テーマの両方に定義があるのはこれと --ok
    だけで、--ok は逆の意味になる） */
 table.hist .num.is-worse, .field__hint .is-worse { color: var(--hole); }
+
+/* ---- 試聴（TODO-063）--------------------------------------------------- */
+/* 表の下に置くプレーヤー。表と同じく中身なりの幅で中央に置く。
+   **<midi-player> の中身は Shadow DOM** なので、外から触れるのは
+   ::part() だけ（このライブラリは part を出していない）。深追いせず、
+   周りの余白だけを持つ */
+.midi-audition {
+  margin-top: .9rem; display: flex; flex-direction: column;
+  align-items: center; gap: .35rem;
+}
+.midi-audition midi-player { display: block; width: min(100%, 34rem); }
+/* 既定は白の帯なので、暗いテーマだとここだけ光る。外から触れるのは
+   ::part() だけ（このライブラリが出しているのは control-panel /
+   play-button / time / seek-bar など）。**中の作りには踏み込まない** */
+.midi-audition midi-player::part(control-panel) {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--rule);
+}
+.midi-audition midi-player::part(play-button) { color: var(--cut); }
+.midi-audition midi-player::part(time) { color: var(--pico-muted-color); }
+/* 注記の中のアイコンは、字と同じ大きさに落として行に馴染ませる */
+#audition-hint .icon {
+  width: .9rem; height: .9rem; vertical-align: -.15em;
+  color: var(--cut);
+}
+/* いま読み込んでいる行。いま出しているブックの行（.is-current）とは
+   別の意味なので、色ではなく左の縦線で示す（両方が同じ行のことも多い） */
+#transpose-table tr.is-audition > td:first-child {
+  box-shadow: inset 3px 0 0 var(--cut);
+}
+#transpose-table tr.is-audition .audition-btn { color: var(--ok); }

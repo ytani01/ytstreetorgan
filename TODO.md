@@ -48,15 +48,15 @@
 
 **区切り B（画面から聴けるようになる。ここまでで利用者に出せる）**
 
-- [ ] `webroot/static/vendor/` に 3 本を curl で取得（サイズ 347,852 / 241,786 / 13,994 を照合）
-- [ ] `webroot/static/vendor/LICENSES.md` を作る（3 本の全文・版・取得元・sha256・「手で編集しない」）
-- [ ] `base.html` の `.icon-defs` に `<symbol id="i-play">` を追加
-- [ ] `storgan.html` の `{% block scripts %}` に 3 本を `static_url()` でこの順に追加（結果画面でだけ読むよう条件で括る）
-- [ ] 手動確認: DevTools で `customElements.get('midi-player')` が返ること（UI を足す前に読み込みだけ切り分ける）
-- [ ] `storgan.html` に「試聴」列と、表の下に `<midi-player>` と注記を追加
-- [ ] `webroot/static/js/midi_audition.js` を新規作成（クリック → `stop()` → `src` 差し替え → 選択行に印）
-- [ ] `my.css` に `.midi-audition` の余白（Shadow DOM なので中は `::part()` でしか触れない）
-- [ ] 手動確認: 行を替えて聴き比べ、±0 の行、`--debug` の live reload、暗いテーマ、**ネットを切った状態で全部動くこと**
+- [x] `webroot/static/vendor/` に 3 本を curl で取得（サイズ 347,852 / 241,786 / 13,994 を照合）
+- [x] `webroot/static/vendor/LICENSES.md` を作る（3 本の全文・版・取得元・sha256・「手で編集しない」）
+- [x] `base.html` の `.icon-defs` に `<symbol id="i-play">` を追加
+- [x] `storgan.html` の `{% block scripts %}` に 3 本を `static_url()` でこの順に追加（結果画面でだけ読むよう条件で括る）
+- [x] 手動確認: DevTools で `customElements.get('midi-player')` が返ること（UI を足す前に読み込みだけ切り分ける）
+- [x] `storgan.html` に「試聴」列と、表の下に `<midi-player>` と注記を追加
+- [x] `webroot/static/js/midi_audition.js` を新規作成（クリック → `stop()` → `src` 差し替え → 選択行に印）
+- [x] `my.css` に `.midi-audition` の余白（Shadow DOM なので中は `::part()` でしか触れない）
+- [x] 手動確認: 行を替えて聴き比べ、±0 の行、`--debug` の live reload、暗いテーマ、**ネットを切った状態で全部動くこと**
 
 **区切り C（固めて、書き残す）**
 

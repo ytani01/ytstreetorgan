@@ -274,6 +274,9 @@
                     <th class="num">音符</th>
                     <th class="num" title="鳴らせる音符の長さ（秒）の合計。ブック全体の演奏時間とは別">音の長さ</th>
                     <th class="num">移調後の音域</th>
+                    <!-- 試聴（TODO-063）。鳴るのは「その機種で実際に鳴る音」
+                         だけで、持ち帰る MIDI（右の列）とは中身が違う -->
+                    <th class="act" title="この機種で実際に鳴る音だけを、下のプレーヤーで鳴らす">試聴</th>
                     <th class="act" title="元の MIDI をその移調量で移調して持ち帰る（ロールブックではありません）">MIDI</th>
                   </tr>
                 </thead>
@@ -302,6 +305,22 @@
                       {% if c['sec_pct'] < zero_sec_pct %}title="移調しない場合（{{ '%.1f' % zero_sec_pct }}%）より短い"{% end %}
                       >{{ '%.1f' % c['sec_pct'] }}%{% if c['sec_pct'] < zero_sec_pct %}<span aria-label="移調しない場合より短い"> ▼</span>{% end %}</td>
                     <td class="num">{{ c['lo'] }}–{{ c['hi'] }}</td>
+                    <!-- 試聴（TODO-063）。**URL はここに丸ごと書く**。
+                         JS で組み立てると、prefix や引数の付け方が 2 か所に
+                         分かれる。midi_audition.js は data-audition を
+                         <midi-player> の src へ写すだけ。
+                         **data-transpose にしないこと**（storgan.js の
+                         委譲ハンドラが拾って作り直しに行く）。
+                         **<a> にしないこと**（行内のリンクを数えている
+                         ブラウザテストが落ちる） -->
+                    <td class="hist__act">
+                      <button type="button" class="btn-row btn-icon audition-btn"
+                        data-audition="{{urlprefix}}/audition/midi/{{ url_escape(midi_name) }}?t={{ c['transpose'] }}&amp;model={{ url_escape(book['model']) }}"
+                        title="この移調量で、この機種で実際に鳴る音だけを試聴する"
+                        aria-label="移調 {{ '%+d' % c['transpose'] }} 半音で試聴">
+                        <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>
+                      </button>
+                    </td>
                     <!-- 元の MIDI をその移調量で移調して持ち帰る（TODO-042）。
                          ロールブックの音符ではなく、上げた元のファイルを
                          移調するだけなので、音階に無い音も残る。
@@ -319,6 +338,24 @@
                   {% end %}
                 </tbody>
               </table>
+            </div>
+
+            <!-- 試聴のプレーヤー（TODO-063）。表の下に 1 つだけ置き、
+                 押した行の音に差し替える（行ごとに置くと、どれが鳴って
+                 いるのか分からなくなる）。
+                 **sound-font 属性は付けない**（付けると音源を外部から
+                 取りに行く。ネットに繋がっていなくても動くこと）。
+                 **visualizer も付けない**（鳴らない音も同じ見た目で
+                 描くので、ロールブックの実線と破線の描き分けと
+                 食い違って読み違いを招く） -->
+            <div class="midi-audition">
+              <midi-player id="audition-player"></midi-player>
+              <p class="field__hint field__hint--center" id="audition-hint">
+                上の表の <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>
+                を押すと、ここに読み込みます。鳴るのは
+                <b>この機種で実際に鳴る音だけ</b> で、音階に無い音は鳴りません。
+                音色は簡易な電子音です。
+              </p>
             </div>
 
             <!-- 候補ぶんの MIDI をまとめて（TODO-050）。1 行ずつ押すと
@@ -374,4 +411,17 @@
     <script src="{{ static_url('js/model_store.js') }}"></script>
     <script src="{{ static_url('js/storgan.js') }}"></script>
     <script src="{{ static_url('js/viewer.js') }}"></script>
+    {% if svg_data != '' %}
+    <!-- MIDI の試聴（TODO-063）。同梱の 3 本。**CDN は読まない**ので
+         static_url() で自分のところから出す。
+         **読み込む順は Tone → core → midi-player**（UMD なので、
+         後のものが前のものをグローバルから拾う）。type="module" にすると
+         この順序が効かなくなるので付けない。
+         ファイル選択の画面では 600KB 余りを読む意味が無いので、
+         結果画面（svg_data がある）のときだけ読む -->
+    <script src="{{ static_url('vendor/Tone.js') }}"></script>
+    <script src="{{ static_url('vendor/core.js') }}"></script>
+    <script src="{{ static_url('vendor/html-midi-player.js') }}"></script>
+    <script src="{{ static_url('js/midi_audition.js') }}"></script>
+    {% end %}
 {% end %}
