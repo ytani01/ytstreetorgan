@@ -19,13 +19,18 @@ Conf クラス(修正版)に対する pytest テスト
     ため)。
 """
 import json
+from pathlib import Path
 
 import pytest
 
 from ytstreetorgan.conf import (
+    NOTE_NAMES,
     NUMERIC_FIELDS,
     Conf,
     coerce_numeric_fields,
+    midi_to_note_name,
+    note_name_to_midi,
+    note_offsets,
     validate_config,
 )
 
@@ -376,7 +381,7 @@ class TestValidateConfig:
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "notes": [{"name": "C", "offset": 0}, {"name": "D", "offset": 2}],
+            "notes": ["C4", "D4"],
             "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
@@ -414,7 +419,7 @@ class TestValidateConfig:
             "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
-            "notes": [{"name": "C", "offset": 0}]
+            "notes": ["C4"]
         }
         valid, msg = validate_config(sample)
         assert valid is False
@@ -430,20 +435,27 @@ class TestValidateConfig:
             "base_note": "60.5",
             "bridge_width": 1,
             "bridge_threshold": 50,
-            "notes": [{"name": "C", "offset": 0}]
+            "notes": ["C4"]
         }
         valid, msg = validate_config(sample)
         assert valid is False
         assert "'base_note'" in msg
 
-    # 'notes' の各要素は {'name': str, 'offset': int}。
-    # 壊れ方ごとに、どの要素が悪いのか（index）が分かること。
+    # 'notes' は音名の文字列の並び。音名は国際標準
+    # （MIDI ノート番号 60 = 'C4'）で、オクターブ番号まで必須。
+    # 壊れ方ごとに、どの要素が悪いのか（1 始まりの番号）が分かること。
     @pytest.mark.parametrize("bad_note, expected", [
-        ("C", "オブジェクトである必要"),
-        ({"offset": 0}, "'name' は文字列"),
-        ({"name": 60, "offset": 0}, "'name' は文字列"),
-        ({"name": "C"}, "'offset' は整数"),
-        ({"name": "C", "offset": "abc"}, "'offset' は整数"),
+        (60, "音名の文字列である必要"),
+        (None, "音名の文字列である必要"),
+        # オクターブ番号が無い（旧形式の書き方）
+        ("C", "音名として読めません"),
+        # フラット表記は受け付けない
+        ("Db4", "音名として読めません"),
+        ("H4", "音名として読めません"),
+        ("", "音名として読めません"),
+        # MIDI ノート番号の範囲から外れる
+        ("C-2", "範囲"),
+        ("A9", "範囲"),
     ])
     def test_invalid_note_item(self, bad_note, expected):
         sample = {
@@ -456,12 +468,55 @@ class TestValidateConfig:
             "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
-            "notes": [{"name": "C", "offset": 0}, bad_note]
+            "notes": ["C4", bad_note]
         }
         valid, msg = validate_config(sample)
         assert valid is False
         assert "2 番目" in msg
         assert expected in msg
+
+    # 辞書はどちらの書き方でも旧形式として弾く（自動変換もしない）
+    @pytest.mark.parametrize("old_note", [
+        {"name": "D4", "offset": 2},
+        {"name": "D4"},
+        {},
+    ])
+    def test_old_style_note_is_rejected(self, old_note):
+        sample = {
+            "model": "test_model",
+            "book_height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
+            "notes": ["C4", old_note]
+        }
+        valid, msg = validate_config(sample)
+        assert valid is False
+        assert "2 番目" in msg
+        assert "旧形式" in msg
+
+    @pytest.mark.parametrize("name", [
+        "C-1", "C4", "C#4", "A#0", "G9", " C4 ",
+    ])
+    def test_valid_note_names(self, name):
+        sample = {
+            "model": "test_model",
+            "book_height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
+            "notes": [name]
+        }
+        valid, msg = validate_config(sample)
+        assert valid is True, msg
 
     def test_notes_must_be_a_list(self):
         sample = {
@@ -474,7 +529,7 @@ class TestValidateConfig:
             "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
-            "notes": {"name": "C", "offset": 0}
+            "notes": "C4"
         }
         valid, msg = validate_config(sample)
         assert valid is False
@@ -499,7 +554,7 @@ class TestConfMutations:
                 "base_note": 60,
                 "bridge_width": 1,
                 "bridge_threshold": 50,
-                "notes": [{"name": "C", "offset": 0}], "memo": "m1 memo"
+                "notes": ["C4"], "memo": "m1 memo"
             }
         ]
         file_path = tmp_path / "storgan-conf.json"
@@ -549,7 +604,7 @@ class TestConfMutations:
             "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
-            "notes": [{"name": "D", "offset": 2}], "memo": "m2 memo"
+            "notes": ["D4"], "memo": "m2 memo"
         }
         ok, msg = conf.add_model(new_model)
 
@@ -592,7 +647,7 @@ class TestCoerceNumericFields:
         "hole_height": "2.5", "mm_per_sec": "50",
         "base_note": "60",
         "bridge_width": "1", "bridge_threshold": "50",
-        "notes": [{"name": "C", "offset": "0"}, {"name": "D", "offset": "2"}],
+        "notes": ["C4", " D4 "],
         "memo": "keep me",
     }
 
@@ -601,9 +656,8 @@ class TestCoerceNumericFields:
 
         for field, cast in NUMERIC_FIELDS.items():
             assert type(out[field]) is cast, field
-        assert out["notes"] == [
-            {"name": "C", "offset": 0}, {"name": "D", "offset": 2}
-        ]
+        # 音名の文字列だけが残り、前後の空白は取り除かれる
+        assert out["notes"] == ["C4", "D4"]
 
     def test_does_not_mutate_input(self):
         original = dict(self.SAMPLE)
@@ -615,9 +669,106 @@ class TestCoerceNumericFields:
         # 未知のキー（手で足したものなど）は素通りさせる
         assert out["memo"] == "keep me"
         assert out["unknown_field"] == 10
-        assert [n["name"] for n in out["notes"]] == ["C", "D"]
+        assert out["notes"] == ["C4", "D4"]
 
     def test_covers_every_validated_numeric_field(self):
         # validate_config() が必須にする数値項目と、変換対象が一致すること
         out = coerce_numeric_fields(self.SAMPLE)
         assert set(NUMERIC_FIELDS) <= set(out)
+
+    def test_notes_become_plain_strings(self):
+        # 数値が混ざっていても文字列に直す（validate_config() は弾く形だが、
+        # ここは「変換した写しを返す」ことだけを見る）
+        sample = {**self.SAMPLE, "notes": ["C4", 60]}
+        out = coerce_numeric_fields(sample)
+        assert out["notes"] == ["C4", "60"]
+
+
+# ============================================================
+# 音名 ↔ MIDI ノート番号
+# ============================================================
+class TestNoteNames:
+    def test_note_names_are_twelve_sharps(self):
+        assert len(NOTE_NAMES) == 12
+        assert NOTE_NAMES[0] == 'C'
+        assert NOTE_NAMES[-1] == 'B'
+        assert 'b' not in ''.join(NOTE_NAMES)  # フラット表記は使わない
+
+    @pytest.mark.parametrize("name, midi", [
+        ("C-1", 0),
+        ("C4", 60),      # 国際標準（MIDI ノート番号 60 = C4）
+        ("F4", 65),
+        ("A4", 69),
+        ("C#4", 61),
+        ("G9", 127),
+        ("F2", 41),      # '34notes' の base_note
+        ("G2", 43),      # '20notes' の base_note
+    ])
+    def test_round_trip(self, name, midi):
+        assert note_name_to_midi(name) == midi
+        assert midi_to_note_name(midi) == name
+
+    def test_all_midi_notes_round_trip(self):
+        for midi in range(128):
+            assert note_name_to_midi(midi_to_note_name(midi)) == midi
+
+    @pytest.mark.parametrize("name", [
+        "C",      # オクターブ番号が無い（旧形式）
+        "Db4",    # フラット表記
+        "H4",
+        "c4",
+        "",
+        "C 4",
+        "C4x",
+        60,
+    ])
+    def test_note_name_to_midi_rejects(self, name):
+        with pytest.raises(ValueError):
+            note_name_to_midi(name)
+
+    @pytest.mark.parametrize("name", ["C-2", "G#9", "B9"])
+    def test_note_name_to_midi_rejects_out_of_range(self, name):
+        with pytest.raises(ValueError, match="範囲"):
+            note_name_to_midi(name)
+
+    @pytest.mark.parametrize("midi", [-1, 128, "60", 60.0])
+    def test_midi_to_note_name_rejects(self, midi):
+        with pytest.raises(ValueError):
+            midi_to_note_name(midi)
+
+
+# ============================================================
+# note_offsets()
+# ============================================================
+class TestNoteOffsets:
+    def test_offsets_from_base_note(self):
+        model = {
+            "base_note": 41,
+            "notes": ["F2", "G2", "A#2"],
+        }
+        assert note_offsets(model) == [0, 2, 5]
+
+    def test_offsets_can_be_negative(self):
+        # 基準の音より低い音名でも導出できる
+        model = {"base_note": 60, "notes": ["A3"]}
+        assert note_offsets(model) == [-3]
+
+    def test_empty(self):
+        assert note_offsets({"base_note": 60, "notes": []}) == []
+        assert note_offsets({}) == []
+
+    def test_invalid_name_raises(self):
+        with pytest.raises(ValueError):
+            note_offsets({"base_note": 60, "notes": ["C"]})
+
+    def test_template_conf_offsets(self):
+        # テンプレートの設定が新形式で読めること
+        data = json.loads(
+            Path("conf/storgan-conf.json").read_text(encoding="utf-8")
+        )
+        for model in data:
+            offsets = note_offsets(model)
+            assert len(offsets) == len(model["notes"])
+            assert offsets == sorted(offsets)  # 低い音から並んでいる
+            valid, msg = validate_config(model)
+            assert valid is True, f'{model["model"]}: {msg}'

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from ytmidilib import NoteInfo as RealNoteInfo
 
+from ytstreetorgan.conf import midi_to_note_name
 from ytstreetorgan.rollbook import (
     HOLE_COLOR,
     HoleInfo,
@@ -31,13 +32,7 @@ from ytstreetorgan.transpose import (
 DIATONIC_CONF = {
     'base_note': 60,
     'notes': [
-        {'name': 'C', 'offset': 0},
-        {'name': 'D', 'offset': 2},
-        {'name': 'E', 'offset': 4},
-        {'name': 'F', 'offset': 5},
-        {'name': 'G', 'offset': 7},
-        {'name': 'A', 'offset': 9},
-        {'name': 'B', 'offset': 11},
+        'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4',
     ],
 }
 
@@ -46,7 +41,7 @@ DIATONIC_CONF = {
 # **どの調でも 100% 鳴る**ので、「移調しても改善しない」場合を作れる
 CHROMATIC_CONF = {
     'base_note': 60,
-    'notes': [{'name': str(i), 'offset': i} for i in range(24)],
+    'notes': [midi_to_note_name(60 + i) for i in range(24)],
 }
 
 
@@ -56,11 +51,7 @@ def _note(note, start=0.0, end=1.0, channel=0, velocity=100):
 
 
 def test_note2scale():
-    notes = [
-        {'name': 'C', 'offset': 0},
-        {'name': 'D', 'offset': 2},
-        {'name': 'E', 'offset': 4},
-    ]
+    notes = ['C4', 'D4', 'E4']
     assert note2scale(60, 60, notes) == 0
     assert note2scale(62, 60, notes) == 1
     assert note2scale(65, 60, notes) == -1
@@ -97,9 +88,7 @@ def test_rollbook_parse(mock_parser):
     rb._conf = {
         'base_note': 60,
         'notes': [
-            {'name': 'C', 'offset': 0},
-            {'name': 'D', 'offset': 2},
-            {'name': 'E', 'offset': 4},
+            'C4', 'D4', 'E4',
         ],
         'mm_per_sec': 10,
         'pitch': 5,
@@ -123,9 +112,7 @@ def test_holeinfo_str():
     conf = {
         'base_note': 60,
         'notes': [
-            {'name': 'C', 'offset': 0},
-            {'name': 'D', 'offset': 2},
-            {'name': 'E', 'offset': 4},
+            'C4', 'D4', 'E4',
         ],
         'mm_per_sec': 10,
         'pitch': 5,
@@ -372,7 +359,7 @@ def test_overlapping_same_note_does_not_starve_bridges(mock_parser):
     rb = RollBook()
     rb._conf = {
         'base_note': 60,
-        'notes': [{'name': 'C', 'offset': 0}],
+        'notes': ['C4'],
         'mm_per_sec': 100,   # 300mm の全長になる
         'pitch': 5,
         'margin': 2,

@@ -118,8 +118,8 @@
                   音階マッピング
                   <span class="count" id="note-count-badge">0 トラック</span>
                 </h2>
-                <!-- 各トラックの音はこの番号からのオフセットで決まるので、
-                     表の真上に置く。基本寸法（mm の話）とは別物。 -->
+                <!-- 音の高さの話なので、音名を選ぶ表の真上に置く。
+                     基本寸法（mm の話）とは別物。 -->
                 <div class="panel__body"
                   style="border-bottom:1px solid var(--rule);">
                   <div class="field">
@@ -131,7 +131,7 @@
                   <!-- 例は必ず行頭から始める（続けて流すと「60 =」と「C4」が
                        泣き別れる幅がある） -->
                   <p class="field__hint" style="margin-bottom:0;">
-                    各トラックの音は「この番号 ＋ オフセット」で決まります。<br>
+                    MIDI ノート番号で入れます。<br>
                     41 = F2、43 = G2、60 = C4
                   </p>
                 </div>
@@ -141,7 +141,6 @@
                       <tr>
                         <th>#</th>
                         <th>音名</th>
-                        <th>半音単位のオフセット</th>
                         <th style="width:2.5rem;"></th>
                       </tr>
                     </thead>
@@ -155,10 +154,11 @@
                     style="width:auto; margin:0; padding:.35rem .8rem; font-size:.84rem;">
                     ＋ トラックを追加
                   </button>
-                  <!-- 何度か「音名を直したのに穴が動かない」と迷うので明記する -->
+                  <!-- 丸括弧の数字が何なのか、表の中には書く場所が無い -->
                   <p class="field__hint" style="margin:.5rem 0 0;">
-                    音名は表示用のラベルです。穴の位置を決めるのは
-                    「基準の音 ＋ オフセット」だけで、音名は使いません。
+                    各トラックの穴の位置は、選んだ音名で決まります。<br>
+                    一覧の丸括弧の中は、参考として出している
+                    MIDI ノート番号です（60 = C4）。
                   </p>
                 </div>
               </section>

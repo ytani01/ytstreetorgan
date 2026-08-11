@@ -72,7 +72,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
             "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
-            "notes": [{"name": "C", "offset": 0}], "memo": "test"
+            "notes": ["C4"], "memo": "test"
         }
         add_payload = json.dumps({'action': 'add', 'config': new_conf})
         response = self.fetch(
@@ -98,4 +98,41 @@ class TestConfigHandler(AsyncHTTPTestCase):
         data = json.loads(response.body.decode('utf-8'))
         assert data['status'] == 'ok'
         assert "test_async_model" not in data['models']
+
+    def _add_with_notes(self, notes):
+        """'notes' だけ差し替えて追加を試みる。"""
+        new_conf = {
+            "model": "test_rejected_model",
+            "book_height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "base_note": 60,
+            "bridge_width": 1,
+            "bridge_threshold": 50,
+            "notes": notes, "memo": "test"
+        }
+        return self.fetch(
+            f'{TEST_URL_PREFIX}/config/save',
+            method='POST',
+            headers={'Content-Type': 'application/json'},
+            body=json.dumps({'action': 'add', 'config': new_conf}),
+        )
+
+    def test_post_api_rejects_old_style_notes(self):
+        # 辞書を並べた旧形式は、画面から保存できない
+        response = self._add_with_notes([{"name": "C", "offset": 0}])
+        assert response.code == 400
+        data = json.loads(response.body.decode('utf-8'))
+        assert data['status'] == 'error'
+        assert "旧形式" in data['message']
+
+    def test_post_api_rejects_invalid_note_name(self):
+        # オクターブ番号の無い音名も受け付けない
+        response = self._add_with_notes(["C"])
+        assert response.code == 400
+        data = json.loads(response.body.decode('utf-8'))
+        assert data['status'] == 'error'
+        assert "1 番目" in data['message']
 

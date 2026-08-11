@@ -129,7 +129,7 @@ h1.page-title { font-size: 1.45rem; margin-bottom: .25rem; }
 .page-lead { color: var(--pico-muted-color); font-size: .9rem; margin-bottom: 1rem; }
 
 /* 数値はすべて等幅・桁揃え。寸法を扱う道具なので数字が動くと読みにくい */
-.num, input[type="number"], .notes td input {
+.num, input[type="number"], .notes td input, .notes td select {
   font-family: var(--mono); font-variant-numeric: tabular-nums;
 }
 
@@ -468,6 +468,13 @@ table.notes thead th {
 }
 table.notes td { padding: .2rem .5rem; border-bottom: 1px solid var(--rule); }
 table.notes td input { margin: 0; padding: .15rem .4rem; font-size: .82rem; height: auto; line-height: 1.35; }
+/* 音名のドロップダウン。横の padding は Pico のままにする（右端の三角を
+   描く余白がそこに入っているので、詰めると字と重なる）。幅は中身に
+   合わせる。どの行も選択肢が同じなので、auto でも列は揃う。         */
+table.notes td select {
+  margin: 0; padding-block: .15rem; width: auto;
+  font-size: .82rem; height: auto; line-height: 1.35;
+}
 table.notes td.track-num {
   font-family: var(--mono); color: var(--pico-muted-color); font-size: .75rem;
   text-align: right; width: 2.6rem;

@@ -8,14 +8,7 @@
 
 ## == 着手前 / 検討中
 
-### **TODO-064** 機種設定で、音名(国際標準)でドロップダウンメニューで入力するように変更
-
-- 参考として、NOTE番号も表示。
-- 設定ファイルの形式も変更が必要。
-
----
-
-### **TODO-065** `ytmidilib` に 3 通目の要求書を出す（`write()` を file-like に対応させる）
+### **TODO-065** (優先度:低) `ytmidilib` に 3 通目の要求書を出す（`write()` を file-like に対応させる）
 
 `ytmidilib.write()` が `str | os.PathLike` しか受けず、file-like を受けない。そのため TODO-063 の試聴では一時ファイルに書いて読み戻している（「保存しない」という既存 3 ハンドラの原則に小さな穴が開いている）。
 
@@ -30,6 +23,39 @@
 ファイルが無いため）。逆に、TODO-063 はこの項目を待たずに進められる
 （一時ファイル経由で動く）。
 
+### **TODO-067** 設定項目として base_noteは意味がなくなったので、廃止する。
+
+以下のルールでAgent Teamsを編成して、役割分担して
+1. 全体の設計と高度なロジックを実装するメンバーには `Opus` を割り当てる。
+2. 単純なチェック、ドキュメント生成、テスト実行、Git操作など、難易度の低いタスクを担当するメンバーには、コストを最適化するために `Sonnet` を割り当てる。
+3. コスパが最適になるように、各メンバーの名前、役割、担当モデルとeffortを決めてください。
+
+**現状のコードは `base_note` を足して引いているだけになっている**（TODO-064 の
+あと、2026-08-12 に確認）。`note_offsets()` が `midi(name) - base_note` を返し、
+使う側がそれに `base_note` を足し戻している。
+
+| 場所 | 実際の式 | 打ち消したあと |
+|---|---|---|
+| `rollbook.py` `note2scale()` | `base_note + offset == midi_note` | `midi(name) == midi_note` |
+| `transpose.py` `playable_notes()` | `{base_note + off for off in ...}` | `{midi(name)}` |
+| `transpose.py` `model_note_range()` | `(base_note + min(offsets), base_note + max(offsets))` | `(min(midi), max(midi))` |
+
+つまり `base_note` にどんな値を入れても結果は変わらない。例外は
+`model_note_range()` が **`notes` が空のとき** `(base_note, base_note)` を
+返す 1 か所だけで、トラックが 1 本も無い機種の話なので実質意味は無い。
+
+したがって、**設定項目を削除するだけでなく、この打ち消し合いも解消する**。
+`note_offsets()` という関数自体も要らなくなり（呼ぶ側が
+`note_name_to_midi(name)` を直接使えばよい）、半音単位のオフセットという
+中間の概念が消える。
+
+やること: `ModelConf` から `base_note` を削除 / `note_offsets()` の廃止と
+呼ぶ側の書き換え（`rollbook.py` / `transpose.py` / `apps.py`）/
+`note2scale()` の引数から `base_note` を削除 / 設定エディタの「基準の音」の
+入力欄を削除 / `conf/storgan-conf.json` と `~/etc/storgan-conf.json` から
+`base_note` を削除 / `validate_config()` の必須項目から外す（残っていたら
+どうするかも決める）/ `CLAUDE.md` の用語の表から「基準の音」を削除。
+
 ---
 
 ## == 完了済み
@@ -37,6 +63,7 @@
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-064.** 機種設定で、音名(国際標準)でドロップダウンメニューで入力するように変更](archives/todo/TODO-064.%20機種設定で、音名(国際標準)でドロップダウンメニューで入力するように変更.md)
 - [**TODO-063.** ブラウザ上で、実機で鳴る音だけを試聴できるようにする](archives/todo/TODO-063.%20ブラウザ上で、実機で鳴る音だけを試聴できるようにする.md)
 - [**TODO-066.** アーカイブのファイル名が壊れている件を直す](archives/todo/TODO-066.%20アーカイブのファイル名が壊れている件を直す.md)
 

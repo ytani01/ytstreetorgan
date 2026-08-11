@@ -25,7 +25,7 @@ from typing import Literal, NamedTuple, TypedDict
 from loguru import logger
 from ytmidilib import NoteInfo, transpose_file
 
-from .conf import ModelConf
+from .conf import ModelConf, note_offsets
 
 
 def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
@@ -128,7 +128,7 @@ def playable_notes(conf: ModelConf) -> set[int]:
     「鳴らせるかどうか」だけを何万回も調べる用（移調の候補を作るとき）。
     """
     base_note = conf.get('base_note', 0)
-    return {base_note + n['offset'] for n in conf.get('notes', [])}
+    return {base_note + off for off in note_offsets(conf)}
 
 
 def model_note_range(conf: ModelConf) -> tuple[int, int]:
@@ -143,7 +143,7 @@ def model_note_range(conf: ModelConf) -> tuple[int, int]:
     if not notes:
         return (base_note, base_note)
 
-    offsets = [n['offset'] for n in notes]
+    offsets = note_offsets(conf)
     return (base_note + min(offsets), base_note + max(offsets))
 
 

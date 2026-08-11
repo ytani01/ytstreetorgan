@@ -48,6 +48,14 @@ document.addEventListener("DOMContentLoaded", function () {
     "bridge_threshold": parseFloat,
   };
 
+  // 音名は国際標準の音名（MIDI 60 = C4）。変化記号はシャープのみで、
+  // フラットの綴り（Db など）は出さない。
+  const NOTE_NAMES = [
+    "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+  ];
+  const MIDI_NOTE_MAX = 127;      // C-1（0）から G9（127）まで
+  const DEF_NOTE_NAME = "C4";     // トラックを足したときの音名（MIDI 60）
+
   // 知らせの出し方は alert.js（履歴と機種設定で共通）
   const showAlert = window.StorganAlert.show;
 
@@ -72,17 +80,40 @@ document.addEventListener("DOMContentLoaded", function () {
     fillSelect(copySelect, selectModel);
   }
 
-  function makeInput(cls, type, value, label) {
-    const input = document.createElement("input");
-    input.type = type;
-    input.className = cls;
-    input.value = value;
-    input.required = true;
-    input.setAttribute("aria-label", label);
-    return input;
+  /* MIDI ノート番号 → 音名（国際標準の音名）。
+     0 = C-1、60 = C4、127 = G9。変化記号はシャープのみ。 */
+  function midiNoteName(num) {
+    return `${NOTE_NAMES[num % 12]}${Math.floor(num / 12) - 1}`;
   }
 
-  function appendNoteRow(idx, name = "", offset = 0) {
+  /* 音名のドロップダウンの雛形。128 個の <option> はここで 1 度だけ作り、
+     行へは複製して置く（行ごとに作り直すと 34 トラックで 4000 個を超える）。
+     value は音名だけ、表示は「F4 (65)」の形。 */
+  const noteSelectTemplate = (() => {
+    const sel = document.createElement("select");
+    sel.className = "note-name-select";
+    for (let num = 0; num < MIDI_NOTE_MAX + 1; num++) {
+      const opt = document.createElement("option");
+      opt.value = midiNoteName(num);
+      opt.textContent = `${opt.value} (${num})`;
+      sel.append(opt);
+    }
+    return sel;
+  })();
+
+  /* 行に置く音名のドロップダウン。設定の音名が一覧に無いときは、選択なしの
+     空欄で出さずに既定値へ寄せる（保存すると空欄が消えてしまうため）。 */
+  function makeNoteSelect(name, label) {
+    const sel = noteSelectTemplate.cloneNode(true);
+    sel.value = name;
+    if (sel.selectedIndex < 0) {
+      sel.value = DEF_NOTE_NAME;
+    }
+    sel.setAttribute("aria-label", label);
+    return sel;
+  }
+
+  function appendNoteRow(idx, name = DEF_NOTE_NAME) {
     const tr = document.createElement("tr");
     tr.className = "note-row";
 
@@ -91,16 +122,7 @@ document.addEventListener("DOMContentLoaded", function () {
     tdNum.textContent = String(idx);
 
     const tdName = document.createElement("td");
-    tdName.append(
-      makeInput("note-name-input", "text", name, `トラック ${idx} の音名`)
-    );
-
-    const tdOffset = document.createElement("td");
-    tdOffset.append(
-      makeInput(
-        "note-offset-input", "number", offset, `トラック ${idx} のオフセット`
-      )
-    );
+    tdName.append(makeNoteSelect(name, `トラック ${idx} の音名`));
 
     const tdDel = document.createElement("td");
     tdDel.style.textAlign = "center";
@@ -112,7 +134,7 @@ document.addEventListener("DOMContentLoaded", function () {
     del.setAttribute("aria-label", `トラック ${idx} を削除`);
     tdDel.append(del);
 
-    tr.append(tdNum, tdName, tdOffset, tdDel);
+    tr.append(tdNum, tdName, tdDel);
     noteBody.append(tr);
   }
 
@@ -120,11 +142,13 @@ document.addEventListener("DOMContentLoaded", function () {
     return noteBody.querySelectorAll("tr.note-row");
   }
 
+  /* notes は音名の文字列を並べた配列（["F2", "G2", …]）。
+     並び順がそのままトラック番号になる。 */
   function renderNoteTable(notes) {
     noteBody.replaceChildren();
 
-    notes.forEach((note, i) => {
-      appendNoteRow(i + 1, note.name || "", note.offset || 0);
+    notes.forEach((name, i) => {
+      appendNoteRow(i + 1, name || DEF_NOTE_NAME);
     });
     updateTrackBadge();
   }
@@ -163,10 +187,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const notes = [];
 
     noteRows().forEach(tr => {
-      notes.push({
-        name: tr.querySelector(".note-name-input").value.trim(),
-        offset: parseInt(tr.querySelector(".note-offset-input").value, 10) || 0,
-      });
+      notes.push(tr.querySelector(".note-name-select").value);
     });
 
     const data = {};
@@ -205,7 +226,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   $("btn-add-note").addEventListener("click", () => {
-    appendNoteRow(noteRows().length + 1, "", 0);
+    appendNoteRow(noteRows().length + 1);
     updateTrackBadge();
   });
 

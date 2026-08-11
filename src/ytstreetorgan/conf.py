@@ -2,6 +2,7 @@
 # (c) 2026 Yoichi Tanibayashi
 #
 import json
+import re
 import shutil
 from collections.abc import Callable
 from pathlib import Path
@@ -11,17 +12,83 @@ from loguru import logger
 
 from .mylog import exmsg
 
+#: 1 オクターブぶんの音名。変化記号はシャープのみ。
+NOTE_NAMES: tuple[str, ...] = (
+    'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+)
 
-class NoteConf(TypedDict):
-    """トラック 1 本の定義。
+# 'F4' / 'C#-1' / 'G9' のような音名。フラットは受け付けない。
+_NOTE_NAME_RE = re.compile(r'^([A-G])(#?)(-?\d+)$')
 
-    Attributes:
-        name: 音名（例: 'F#'）。表示用で、穴の位置には影響しない。
-        offset: ``base_note`` からの半音数。
+#: MIDI ノート番号の範囲。
+MIDI_NOTE_MIN = 0
+MIDI_NOTE_MAX = 127
+
+
+def note_name_to_midi(name: str) -> int:
+    """音名を MIDI ノート番号に直す。
+
+    国際標準の音名（scientific pitch notation）。MIDI ノート番号 60 が
+    ``'C4'``、0 が ``'C-1'``、127 が ``'G9'``。変化記号はシャープのみで、
+    ``'Bb'`` のようなフラット表記は受け付けない。
+
+    Args:
+        name (str): 音名（例: ``'F4'``、``'C#-1'``）。
+
+    Returns:
+        int: MIDI ノート番号。
+
+    Raises:
+        ValueError: 音名として読めないとき、または MIDI ノート番号が
+            0〜127 に収まらないとき。**メッセージはそのまま画面に出る**
+            ので日本語で書いてある。
     """
+    # str() を通すのは、外から来た値（JSON）がそのまま渡ることがあるため。
+    # 文字列でなければ音名として読めないので、下と同じ ValueError になる
+    m = _NOTE_NAME_RE.match(str(name).strip())
+    if m is None:
+        raise ValueError(
+            f"音名として読めません: {name!r}"
+            "（'F4' のように、音名とオクターブ番号を続けて書きます。"
+            "変化記号は '#' のみ）"
+        )
 
-    name: str
-    offset: int
+    letter, sharp, octave_text = m.groups()
+    midi = (int(octave_text) + 1) * 12 + NOTE_NAMES.index(letter + sharp)
+
+    if not MIDI_NOTE_MIN <= midi <= MIDI_NOTE_MAX:
+        raise ValueError(
+            f"音名 {name!r} は MIDI ノート番号の範囲"
+            f"（{MIDI_NOTE_MIN}〜{MIDI_NOTE_MAX}、'C-1'〜'G9'）から外れます"
+        )
+
+    return midi
+
+
+def midi_to_note_name(midi: int) -> str:
+    """MIDI ノート番号を音名に直す。
+
+    :func:`note_name_to_midi` の逆。
+
+    Args:
+        midi (int): MIDI ノート番号（0〜127）。
+
+    Returns:
+        str: 音名（例: 65 → ``'F4'``）。
+
+    Raises:
+        ValueError: 0〜127 に収まらないとき。
+    """
+    if not isinstance(midi, int) or isinstance(midi, bool):
+        raise ValueError(f"MIDI ノート番号は整数である必要があります: {midi!r}")
+
+    if not MIDI_NOTE_MIN <= midi <= MIDI_NOTE_MAX:
+        raise ValueError(
+            f"MIDI ノート番号が範囲（{MIDI_NOTE_MIN}〜{MIDI_NOTE_MAX}）"
+            f"から外れます: {midi}"
+        )
+
+    return f'{NOTE_NAMES[midi % 12]}{midi // 12 - 1}'
 
 
 class ModelConf(TypedDict, total=False):
@@ -40,10 +107,16 @@ class ModelConf(TypedDict, total=False):
         hole_height: 穴の高さ [mm]。
         mm_per_sec: 秒 → mm の変換係数。旧 ``'1sec'``（数字始まりで識別子に
             できないため、``RollBook.mm_per_sec`` に合わせて改名した）。
-        base_note: オフセットを数える起点の MIDI ノート番号。
+        base_note: 半音単位のオフセットを数える起点の MIDI ノート番号。
+            オフセットそのものは設定に無く、:func:`note_offsets` が
+            音名との差から導出する。
         bridge_width: ブリッジ（紙のつなぎ）の幅 [mm]。
         bridge_threshold: これを超える穴を分割する [mm]。
-        notes: トラックの定義。並び順がそのままトラック番号。
+        notes: トラックごとの音名の並び（例: ``['F2', 'G2', 'A2']``）。
+            並び順がそのままトラック番号。音名は国際標準
+            （scientific pitch notation）で、MIDI ノート番号 60 が
+            ``'C4'``。**穴の位置はこれだけで決まる**（``base_note``
+            からの半音単位のオフセットは :func:`note_offsets` が導出する）。
         memo: 覚え書き（動作には影響しない）。
     """
 
@@ -56,7 +129,7 @@ class ModelConf(TypedDict, total=False):
     base_note: int
     bridge_width: float
     bridge_threshold: float
-    notes: list[NoteConf]
+    notes: list[str]
     memo: str
 
 
@@ -76,6 +149,28 @@ NUMERIC_FIELDS: dict[str, Callable[[Any], Any]] = {
 }
 
 
+def note_offsets(model: ModelConf) -> list[int]:
+    """各トラックの、基準の音からの半音単位のオフセット。
+
+    設定が持っているのは音名だけなので、``base_note`` との差をここで
+    導出する。並び順は ``'notes'`` のまま（＝そのままトラック番号）。
+
+    Args:
+        model (ModelConf): 機種 1 つ分の設定。
+
+    Returns:
+        list[int]: ``note_name_to_midi(name) - base_note`` の並び。
+
+    Raises:
+        ValueError: 音名として読めない要素があるとき。
+    """
+    base_note = model.get('base_note', 0)
+    return [
+        note_name_to_midi(name) - base_note
+        for name in model.get('notes', [])
+    ]
+
+
 def coerce_numeric_fields(conf: dict) -> dict:
     """数値の項目を型変換した写しを返す。
 
@@ -91,10 +186,8 @@ def coerce_numeric_fields(conf: dict) -> dict:
     cleaned = dict(conf)
     for field, cast in NUMERIC_FIELDS.items():
         cleaned[field] = cast(cleaned[field])
-    cleaned['notes'] = [
-        {'name': str(n['name']), 'offset': int(n['offset'])}
-        for n in cleaned['notes']
-    ]
+    # 音名の文字列だけの並びにする
+    cleaned['notes'] = [str(name).strip() for name in cleaned['notes']]
     return cleaned
 
 
@@ -134,26 +227,24 @@ def validate_config(conf: object) -> tuple[bool, str]:
     notes = conf.get('notes')
 
     if not isinstance(notes, list):
-        return False, "'notes' は {'name', 'offset'} のリストである必要があります"
+        return False, "'notes' は音名（'F4' など）のリストである必要があります"
 
-    for idx, note in enumerate(notes):
-        if not isinstance(note, dict):
+    for idx, name in enumerate(notes):
+        if isinstance(name, dict):
             return False, (
-                f"{idx + 1} 番目のトラックは"
-                " 'name' と 'offset' を持つオブジェクトである必要があります"
+                f"{idx + 1} 番目のトラックがオブジェクトです（旧形式です）。"
+                "'F4' のような音名の文字列だけを並べてください"
             )
 
-        if not isinstance(note.get('name'), str):
+        if not isinstance(name, str):
             return False, (
-                f"{idx + 1} 番目のトラックの 'name' は文字列である必要があります"
+                f"{idx + 1} 番目のトラックは音名の文字列である必要があります"
             )
 
         try:
-            int(note.get('offset'))  # type: ignore[arg-type]
-        except (ValueError, TypeError):
-            return False, (
-                f"{idx + 1} 番目のトラックの 'offset' は整数である必要があります"
-            )
+            note_name_to_midi(name)
+        except ValueError as e:
+            return False, f"{idx + 1} 番目のトラック: {e}"
 
     return True, ""
 

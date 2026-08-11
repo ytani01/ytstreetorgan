@@ -10,7 +10,7 @@ from xml.sax.saxutils import quoteattr
 from loguru import logger
 from ytmidilib import NoteInfo, Parser
 
-from .conf import Conf, ModelConf, NoteConf, validate_config
+from .conf import Conf, ModelConf, note_offsets, validate_config
 from .transpose import (
     TransposeCandidate,
     parse_transpose_arg,
@@ -38,21 +38,22 @@ OFF_SCALE_DASH = '3 1'       # 破線の刻み
 META_PREFIX = 'data-storgan-'
 
 
-def note2scale(midi_note: int, base_note: int, notes: list[NoteConf]) -> int:
+def note2scale(midi_note: int, base_note: int, notes: list[str]) -> int:
     """MIDIノート番号からスケール番号（インデックス）を取得する。
 
     Args:
         midi_note (int): 対象のMIDIノート番号。
         base_note (int): 基準となるベースノート番号。
-        notes (list[NoteConf]): トラックの定義（``'offset'`` だけを見る）。
+        notes (list[str]): トラックごとの音名の並び。
 
     Returns:
         int: 対応するスケール番号（インデックス）。該当するものがない場合は -1。
     """
     scale = -1
 
-    for s, note in enumerate(notes):
-        if base_note + note['offset'] == midi_note:
+    offsets = note_offsets({'base_note': base_note, 'notes': notes})
+    for s, offset in enumerate(offsets):
+        if base_note + offset == midi_note:
             scale = s
             break
 

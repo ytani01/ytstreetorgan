@@ -45,6 +45,8 @@ def test_add_and_delete_note_row_renumbers(live_server: str, page: Page) -> None
     expect(page.locator('#note-count-badge')).to_have_text('35 トラック')
     # 追加された行の番号は末尾の連番
     expect(rows.last.locator('.track-num')).to_have_text('35')
+    # 追加された行の音名は既定値（C4）が選択されている
+    expect(rows.last.locator('.note-name-select')).to_have_value('C4')
 
     # 先頭行を消すと、以降の番号が繰り上がる
     rows.first.locator('.btn-delete-row').click()
@@ -77,10 +79,9 @@ def test_save_persists_edited_value(
 
     page.fill('#field-margin', '7.5')
 
-    # トラックの音名・オフセットも、表から拾って保存されること
+    # トラックの音名も、表から拾って保存されること
     rows = page.locator('#note-table-body tr.note-row')
-    rows.first.locator('.note-name-input').fill('C#')
-    rows.first.locator('.note-offset-input').fill('3')
+    rows.first.locator('.note-name-select').select_option('C#5')
 
     page.click('#btn-save-config')
 
@@ -93,8 +94,8 @@ def test_save_persists_edited_value(
     assert saved['margin'] == 7.5
     # 編集した先頭トラックだけが変わり、残りは並び順ごと保たれている
     assert len(saved['notes']) == 34
-    assert saved['notes'][0] == {'name': 'C#', 'offset': 3}
-    assert saved['notes'][1] == {'name': 'G', 'offset': 2}
+    assert saved['notes'][0] == 'C#5'
+    assert saved['notes'][1] == 'G2'
 
 
 def _conf_data(page: Page, live_server: str) -> list[dict]:
@@ -254,24 +255,27 @@ def test_save_shows_server_side_error(live_server: str, page: Page) -> None:
     assert saved['book_height'] == 126.0
 
 
-def test_blank_offset_is_saved_as_zero(
-    live_server: str, page: Page, restore_conf: None
-) -> None:
-    """オフセットを空にすると 0 として保存される。
-
-    ``gatherFormData()`` が ``parseInt(...) || 0`` で拾うため。
-    つまりサーバー側の「offset が整数でない」検証は UI からは到達しない
-    （到達しうる経路は API を直接叩く場合だけ）。
+def test_note_name_select_has_128_options(live_server: str, page: Page) -> None:
+    """音名のドロップダウンには MIDI 0〜127 の 128 個の選択肢があり、
+    60 が C4 であること（表示は「C4 (60)」、value は音名だけ）。
     """
     page.goto(f'{live_server}/config')
 
+    select = page.locator(
+        '#note-table-body tr.note-row'
+    ).first.locator('.note-name-select')
+    options = select.locator('option')
+    expect(options).to_have_count(128)
+    expect(options.nth(60)).to_have_attribute('value', 'C4')
+    expect(options.nth(60)).to_have_text('C4 (60)')
+
+
+def test_note_name_select_shows_existing_value(
+    live_server: str, page: Page
+) -> None:
+    """既存設定の音名が、行のドロップダウンに選択済みで表示される。"""
+    page.goto(f'{live_server}/config')
+
     rows = page.locator('#note-table-body tr.note-row')
-    rows.nth(1).locator('.note-offset-input').fill('')
-    page.click('#btn-save-config')
-
-    expect(page.locator('#alert-container')).to_contain_text('正常に保存しました')
-
-    saved = next(
-        d for d in _conf_data(page, live_server) if d['model'] == '34notes'
-    )
-    assert saved['notes'][1] == {'name': 'G', 'offset': 0}
+    expect(rows.first.locator('.note-name-select')).to_have_value('F2')
+    expect(rows.nth(1).locator('.note-name-select')).to_have_value('G2')
