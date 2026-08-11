@@ -1,10 +1,10 @@
 # = TODO
 
-更新: 2026-08-09
+更新: 2026-08-12
 
 - 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
-- 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-062` から。**
+- 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-066` から。**
 
 ## == 着手前 / 検討中
 
@@ -12,42 +12,85 @@
 
 ---
 
-### **TODO-063** MIDIファイルをダウンロードせずに簡単に再生する機能について検討
+### **TODO-063** ブラウザ上で、実機で鳴る音だけを試聴できるようにする
 
-**候補**: html-midi-player (**TBD**: 他にもっと良い方法がないか？)
-- CDNを使うことも容認
-- サンプルコード
-```
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>MIDI Player</title>
-  <!-- 必要なライブラリ（Tone.js, Magenta.js, html-midi-player等）を一括で読み込む -->
-  <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
-</head>
-<body>
+#### 決まったこと
 
-  <!-- MIDIプレイヤー -->
-  <!-- src属性に再生したいMIDIファイルのパスを指定します -->
-  <midi-player
-    src="foo.mid"
-    sound-font
-    visualizer="#myVisualizer">
-  </midi-player>
+- **html-midi-player 1.6.0 を使う。CDN ではなくローカルに同梱する**（`docs/tech-stack.md` の「外部 CDN は 1 本も読まない」を守る）。同梱するのは Tone.js 14.7.58 / @magenta/music 1.23.1 の `es6/core.js` / html-midi-player 1.6.0 の 3 本、合計約 604KB
+- **`sound-font` 属性は付けない。** 音源を外部（storage.googleapis.com）から取りに行かせない。音色は電子音になる
+- **試聴では「この機種で実際に鳴る音」だけを鳴らす。** 移調・統合・音階の絞り込みを経たもの
+- **試聴用に別エンドポイントを新設する。** `GET {prefix}/audition/midi/<name>?t=<半音数>&model=<機種名>`。既存の `DownloadTransposedMidi` は**変えない**（ダウンロードは持ち帰る素材、試聴は実機の再現で、目的が違う。同じ名前で中身の違う MIDI が 2 種類出回るのを避ける）
+- **絞り込みは `RollBook` のパイプラインをそのまま通す。** 音階に入るかどうかは移調したあとに決まるので、順序を組み直さない（TODO-043 と同じ失敗を避ける）
 
-  <!-- （任意）再生に合わせて音が降ってくるピアノロール UI -->
-  <midi-visualizer type="piano-roll" id="myVisualizer"></midi-visualizer>
+#### やらないと決めたこと
 
-</body>
-</html>
-```
+- **ピアノロールの可視化は出さない。** 鳴らない音も同じ見た目で描くので、ロールブックの実線（穴）／破線（音階に無い音）の描き分けと食い違って読み違いを招く。同梱バイト数は変わらないので、後から `visualizer` 属性を足すだけで出せる
+- **JS 側で音階を判定しない。** `note2scale()` を JS に複製することになり、同じ手順を 2 か所に持つ事故そのもの
+- **ダウンロードの中身は変えない**（上記のとおり）
+- **試聴した音の MIDI は持ち帰らせない。** 将来欲しくなったら `AuditionMidi` に `Content-Disposition` を足すのが答えで、`DownloadTransposedMidi` の中身を変えるのは答えではない
+
+#### 実装の落とし穴（忘れると黙って壊れる）
+
+- **全音符の `channel` を 0 に揃える。** Magenta は channel 9 をドラムとして合成ドラムで鳴らすため、揃えないと「穴が開く音がキックドラムの音で鳴る」
+- **試聴ボタンに `data-transpose` を付けない。** `storgan.js` の委譲ハンドラが拾ってフォームを submit し、作り直しに行く。`data-audition` にする
+- **試聴ボタンを `<a>` にしない。** 既存の `test_transpose_table_rows_offer_transposed_midi` が行内のリンク数を数えているので落ちる。`<button type="button">` にする
+- **試聴の URL はテンプレートが `data-audition` に丸ごと書き、JS は写すだけ。** JS で URL を組み立てない
+- **同梱 3 本の読み込み順は Tone → core → midi-player。** UMD なので順序が要る。`type="module"` にしない。`base.html` には入れず、結果画面でだけ読む
+- **`merge_overlapping_notes()` が効くので、同じ高さの連打は 1 つの長い音に聞こえる。** これは実機の再現であって不具合ではない。直そうとしないこと
+
+#### 作業のチェックリスト
+
+**区切り A（サーバー側だけで完結。ここまでで `curl` と `ytstreetorgan play` で音を確かめられる）**
+
+- [ ] `rollbook.py` に継ぎ目を入れる: `parse()` から `load()` を切り出し、`playable_note_info` プロパティ（`scale >= 0` の音符）を追加、`hole_note_count` をそれに寄せる
+- [ ] `uv run pytest -q` で既存のロールブックのテストが全部緑であること（`parse()` の外形を変えていない確認）
+- [ ] `audition.py` を新設し `playable_midi_bytes()` を実装（channel を 0 に揃える。`ytmidilib.write()` がパスしか受けないので当面は一時ファイル経由にし、その詳細をこの関数の中だけに閉じ込める）
+- [ ] `tests/test_audition.py` を書く（音階外の音が入っていない／移調が効く／数が `hole_note_count` と一致／統合が効く／channel が全部 0／何も保存しない／未知の機種名は `ValueError`）
+- [ ] `handler1.py` に `AuditionMidi` を追加、`webapp.py` にルートを 1 行追加（`Content-Type: audio/midi`、`Content-Disposition` は付けない、保存しない）
+- [ ] HTTP テストを書く（200 と `MThd`／不正な `t` は 400／未知の機種は 400／`..` を含む名前は 400／無いファイルは 404）
+- [ ] サーバーを起動して `curl` で取り、`ytstreetorgan play` で実際に聴いて確かめる
+
+**区切り B（画面から聴けるようになる。ここまでで利用者に出せる）**
+
+- [ ] `webroot/static/vendor/` に 3 本を curl で取得（サイズ 347,852 / 241,786 / 13,994 を照合）
+- [ ] `webroot/static/vendor/LICENSES.md` を作る（3 本の全文・版・取得元・sha256・「手で編集しない」）
+- [ ] `base.html` の `.icon-defs` に `<symbol id="i-play">` を追加
+- [ ] `storgan.html` の `{% block scripts %}` に 3 本を `static_url()` でこの順に追加（結果画面でだけ読むよう条件で括る）
+- [ ] 手動確認: DevTools で `customElements.get('midi-player')` が返ること（UI を足す前に読み込みだけ切り分ける）
+- [ ] `storgan.html` に「試聴」列と、表の下に `<midi-player>` と注記を追加
+- [ ] `webroot/static/js/midi_audition.js` を新規作成（クリック → `stop()` → `src` 差し替え → 選択行に印）
+- [ ] `my.css` に `.midi-audition` の余白（Shadow DOM なので中は `::part()` でしか触れない）
+- [ ] 手動確認: 行を替えて聴き比べ、±0 の行、`--debug` の live reload、暗いテーマ、**ネットを切った状態で全部動くこと**
+
+**区切り C（固めて、書き残す）**
+
+- [ ] ブラウザテストを追加（`src` が `/audition/` を指す／試聴ボタンで `src` が入れ替わり POST が飛ばない／MIDI 列は `/download/midi-transpose/` のまま／再生ボタンが enabled になる／400 以上のレスポンスが無い）
+- [ ] `uv run pytest -q` / `uv run pytest -m browser -q` / `ruff check src tests` / `mypy src` を通す
+- [ ] `docs/tech-stack.md`「フロントエンド」に追記（同梱 3 本と取得の curl、Tone は 14.x 固定、`sound-font` を付けない理由、`.map` は同梱しない）
+- [ ] `webroot/CLAUDE.md` に「MIDI の試聴」節を新設（上記の落とし穴と、やらないと決めたことの理由）
+- [ ] ルートの `CLAUDE.md` を更新（依存図に `audition.py` を追加／Web 層に `AuditionMidi` の項／用語の表に「試聴」／**live reload の注意点の記述を直す** — 現状は `base.html` があり `storgan.html`・`config_editor.html`・`history.html` の 3 つが継承しているので、203-205 行目の「共通の親テンプレートが無い」「両方に書いてある」「ページを増やすときは忘れずに」は誤り。「`base.html` に 1 か所あれば全ページに効く」に直す）
+- [ ] 決着したら `archives/todo/` へ移す
+
 ---
 
 ### **TODO-064** 機種設定で、音名(国際標準)でドロップダウンメニューで入力するように変更
 
 - 参考として、NOTE番号も表示。
 - 設定ファイルの形式も変更が必要。
+
+---
+
+### **TODO-065** `ytmidilib` に 3 通目の要求書を出す（`write()` を file-like に対応させる）
+
+`ytmidilib.write()` が `str | os.PathLike` しか受けず、file-like を受けない。そのため TODO-063 の試聴では一時ファイルに書いて読み戻している（「保存しない」という既存 3 ハンドラの原則に小さな穴が開いている）。
+
+**同じパッケージの `transpose_file()` は既に file-like を受ける**ので、意味論を揃えるだけ。
+
+段取り: 要求書を出す → 0.3.0 タグ → `uv sync --upgrade-package ytmidilib` → `pyproject.toml` の tag を上げる → `audition.py` の一時ファイルを `io.BytesIO` に差し替える（**呼ぶ側とテストは無変更で通るはず**）。
+
+前例は TODO-045（1 通目）・TODO-048（2 通目）。
+
+TODO-063 とは独立に進められる。
 
 ---
 
