@@ -115,7 +115,7 @@ def test_midi_app_converts_for_model(mock_player, mock_parser, tmp_path):
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, model_name='34notes')
 
-    # base_note=41, offset=0 -> 41 は音階にある。40 は無い
+    # '34notes' の notes[0] は F2（41）。41 は音階にある。40（E2）は無い
     on_scale = NoteInfo(abs_time=0.0, channel=0, note=41,
                         velocity=100, end_time=1.0)
     off_scale = NoteInfo(abs_time=0.0, channel=0, note=40,
@@ -162,7 +162,7 @@ def test_play_logs_how_it_transposed_at_info(
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, model_name='34notes', transpose='auto')
 
-    # base_note=41。オクターブ上げれば音階に乗る音を置く
+    # '34notes' の notes[0] は F2（41）。オクターブ上げれば音階に乗る音（29=F1）を置く
     mock_parser.return_value.parse.return_value = {
         'note_info': [NoteInfo(abs_time=0.0, channel=0, note=29,
                                velocity=100, end_time=1.0)],
@@ -242,7 +242,7 @@ def test_midi_app_merges_overlapping_same_note(mock_player, mock_parser, tmp_pat
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, model_name='34notes')
 
-    # base_note=41, offset=0 -> 41 は音階にある。2 つのパートが重ねて鳴らす
+    # '34notes' の notes[0] は F2（41）。41 は音階にある。2 つのパートが重ねて鳴らす
     a = NoteInfo(abs_time=0.0, channel=0, note=41, velocity=60, end_time=1.5)
     b = NoteInfo(abs_time=0.5, channel=1, note=41, velocity=100, end_time=1.0)
 

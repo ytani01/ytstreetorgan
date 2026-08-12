@@ -31,7 +31,6 @@ document.addEventListener("DOMContentLoaded", function () {
     "field-pitch": "pitch",
     "field-hole-height": "hole_height",
     "field-mm-per-sec": "mm_per_sec",
-    "field-base-note": "base_note",
     "field-bridge-width": "bridge_width",
     "field-bridge-threshold": "bridge_threshold",
     "field-memo": "memo",
@@ -43,7 +42,6 @@ document.addEventListener("DOMContentLoaded", function () {
     "pitch": parseFloat,
     "hole_height": parseFloat,
     "mm_per_sec": parseFloat,
-    "base_note": v => parseInt(v, 10),
     "bridge_width": parseFloat,
     "bridge_threshold": parseFloat,
   };

@@ -107,16 +107,12 @@ class ModelConf(TypedDict, total=False):
         hole_height: 穴の高さ [mm]。
         mm_per_sec: 秒 → mm の変換係数。旧 ``'1sec'``（数字始まりで識別子に
             できないため、``RollBook.mm_per_sec`` に合わせて改名した）。
-        base_note: 半音単位のオフセットを数える起点の MIDI ノート番号。
-            オフセットそのものは設定に無く、:func:`note_offsets` が
-            音名との差から導出する。
         bridge_width: ブリッジ（紙のつなぎ）の幅 [mm]。
         bridge_threshold: これを超える穴を分割する [mm]。
         notes: トラックごとの音名の並び（例: ``['F2', 'G2', 'A2']``）。
             並び順がそのままトラック番号。音名は国際標準
             （scientific pitch notation）で、MIDI ノート番号 60 が
-            ``'C4'``。**穴の位置はこれだけで決まる**（``base_note``
-            からの半音単位のオフセットは :func:`note_offsets` が導出する）。
+            ``'C4'``。**穴の位置はこれだけで決まる**（TODO-067）。
         memo: 覚え書き（動作には影響しない）。
     """
 
@@ -126,7 +122,6 @@ class ModelConf(TypedDict, total=False):
     pitch: float
     hole_height: float
     mm_per_sec: float
-    base_note: int
     bridge_width: float
     bridge_threshold: float
     notes: list[str]
@@ -137,38 +132,19 @@ class ModelConf(TypedDict, total=False):
 # validate_config() の検証と coerce_numeric_fields() の型変換の両方が
 # この定義を使うので、設定項目を増減させるときはここだけ直せばよい。
 # 挿入順がそのまま検証順（＝エラーメッセージに出る項目の順）になる。
+#
+# **古い設定に残っている `'base_note'` は黙って無視する**（TODO-067）。
+# 穴の位置は音名だけで決まるので、余分なキーが 1 つあっても結果は
+# 変わらない。`validate_config()` もエラーにしない（TODO-022 と同じ扱い）。
 NUMERIC_FIELDS: dict[str, Callable[[Any], Any]] = {
     'book_height': float,
     'margin': float,
     'pitch': float,
     'hole_height': float,
     'mm_per_sec': float,
-    'base_note': int,
     'bridge_width': float,
     'bridge_threshold': float,
 }
-
-
-def note_offsets(model: ModelConf) -> list[int]:
-    """各トラックの、基準の音からの半音単位のオフセット。
-
-    設定が持っているのは音名だけなので、``base_note`` との差をここで
-    導出する。並び順は ``'notes'`` のまま（＝そのままトラック番号）。
-
-    Args:
-        model (ModelConf): 機種 1 つ分の設定。
-
-    Returns:
-        list[int]: ``note_name_to_midi(name) - base_note`` の並び。
-
-    Raises:
-        ValueError: 音名として読めない要素があるとき。
-    """
-    base_note = model.get('base_note', 0)
-    return [
-        note_name_to_midi(name) - base_note
-        for name in model.get('notes', [])
-    ]
 
 
 def coerce_numeric_fields(conf: dict) -> dict:
@@ -370,7 +346,7 @@ class Conf:
             model_name (str): 機種名。
 
         Returns:
-            ModelConf: キーは生の JSON のフィールド名（``'base_note'``、
+            ModelConf: キーは生の JSON のフィールド名（``'book_height'``、
                 ``'hole_height'``、``'mm_per_sec'`` …）。
                 **知らない機種名には空の dict を返す**ので、
                 呼ぶ側が空かどうか確かめること（`RollBook.__init__` は

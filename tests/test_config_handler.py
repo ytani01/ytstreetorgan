@@ -69,7 +69,6 @@ class TestConfigHandler(AsyncHTTPTestCase):
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": ["C4"], "memo": "test"
@@ -108,7 +107,6 @@ class TestConfigHandler(AsyncHTTPTestCase):
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": notes, "memo": "test"

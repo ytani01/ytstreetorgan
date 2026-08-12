@@ -10,7 +10,7 @@ from xml.sax.saxutils import quoteattr
 from loguru import logger
 from ytmidilib import NoteInfo, Parser
 
-from .conf import Conf, ModelConf, note_offsets, validate_config
+from .conf import Conf, ModelConf, note_name_to_midi, validate_config
 from .transpose import (
     TransposeCandidate,
     parse_transpose_arg,
@@ -38,22 +38,26 @@ OFF_SCALE_DASH = '3 1'       # 破線の刻み
 META_PREFIX = 'data-storgan-'
 
 
-def note2scale(midi_note: int, base_note: int, notes: list[str]) -> int:
-    """MIDIノート番号からスケール番号（インデックス）を取得する。
+def note2scale(midi_note: int, notes: list[str]) -> int:
+    """MIDI ノート番号からトラック番号（インデックス）を取得する。
+
+    音名がそのまま鳴る高さなので、``notes`` を MIDI ノート番号に直して
+    突き合わせるだけでよい（TODO-067）。
 
     Args:
-        midi_note (int): 対象のMIDIノート番号。
-        base_note (int): 基準となるベースノート番号。
+        midi_note (int): 対象の MIDI ノート番号。
         notes (list[str]): トラックごとの音名の並び。
 
     Returns:
-        int: 対応するスケール番号（インデックス）。該当するものがない場合は -1。
+        int: 対応するトラック番号（インデックス）。該当するものがない場合は -1。
+
+    Raises:
+        ValueError: 音名として読めない要素があるとき。
     """
     scale = -1
 
-    offsets = note_offsets({'base_note': base_note, 'notes': notes})
-    for s, offset in enumerate(offsets):
-        if base_note + offset == midi_note:
+    for s, name in enumerate(notes):
+        if note_name_to_midi(name) == midi_note:
             scale = s
             break
 
@@ -237,9 +241,8 @@ class HoleInfo:
         self.start_sec = self.note_info.abs_time
         self.sec = self.note_info.length()
 
-        base_note = self.conf.get('base_note', 0)
         notes = self.conf.get('notes', [])
-        self.scale = note2scale(self.note_info.note, base_note, notes)
+        self.scale = note2scale(self.note_info.note, notes)
 
         mm_per_sec = self.conf.get('mm_per_sec', 0.0)
         pitch = self.conf.get('pitch', 0.0)

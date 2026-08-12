@@ -6,7 +6,6 @@
     "pitch": 3.5,
     "hole_height": 2.5,
     "mm_per_sec": 50.0,
-    "base_note": 41,
     "bridge_width": 0.1,
     "bridge_threshold": 50.0,
     "notes": [
@@ -54,7 +53,6 @@
     "pitch": 3.83,
     "hole_height": 2.5,
     "mm_per_sec": 50,
-    "base_note": 43,
     "bridge_width": 1,
     "bridge_threshold": 50,
     "notes": [
@@ -88,7 +86,6 @@
     "pitch": 3.83,
     "hole_height": 2.5,
     "mm_per_sec": 50.0,
-    "base_note": 43,
     "bridge_width": 1.0,
     "bridge_threshold": 2.7,
     "notes": [
@@ -122,7 +119,6 @@
     "pitch": 3.5,
     "hole_height": 2.5,
     "mm_per_sec": 50.0,
-    "base_note": 41,
     "bridge_width": 0.0,
     "bridge_threshold": 50.0,
     "notes": [

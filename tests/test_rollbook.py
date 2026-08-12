@@ -30,7 +30,6 @@ from ytstreetorgan.transpose import (
 
 # 移調のテスト用。C から 1 オクターブの、白鍵だけの機種
 DIATONIC_CONF = {
-    'base_note': 60,
     'notes': [
         'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4',
     ],
@@ -40,7 +39,6 @@ DIATONIC_CONF = {
 # 12 音すべてを 2 オクターブぶん鳴らせる機種。曲がこの音域に収まっていれば
 # **どの調でも 100% 鳴る**ので、「移調しても改善しない」場合を作れる
 CHROMATIC_CONF = {
-    'base_note': 60,
     'notes': [midi_to_note_name(60 + i) for i in range(24)],
 }
 
@@ -52,9 +50,9 @@ def _note(note, start=0.0, end=1.0, channel=0, velocity=100):
 
 def test_note2scale():
     notes = ['C4', 'D4', 'E4']
-    assert note2scale(60, 60, notes) == 0
-    assert note2scale(62, 60, notes) == 1
-    assert note2scale(65, 60, notes) == -1
+    assert note2scale(60, notes) == 0
+    assert note2scale(62, notes) == 1
+    assert note2scale(65, notes) == -1
 
 def test_svg_square():
     svg = svg_square(10, 20, 30, 40, '#123456')
@@ -86,7 +84,6 @@ def test_rollbook_parse(mock_parser):
     rb = RollBook()
     # Mock conf slightly if needed, but defaults might work
     rb._conf = {
-        'base_note': 60,
         'notes': [
             'C4', 'D4', 'E4',
         ],
@@ -110,7 +107,6 @@ def test_holeinfo_str():
     mock_note.note = 60
 
     conf = {
-        'base_note': 60,
         'notes': [
             'C4', 'D4', 'E4',
         ],
@@ -358,7 +354,6 @@ def test_overlapping_same_note_does_not_starve_bridges(mock_parser):
 
     rb = RollBook()
     rb._conf = {
-        'base_note': 60,
         'notes': ['C4'],
         'mm_per_sec': 100,   # 300mm の全長になる
         'pitch': 5,
@@ -390,8 +385,8 @@ def test_playable_notes_and_range():
 
 
 def test_model_note_range_without_tracks():
-    """トラックが 1 つも無ければ、最低も最高も base_note。"""
-    assert model_note_range({'base_note': 55, 'notes': []}) == (55, 55)
+    """トラックが 1 つも無ければ、最低も最高も 0。"""
+    assert model_note_range({'notes': []}) == (0, 0)
 
 
 def test_key_label_folds_into_minus5_to_plus6():

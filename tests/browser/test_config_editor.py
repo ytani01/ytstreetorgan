@@ -132,7 +132,6 @@ def test_add_model_copies_the_template(
     src = next(d for d in data if d['model'] == '20notes')
     # 名前以外はコピー元と同じ。トラックは並び順ごと
     assert added['notes'] == src['notes']
-    assert added['base_note'] == src['base_note']
     assert added['book_height'] == src['book_height']
 
 

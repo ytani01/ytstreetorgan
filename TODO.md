@@ -2,7 +2,7 @@
 
 更新: 2026-08-12
 
-- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-069` から。**
+- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-070` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
 
 ## == 着手前 / 検討中
@@ -21,40 +21,6 @@
 最後の `audition.py` の差し替えだけが TODO-063 の後になる（差し替える先の
 ファイルが無いため）。逆に、TODO-063 はこの項目を待たずに進められる
 （一時ファイル経由で動く）。
-
-### **TODO-067** 設定項目として base_noteは意味がなくなったので、廃止する。
-
-**現状のコードは `base_note` を足して引いているだけになっている**（TODO-064 の
-あと、2026-08-12 に確認）。`note_offsets()` が `midi(name) - base_note` を返し、
-使う側がそれに `base_note` を足し戻している。
-
-| 場所 | 実際の式 | 打ち消したあと |
-|---|---|---|
-| `rollbook.py` `note2scale()` | `base_note + offset == midi_note` | `midi(name) == midi_note` |
-| `transpose.py` `playable_notes()` | `{base_note + off for off in ...}` | `{midi(name)}` |
-| `transpose.py` `model_note_range()` | `(base_note + min(offsets), base_note + max(offsets))` | `(min(midi), max(midi))` |
-
-つまり `base_note` にどんな値を入れても結果は変わらない。例外は
-`model_note_range()` が **`notes` が空のとき** `(base_note, base_note)` を
-返す 1 か所だけで、トラックが 1 本も無い機種の話なので実質意味は無い。
-
-したがって、**設定項目を削除するだけでなく、この打ち消し合いも解消する**。
-`note_offsets()` という関数自体も要らなくなり（呼ぶ側が
-`note_name_to_midi(name)` を直接使えばよい）、半音単位のオフセットという
-中間の概念が消える。
-
-やること: `ModelConf` から `base_note` を削除 / `note_offsets()` の廃止と
-呼ぶ側の書き換え（`rollbook.py` / `transpose.py` / `apps.py`）/
-`note2scale()` の引数から `base_note` を削除 / 設定エディタの「基準の音」の
-入力欄を削除 / `conf/storgan-conf.json` と `~/etc/storgan-conf.json` から
-`base_note` を削除 / `validate_config()` の必須項目から外す /
-`CLAUDE.md` の用語の表から「基準の音」を削除。
-
-**決めごと: 設定に `base_note` が残っていても黙って無視する。**
-`NUMERIC_FIELDS` から外すだけにして、`validate_config()` は通す。設定
-エディタで保存すれば自然に消える。旧形式（`'note offset'` など）を弾くのと
-違い、余分なキーが 1 つあっても結果は変わらないので、エラーにする理由が無い。
-TODO-022（設定エディタが未知のキーを黙って落とす。対応しない）と同じ扱い。
 
 ### **TODO-068** 移調候補一覧の「視聴」カラムは不要
 
@@ -87,6 +53,7 @@ TODO-067 のあとに着手する。`base_note` を廃止すると並べ替え�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-067.** 設定項目 base_note を廃止する](archives/todo/TODO-067.%20設定項目%20base_note%20を廃止する.md)
 - [**TODO-064.** 機種設定で、音名(国際標準)でドロップダウンメニューで入力するように変更](archives/todo/TODO-064.%20機種設定で、音名(国際標準)でドロップダウンメニューで入力するように変更.md)
 - [**TODO-063.** ブラウザ上で、実機で鳴る音だけを試聴できるようにする](archives/todo/TODO-063.%20ブラウザ上で、実機で鳴る音だけを試聴できるようにする.md)
 - [**TODO-066.** アーカイブのファイル名が壊れている件を直す](archives/todo/TODO-066.%20アーカイブのファイル名が壊れている件を直す.md)

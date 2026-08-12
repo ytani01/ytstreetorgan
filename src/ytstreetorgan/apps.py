@@ -275,7 +275,6 @@ class MidiApp:
         """
         assert self._model_conf is not None
 
-        base_note = self._model_conf.get('base_note', 0)
         notes = self._model_conf.get('notes', [])
 
         merged = merge_overlapping_notes(note_info)
@@ -291,7 +290,7 @@ class MidiApp:
 
         converted = [
             ni for ni in plan.notes
-            if note2scale(ni.note, base_note, notes) >= 0
+            if note2scale(ni.note, notes) >= 0
         ]
 
         # **どう変換したのかを INFO で残す。** 候補の表は `parse` だけなので、

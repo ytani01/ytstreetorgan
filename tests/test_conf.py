@@ -19,7 +19,6 @@ Conf クラス(修正版)に対する pytest テスト
     ため)。
 """
 import json
-from pathlib import Path
 
 import pytest
 
@@ -30,7 +29,6 @@ from ytstreetorgan.conf import (
     coerce_numeric_fields,
     midi_to_note_name,
     note_name_to_midi,
-    note_offsets,
     validate_config,
 )
 
@@ -382,9 +380,27 @@ class TestValidateConfig:
             "hole_height": 2.5,
             "mm_per_sec": 50,
             "notes": ["C4", "D4"],
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
+            "memo": "sample"
+        }
+        valid, msg = validate_config(sample)
+        assert valid is True
+        assert msg == ""
+
+    def test_base_note_is_ignored(self):
+        # 廃止した 'base_note' が残っていても、黙って無視して通す（TODO-067）
+        sample = {
+            "model": "test_model",
+            "book_height": 100,
+            "margin": 5,
+            "pitch": 3.5,
+            "hole_height": 2.5,
+            "mm_per_sec": 50,
+            "notes": ["C4", "D4"],
+            "bridge_width": 1,
+            "bridge_threshold": 50,
+            "base_note": 60,
             "memo": "sample"
         }
         valid, msg = validate_config(sample)
@@ -416,7 +432,6 @@ class TestValidateConfig:
             "model": "test_model",
             "book_height": "abc",
             "margin": 5, "pitch": 3.5, "hole_height": 2.5, "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": ["C4"]
@@ -424,22 +439,6 @@ class TestValidateConfig:
         valid, msg = validate_config(sample)
         assert valid is False
         assert "数値である必要" in msg
-
-    def test_int_field_rejects_non_integer_string(self):
-        # 'base_note' は int で変換される。float() で検証していた頃は
-        # "60.5" が検証を通り、あとの int() で ValueError になっていた。
-        sample = {
-            "model": "test_model",
-            "book_height": 100,
-            "margin": 5, "pitch": 3.5, "hole_height": 2.5, "mm_per_sec": 50,
-            "base_note": "60.5",
-            "bridge_width": 1,
-            "bridge_threshold": 50,
-            "notes": ["C4"]
-        }
-        valid, msg = validate_config(sample)
-        assert valid is False
-        assert "'base_note'" in msg
 
     # 'notes' は音名の文字列の並び。音名は国際標準
     # （MIDI ノート番号 60 = 'C4'）で、オクターブ番号まで必須。
@@ -465,7 +464,6 @@ class TestValidateConfig:
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": ["C4", bad_note]
@@ -489,7 +487,6 @@ class TestValidateConfig:
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": ["C4", old_note]
@@ -510,7 +507,6 @@ class TestValidateConfig:
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": [name]
@@ -526,7 +522,6 @@ class TestValidateConfig:
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": "C4"
@@ -551,7 +546,6 @@ class TestConfMutations:
                 "pitch": 3.5,
                 "hole_height": 2.5,
                 "mm_per_sec": 50,
-                "base_note": 60,
                 "bridge_width": 1,
                 "bridge_threshold": 50,
                 "notes": ["C4"], "memo": "m1 memo"
@@ -601,7 +595,6 @@ class TestConfMutations:
             "pitch": 3.5,
             "hole_height": 2.5,
             "mm_per_sec": 50,
-            "base_note": 60,
             "bridge_width": 1,
             "bridge_threshold": 50,
             "notes": ["D4"], "memo": "m2 memo"
@@ -645,7 +638,6 @@ class TestCoerceNumericFields:
         "model": "test_model",
         "book_height": "100", "margin": "5", "pitch": "3.5",
         "hole_height": "2.5", "mm_per_sec": "50",
-        "base_note": "60",
         "bridge_width": "1", "bridge_threshold": "50",
         "notes": ["C4", " D4 "],
         "memo": "keep me",
@@ -701,8 +693,8 @@ class TestNoteNames:
         ("A4", 69),
         ("C#4", 61),
         ("G9", 127),
-        ("F2", 41),      # '34notes' の base_note
-        ("G2", 43),      # '20notes' の base_note
+        ("F2", 41),      # '34notes' の最低音（notes[0]）
+        ("G2", 43),      # '20notes' の最低音（notes[0]）
     ])
     def test_round_trip(self, name, midi):
         assert note_name_to_midi(name) == midi
@@ -735,40 +727,3 @@ class TestNoteNames:
     def test_midi_to_note_name_rejects(self, midi):
         with pytest.raises(ValueError):
             midi_to_note_name(midi)
-
-
-# ============================================================
-# note_offsets()
-# ============================================================
-class TestNoteOffsets:
-    def test_offsets_from_base_note(self):
-        model = {
-            "base_note": 41,
-            "notes": ["F2", "G2", "A#2"],
-        }
-        assert note_offsets(model) == [0, 2, 5]
-
-    def test_offsets_can_be_negative(self):
-        # 基準の音より低い音名でも導出できる
-        model = {"base_note": 60, "notes": ["A3"]}
-        assert note_offsets(model) == [-3]
-
-    def test_empty(self):
-        assert note_offsets({"base_note": 60, "notes": []}) == []
-        assert note_offsets({}) == []
-
-    def test_invalid_name_raises(self):
-        with pytest.raises(ValueError):
-            note_offsets({"base_note": 60, "notes": ["C"]})
-
-    def test_template_conf_offsets(self):
-        # テンプレートの設定が新形式で読めること
-        data = json.loads(
-            Path("conf/storgan-conf.json").read_text(encoding="utf-8")
-        )
-        for model in data:
-            offsets = note_offsets(model)
-            assert len(offsets) == len(model["notes"])
-            assert offsets == sorted(offsets)  # 低い音から並んでいる
-            valid, msg = validate_config(model)
-            assert valid is True, f'{model["model"]}: {msg}'

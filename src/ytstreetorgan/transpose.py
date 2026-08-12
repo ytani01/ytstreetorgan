@@ -25,7 +25,7 @@ from typing import Literal, NamedTuple, TypedDict
 from loguru import logger
 from ytmidilib import NoteInfo, transpose_file
 
-from .conf import ModelConf, note_offsets
+from .conf import ModelConf, note_name_to_midi
 
 
 def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
@@ -127,8 +127,7 @@ def playable_notes(conf: ModelConf) -> set[int]:
     `note2scale()` はトラック番号（穴の列）が要るときに使う。こちらは
     「鳴らせるかどうか」だけを何万回も調べる用（移調の候補を作るとき）。
     """
-    base_note = conf.get('base_note', 0)
-    return {base_note + off for off in note_offsets(conf)}
+    return {note_name_to_midi(name) for name in conf.get('notes', [])}
 
 
 def model_note_range(conf: ModelConf) -> tuple[int, int]:
@@ -136,15 +135,15 @@ def model_note_range(conf: ModelConf) -> tuple[int, int]:
 
     Returns:
         tuple[int, int]: ``(最低, 最高)``。トラックが 1 つも無ければ
-            どちらも ``base_note``。
+            どちらも ``0``（`transpose_candidates()` が探す移調量の
+            範囲を決めるだけの値で、鳴らせる音が無い以上どこを探しても
+            結果は同じになる）。
     """
-    base_note = conf.get('base_note', 0)
-    notes = conf.get('notes', [])
-    if not notes:
-        return (base_note, base_note)
+    midi_notes = [note_name_to_midi(name) for name in conf.get('notes', [])]
+    if not midi_notes:
+        return (0, 0)
 
-    offsets = note_offsets(conf)
-    return (base_note + min(offsets), base_note + max(offsets))
+    return (min(midi_notes), max(midi_notes))
 
 
 def transpose_notes(
