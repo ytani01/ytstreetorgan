@@ -25,7 +25,7 @@ from typing import Literal, NamedTuple, TypedDict
 from loguru import logger
 from ytmidilib import NoteInfo, transpose_file
 
-from .conf import ModelConf, note_name_to_midi
+from .conf import ValidModelConf, note_name_to_midi
 
 
 def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
@@ -121,7 +121,7 @@ def transposed_zip_name(name: str) -> str:
     return f'{Path(name).stem}.transposed.zip'
 
 
-def playable_notes(conf: ModelConf) -> set[int]:
+def playable_notes(conf: ValidModelConf) -> set[int]:
     """機種が鳴らせる MIDI ノート番号の集合。
 
     `note2scale()` はトラック番号（穴の列）が要るときに使う。こちらは
@@ -130,7 +130,7 @@ def playable_notes(conf: ModelConf) -> set[int]:
     return {note_name_to_midi(name) for name in conf.get('notes', [])}
 
 
-def model_note_range(conf: ModelConf) -> tuple[int, int]:
+def model_note_range(conf: ValidModelConf) -> tuple[int, int]:
     """機種が鳴らせる MIDI ノート番号の最低・最高。
 
     Returns:
@@ -278,7 +278,7 @@ def transpose_rank_key(c: TransposeCandidate) -> tuple[float, bool, int]:
 
 
 def transpose_score(
-    note_info: list[NoteInfo], conf: ModelConf, semitones: int
+    note_info: list[NoteInfo], conf: ValidModelConf, semitones: int
 ) -> TransposeCandidate | None:
     """移調量 1 つぶんの成績を出す（音符が無ければ None）。
 
@@ -292,7 +292,7 @@ def transpose_score(
 
 
 def transpose_candidates(
-    note_info: list[NoteInfo], conf: ModelConf
+    note_info: list[NoteInfo], conf: ValidModelConf
 ) -> list[TransposeCandidate]:
     """移調の候補を、成績の良い順に返す（TODO-039 / 052）。
 
@@ -338,7 +338,7 @@ def transpose_candidates(
 
 def add_transpose_rows(
     candidates: list[TransposeCandidate],
-    note_info: list[NoteInfo], conf: ModelConf, wanted: Sequence[int],
+    note_info: list[NoteInfo], conf: ValidModelConf, wanted: Sequence[int],
 ) -> list[TransposeCandidate]:
     """候補に無い移調量の行を足して、並べ直したものを返す。
 
@@ -349,7 +349,7 @@ def add_transpose_rows(
     Args:
         candidates (list[TransposeCandidate]): `transpose_candidates()` の結果。
         note_info (list[NoteInfo]): 成績を測る対象（移調する**前**）。
-        conf (ModelConf): 機種の設定。
+        conf (ValidModelConf): 機種の設定。
         wanted (Sequence[int]): 必ず行にしたい移調量。既にあるものは飛ばす。
 
     Returns:
@@ -398,7 +398,7 @@ def transpose_has_improvement(candidates: list[TransposeCandidate]) -> bool:
 
 def select_transpose_rows(
     candidates: list[TransposeCandidate],
-    note_info: list[NoteInfo], conf: ModelConf, transpose: int,
+    note_info: list[NoteInfo], conf: ValidModelConf, transpose: int,
     limit: int = 5,
 ) -> list[TransposeCandidate]:
     """比べやすい数に絞った候補を返す（TODO-041）。
@@ -424,7 +424,7 @@ def select_transpose_rows(
         candidates (list[TransposeCandidate]): `transpose_candidates()` の
             結果（絞り込み前）。
         note_info (list[NoteInfo]): 成績を測る対象（移調する**前**）。
-        conf (ModelConf): 機種の設定。
+        conf (ValidModelConf): 機種の設定。
         transpose (int): いま適用している移調量。
         limit (int): 改善する候補として残す最大数。
 
@@ -514,6 +514,63 @@ def transpose_notices(candidates: list[TransposeCandidate]) -> list[str]:
     return notices
 
 
+class TransposeView(NamedTuple):
+    """候補の表を描くのに要る値（TODO-076）。
+
+    **候補だけから決まる。** `Handler1._render()` の中にあったので、
+    HTTP を通さないと確かめられなかった。
+
+    Attributes:
+        notices: 表に添える文（`transpose_notices()`）。
+        show_table: 表を出すか。**±0（移調しない）より良い候補が
+            無ければ出さず、`notices` の一文だけにする**（TODO-041）。
+            1 行だけの表は、選ぶものが無いのに選べそうに見える。
+        zero_note_pct: ±0 の行の音符の割合 [%]。
+        zero_sec_pct: ±0 の行の音の長さの割合 [%]。
+    """
+
+    notices: list[str]
+    show_table: bool
+    zero_note_pct: float
+    zero_sec_pct: float
+
+
+def transpose_view(
+    candidates: list[TransposeCandidate] | None
+) -> TransposeView:
+    """候補から、表を描くのに要る値をまとめて作る（TODO-076）。
+
+    **呼ぶ側に作らせず 1 か所でまとめて作る**（TODO-043）。片方だけ
+    渡し忘れる余地を無くすため。置き場所をハンドラから移しただけで、
+    呼ぶ側には散らさないこと。
+
+    Args:
+        candidates (list[TransposeCandidate] | None): 移調の候補。
+            まだ作っていなければ None（ファイル選択の画面）。
+            **空でなければ ±0 の行を含んでいること**
+            （`select_transpose_rows()` が必ず残す）。
+            `transpose_notices()` も同じ前提で書いてある。
+
+    Returns:
+        TransposeView: 候補が無ければ、注記は空・表は出さない・
+            ±0 の成績は 0.0。
+    """
+    if not candidates:
+        return TransposeView([], False, 0.0, 0.0)
+
+    # ±0 の行の成績。テンプレートが、これを下回るセルに印を付ける
+    # （TODO-051）。表には「片方だけ改善する行」といまの移調量の行が
+    # 残るので、見分けが付かないと「良くない候補が出ている」と読める
+    zero = next((c for c in candidates if c['transpose'] == 0), None)
+
+    return TransposeView(
+        notices=transpose_notices(candidates),
+        show_table=transpose_has_improvement(candidates),
+        zero_note_pct=zero['note_pct'] if zero else 0.0,
+        zero_sec_pct=zero['sec_pct'] if zero else 0.0,
+    )
+
+
 def parse_transpose_arg(transpose: int | str) -> int | Literal['auto']:
     """移調量の指定を、整数か ``'auto'`` に正規化する。
 
@@ -548,6 +605,32 @@ def parse_transpose_arg(transpose: int | str) -> int | Literal['auto']:
     return int(transpose)
 
 
+def initial_transpose(
+    transpose: int | str
+) -> tuple[int | Literal['auto'], int]:
+    """移調量の指定を、要求のままの値と、始めに使う半音数に分ける。
+
+    ``'auto'`` は候補が出揃うまで決まらない（`plan_transpose()` が選ぶ）
+    ので、それまでは 0 として持っておく。`RollBook.__init__` と
+    `MidiApp.__init__` が同じ 2 行を持っていた（TODO-073）。
+
+    Args:
+        transpose (int | str): 移調する半音数、または ``'auto'``。
+
+    Returns:
+        tuple[int | Literal['auto'], int]: 要求のままの値（
+            `plan_transpose()` へ渡すもの）と、始めに使う半音数。
+
+    Raises:
+        ValueError: `parse_transpose_arg()` が投げるものをそのまま通す。
+    """
+    # **型注釈は省かないこと。** 省くと呼ぶ側で属性の型を推論するときに
+    # `Literal['auto']` が `str` へ広げられ、`plan_transpose()` に
+    # 渡せなくなる（basedpyright が拾う）
+    requested: int | Literal['auto'] = parse_transpose_arg(transpose)
+    return requested, 0 if requested == 'auto' else int(requested)
+
+
 class TransposePlan(NamedTuple):
     """移調をどうするか決めた結果（TODO-043）。
 
@@ -566,7 +649,7 @@ class TransposePlan(NamedTuple):
 
 
 def plan_transpose(
-    note_info: list[NoteInfo], conf: ModelConf,
+    note_info: list[NoteInfo], conf: ValidModelConf,
     requested: int | Literal['auto'],
 ) -> TransposePlan:
     """移調量を決めて、候補と移調後の音符までまとめて返す（TODO-043）。
@@ -588,7 +671,7 @@ def plan_transpose(
             （`merge_overlapping_notes()`）は済ませて渡すこと。**
             あれは「実機は 1 音に 1 パイプ」という別の話なので、
             ここには含めない。
-        conf (ModelConf): 機種の設定。
+        conf (ValidModelConf): 機種の設定。
         requested (int | Literal['auto']): 頼まれた移調量。
             `parse_transpose_arg()` を通したもの。
 

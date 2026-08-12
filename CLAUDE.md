@@ -44,14 +44,16 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 **モジュールの依存は一方向に保つ**（TODO-043）。
 
 ```
-conf.py → transpose.py → rollbook.py → audition.py → handler1.py
+conf.py → transpose.py → rollbook.py → audition.py → base_handler.py
+    → handler1.py / download.py / history.py / config_handler.py
 ```
 
 | モジュール | 受け持ち |
 |---|---|
-| `transpose.py` | 移調。候補の作成・絞り込み・注記、`plan_transpose()`。並び順は `transpose_rank_key()`（TODO-052） |
+| `transpose.py` | 移調。候補の作成・絞り込み・注記、`plan_transpose()`。並び順は `transpose_rank_key()`（TODO-052）。候補から画面用の値を作る `transpose_view()`（TODO-076） |
 | `rollbook.py` | 穴の位置と SVG。`note2scale()` / `HoleInfo` / `RollBook` |
 | `audition.py` | 試聴用の MIDI。`playable_midi_bytes()` |
+| `base_handler.py` | 全ハンドラの土台（TODO-075） |
 
 **`transpose.py` から `rollbook.py` を import しないこと**（循環する）。
 移調は「どの高さで鳴らすか」だけの話で、穴の位置や SVG とは関係が無い。
@@ -64,6 +66,11 @@ conf.py → transpose.py → rollbook.py → audition.py → handler1.py
 `MidiApp._convert_for_model()` が同じ手順をそれぞれ持っていて、
 食い違いかけた（TODO-043）。増やさないこと。
 
+同じ理由で、**機種設定の読み込みと検証は `conf.load_model_conf()` に
+1 つだけ**、**移調量の正規化は `transpose.initial_transpose()` に 1 つだけ**
+（TODO-073）。`RollBook.__init__` と `MidiApp.__init__` が、同じ日本語の
+メッセージまで含めてそれぞれ持っていた。
+
 ### 設定ファイル（リポジトリ外にある）
 
 モデル設定は `storgan-conf.json`。**リポジトリには含まれていない**。`Conf` が
@@ -75,6 +82,11 @@ conf.py → transpose.py → rollbook.py → audition.py → handler1.py
 
 `ModelConf` の**キーは生の JSON フィールド名**（`'book_height'`, `'pitch'` …）。
 **すべて Python の識別子**なので、`class ...(TypedDict)` の形で定義してある。
+**型は 2 つある**（TODO-078）。`ModelConf` は生の JSON の形（どのキーも
+欠けうる）で、設定を読み書きする側（`Conf.data` と設定エディタ）が使う。
+図を描く側は `ValidModelConf`（`total=True`）を受け取り、`conf['pitch']` の形で
+読む。**`.get(key, 0.0)` で読まないこと**（0 が入ると黙って高さ 0 の図が出る）。
+`validate_config()` を通してこの型にするのが `load_model_conf()`。
 かつては `'book height'` のように空白入りで、関数形式でしか書けなかった。
 **旧形式はもう読めない。**
 `'1sec'` は数字始まりで識別子にできないため `'mm_per_sec'` に改名した
@@ -156,10 +168,22 @@ conf.py → transpose.py → rollbook.py → audition.py → handler1.py
 ### Web 層
 
 Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）。全ハンドラは
-`StorganBaseHandler` を継承し、設定を `app.settings` から取り出す。
+`base_handler.py` の `StorganBaseHandler` を継承し、設定を `app.settings` から取り出す。
 `_url_path` の**末尾のスラッシュは必須**（`Handler1.get()` がこれと突き合わせてリダイレクトする）。
 
-- `Handler1` — MIDI アップロード → SVG 生成 → プレビュー。
+**ハンドラは画面ごとにモジュールを分ける**（TODO-075）。かつては
+`handler1.py` に土台も持ち帰りも入っていて、`history.py` と
+`config_handler.py` が「ロールブックを作る画面」のモジュールから
+基底クラスを import していた。
+
+| モジュール | 中身 |
+|---|---|
+| `base_handler.py` | `StorganBaseHandler` だけ |
+| `handler1.py` | `Handler1` だけ |
+| `download.py` | 持ち帰りと試聴の 4 つ |
+| `history.py` / `config_handler.py` | 履歴 / 機種設定の画面 |
+
+- `Handler1`（`handler1.py`） — MIDI アップロード → SVG 生成 → プレビュー。
   履歴からの `stored_midi`（再生成）/ `stored_svg`（再表示）もここが受ける
 - `Download` — `webroot/svg/` と `webroot/midi/` からのダウンロード
 - `DownloadTransposedMidi` — `/download/midi-transpose/<name>?t=<半音数>`。
@@ -180,6 +204,11 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 **ファイル名を外（URL やフォーム）から受け取るときは必ず `storage.py` を通す。**
 `safe_name()` が区切り文字と `..` を弾き、`resolve_in()` が解決後も置き場の
 中にあることを確かめる。履歴は削除まであるので、ここを迂回すると事故になる。
+
+持ち帰り系の 4 つは、この確認とクエリの `t` の読み取りを
+`StorganBaseHandler.stored_file()` / `.transpose_arg()` で済ませる
+（TODO-072。4 回写してあった）。**`Handler1._stored_path()` と混ぜないこと。**
+あちらは画面に理由を出す版で、こちらは HTTP のエラー（400 / 404）を投げる版。
 
 `webroot` / `workdir` は `WebServer` が `Path` に正規化し、`app.settings` にも
 `Path` のまま渡す。各ハンドラは `self._webroot / 'svg' / fname` のように組み立てる。
@@ -248,7 +277,8 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
   `padding` は拡縮しないので比が倍率に対して一定にならず、はみ出して
   いないときは `scrollWidth` が `clientWidth` で頭打ちになって中央へ飛ぶ
 - ブックの諸元は `RollBook` のプロパティから取り、`Handler1._render()` が
-  `book` として渡して、テンプレートが `window.BOOK_DATA` に出している。
+  `book`（`storage.BookInfo`）として渡して、テンプレートが
+  `window.BOOK_DATA` に出している。
   `width` / `height` は SVG の属性にも出ているが、**穴の数と
   `mm_per_sec` は SVG からは取り出せない**ので、まとめてここで渡す
 
@@ -264,7 +294,9 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 
 `book` は 2 か所で組み立てる。`Handler1._book_of()`（生成したとき）と
 `storage.book_from_svg()`（履歴から出し直すとき）。**項目を増やすときは
-両方を直すこと。** 往復テストが全項目の一致を見ているので、片方だけだと落ちる。
+両方を直すこと。** 型は `storage.BookInfo`（TODO-074）で、`total=True` の
+まま値を `X | None` にしてある（キーは必ず全部あり、読めなかった値だけが
+`None`）。片側の付け忘れは mypy が拾う。往復テストもそのまま残してある。
 
 穴の数は 2 段階 × 2 種類で数える。
 

@@ -11,13 +11,13 @@ from loguru import logger
 from . import __version__
 from .conf import Conf
 from .config_handler import ConfigHandler
-from .handler1 import (
+from .download import (
     AuditionMidi,
     Download,
     DownloadTransposedMidi,
     DownloadTransposedMidiZip,
-    Handler1,
 )
+from .handler1 import Handler1
 from .history import HistoryHandler
 from .livereload import LiveReloadHandler, watch_webroot
 from .mylog import exmsg

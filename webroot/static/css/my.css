@@ -241,7 +241,7 @@ footer.appfoot .spacer { margin-left: auto; }
 
 /* 1sec = 50mm。つまりスクロール位置がそのまま演奏時間になる。
    読み取り値を出しておくと「どのフレーズを見ているか」が分かる。
-   全長・演奏時間は .viewer-foot にあるので、ここは現在位置だけ。      */
+   全長・演奏時間は .viewer-head にあるので、ここは現在位置だけ。      */
 .readout {
   margin-left: auto; display: flex; align-items: baseline; gap: .3rem;
   font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .78rem;
@@ -340,17 +340,6 @@ footer.appfoot .spacer { margin-left: auto; }
 }
 .viewer-head .spacer { margin-left: auto; }
 
-.viewer-foot {
-  display: flex; flex-wrap: wrap; gap: .35rem 1.5rem;
-  padding: .45rem .8rem; border-top: 1px solid var(--rule);
-  font-size: .78rem; color: var(--pico-muted-color);
-}
-.viewer-foot b {
-  font-family: var(--mono); font-variant-numeric: tabular-nums;
-  color: var(--pico-color); font-weight: 600;
-}
-.viewer-foot .spacer { margin-left: auto; }
-
 /* SVG を持ち帰るのがこの画面の目的なので、リンクではなくボタンにする。
    フッターの数値行に並ぶので、Pico 既定より一回り小さくする         */
 .dlbtn {
@@ -361,15 +350,6 @@ footer.appfoot .spacer { margin-left: auto; }
 }
 .dlbtn:hover, .dlbtn:active, .dlbtn:focus {
   background: var(--cut-hover-bg); border-color: var(--cut-hover-bg); color: #fff;
-}
-
-.legend {
-  display: flex; flex-wrap: wrap; gap: 1.1rem; align-items: center;
-  font-size: .75rem; color: var(--pico-muted-color); margin-top: .7rem;
-}
-.legend i {
-  display: inline-block; width: 14px; height: 0; border-top: 2px solid;
-  margin-right: .35rem; vertical-align: middle;
 }
 
 /* ---- 機種設定 ---------------------------------------------------------- */

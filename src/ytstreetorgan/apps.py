@@ -13,11 +13,11 @@ from typing import Literal
 from loguru import logger
 from ytmidilib import NoteInfo, Parser, Player
 
-from .conf import Conf, ModelConf, validate_config
+from .conf import ValidModelConf, load_model_conf
 from .rollbook import RollBook, merge_overlapping_notes, note2scale
 from .transpose import (
     TransposeCandidate,
-    parse_transpose_arg,
+    initial_transpose,
     plan_transpose,
     transpose_notices,
 )
@@ -229,31 +229,19 @@ class MidiApp:
         self._sec_max = sec_max
         self._pos_sec = pos_sec
 
-        # 検証は RollBook と同じものを使う（メッセージも揃う）。
+        # 正規化も検証も RollBook と同じものを使う（TODO-073。
+        # 別々に持っていたので、メッセージが食い違いかけた）。
         # **型注釈は省かないこと**（`RollBook.__init__` と同じ理由）
-        self._transpose_req: int | Literal['auto'] = parse_transpose_arg(
-            transpose
-        )
-        self._transpose = 0 if self._transpose_req == 'auto' else int(
-            self._transpose_req
-        )
+        self._transpose_req: int | Literal['auto']
+        self._transpose_req, self._transpose = initial_transpose(transpose)
 
         self._model_name = model_name
-        self._model_conf: ModelConf | None = None
+        self._model_conf: ValidModelConf | None = None
         self._candidates: list[TransposeCandidate] = []
         self._chosen: TransposeCandidate | None = None
         self._merged_count = 0
         if self._model_name:
-            conf = Conf(conf_file).get(self._model_name)
-            if not conf:
-                raise ValueError(f"機種 '{self._model_name}' は設定にありません")
-
-            valid, msg = validate_config(conf)
-            if not valid:
-                raise ValueError(
-                    f"機種 '{self._model_name}' の設定が不正です: {msg}"
-                )
-            self._model_conf = conf
+            self._model_conf = load_model_conf(self._model_name, conf_file)
 
         self._parser = Parser()
         self._player = Player(rate=self._rate)

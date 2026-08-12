@@ -228,12 +228,12 @@ class TestLoad:
 
         assert result == []
 
-    def test_load_missing_model_key_raises_keyerror_internally(self, tmp_path):
+    def test_load_missing_model_key_keeps_data_empty(self, tmp_path):
         """
         JSON 自体は正しくパースできるが、要素に 'model' キーが
-        無い場合は KeyError が発生する。
-        self.data はパース結果で更新されるが、self.models は
-        (リスト内包表記が完了しないため)更新されない。
+        無い場合は KeyError になる。
+        data と models は両方読めてから差し替えるので、
+        どちらも初期値のまま(TODO-070)。
         """
         conf = make_bare_conf()
         conf.config_file = write_json(
@@ -244,8 +244,28 @@ class TestLoad:
         result = conf.load()
 
         assert result == []
-        assert conf.data == [{"model": "alpha"}, {"no_model_key": True}]
-        assert conf.models == []  # 更新されずに初期値のまま
+        assert conf.data == []
+        assert conf.models == []
+
+    def test_load_missing_model_key_keeps_previous_data(self, tmp_path):
+        """
+        既に読めている設定があるときに壊れた設定を読ませても、
+        前の中身が残る(半端な状態にしない。TODO-070)。
+        """
+        conf = make_bare_conf()
+        conf.config_file = write_json(
+            tmp_path / "good.json", [{"model": "alpha", "opt": 1}]
+        )
+        conf.load()
+
+        conf.config_file = write_json(
+            tmp_path / "bad.json", [{"model": "alpha"}, {"no_model_key": True}]
+        )
+        result = conf.load()
+
+        assert result == []
+        assert conf.data == [{"model": "alpha", "opt": 1}]
+        assert conf.models == ["alpha"]
 
     def test_load_non_dict_items_raises_generic_exception(self, tmp_path):
         """
@@ -259,15 +279,14 @@ class TestLoad:
         result = conf.load()
 
         assert result == []
-        assert conf.data == ["a", "b", "c"]
+        assert conf.data == []
         assert conf.models == []
 
     def test_load_json_object_instead_of_list(self, tmp_path):
         """
         トップレベルが list ではなく dict の場合、
-        `for d in self.data` は dict のキーを走査するため、
-        d['model'] が TypeError(文字列インデックス)になり
-        汎用 Exception で捕捉される。
+        キーを走査して d['model'] が TypeError(文字列インデックス)に
+        なり、汎用 Exception で捕捉される。
         """
         conf = make_bare_conf()
         conf.config_file = write_json(tmp_path / "conf.json", {"model": "x"})
@@ -275,7 +294,7 @@ class TestLoad:
         result = conf.load()
 
         assert result == []
-        assert conf.data == {"model": "x"}
+        assert conf.data == []
         assert conf.models == []
 
     def test_load_unicode_decode_error_returns_empty_list(self, tmp_path):

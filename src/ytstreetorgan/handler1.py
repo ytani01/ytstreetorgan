@@ -1,353 +1,33 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
+"""ロールブックを作る画面（TODO-075）。
+
+土台のクラスは `base_handler.py`、持ち帰りと試聴は `download.py` にある。
+
+依存は一方向に保つこと::
+
+    base_handler.py → handler1.py / download.py / history.py /
+                      config_handler.py
+"""
 from pathlib import Path
 
-import tornado.web
 from loguru import logger
 
-from . import __author__, __copyright_year__
-from .audition import playable_midi_bytes
+from .base_handler import StorganBaseHandler
 from .conf import Conf
 from .mylog import exmsg
 from .rollbook import RollBook
 from .storage import (
     UNKNOWN,
+    BookInfo,
     book_from_svg,
-    content_disposition,
     mtime_text,
     resolve_in,
     size_text,
 )
-from .transpose import (
-    transpose_has_improvement,
-    transpose_midi_bytes,
-    transpose_notices,
-    transposed_midi_name,
-    transposed_midi_zip_bytes,
-    transposed_zip_name,
-)
+from .transpose import transpose_view
 from .utils import get_size_unit
-
-
-class StorganBaseHandler(tornado.web.RequestHandler):
-    """全ハンドラの土台。`app.settings` から共通の設定を取り出す。
-
-    `webroot` / `workdir` は `WebServer` が `Path` に正規化して渡している。
-    """
-
-    def __init__(self, app, req, **kwargs):
-        """設定を取り出してから、tornado の初期化を呼ぶ。
-
-        `**kwargs` はルート定義の 3 要素目（`Download` の `kind` など）。
-        tornado がそのまま渡してくるので、受けて `initialize()` へ流す。
-        """
-        self._urlprefix = app.settings.get('urlprefix')
-
-        # WebServer が Path に正規化して渡している
-        self._webroot: Path = app.settings['webroot']
-        self._workdir: Path = app.settings['workdir']
-        self._size_limit = app.settings.get('size_limit')
-
-        # app や request を丸ごと出すと -d のとき数百行になるので、
-        # 使う値だけ 1 行にまとめる
-        logger.debug(
-            'urlprefix={}, webroot={}, workdir={}, size_limit={}',
-            self._urlprefix, self._webroot, self._workdir, self._size_limit
-        )
-
-        # [!! 重要 !!] 末尾の「/」
-        # Handler1.get() がリクエスト URI とこれを突き合わせ、
-        # 末尾スラッシュなしのアクセスをここへリダイレクトする。
-        self._url_path = self._urlprefix + '/'
-
-        self._version = app.settings.get('version')
-
-        # 開発用。True ならテンプレートが livereload.js を読み込む
-        self._livereload = app.settings.get('livereload', False)
-
-        super().__init__(app, req, **kwargs)
-
-    def render_page(self, html_file: str, title: str, nav: str, **kwargs):
-        """テンプレートを描画する。**全ページ共通の引数はここで足す。**
-
-        `base.html` が使う author / version / copyright_year / urlprefix /
-        livereload はどのページでも同じ値なので、各ハンドラで並べない。
-
-        Args:
-            html_file (str): テンプレートのファイル名。
-            title (str): `<title>` とフッターに出す名前。
-            nav (str): ナビの現在地（'top' / 'history' / 'config'）。
-            **kwargs: そのページだけの変数。
-        """
-        self.render(
-            html_file,
-            title=title,
-            author=__author__,
-            version=self._version,
-            copyright_year=__copyright_year__,
-            urlprefix=self._urlprefix,
-            livereload=self._livereload,
-            nav=nav,
-            **kwargs,
-        )
-
-    def uploaded_midi_names(self) -> list[str]:
-        """これまでにアップロードされた MIDI のファイル名。
-
-        同じ名前で上げ直すと中身が置き換わるので、画面 (storgan.js) が
-        送る前に確認するのに使う。
-        """
-        midi_dir = self._webroot / 'midi'
-        if not midi_dir.is_dir():
-            return []
-
-        return sorted(
-            p.name for p in midi_dir.iterdir()
-            if p.is_file() and not p.name.startswith('.')
-        )
-
-
-class Download(StorganBaseHandler):
-    """生成した SVG と、アップロードした MIDI を持ち帰る。
-
-    URL は `/download/<name>`（SVG）と `/download/midi/<name>`。
-    SVG 側に種別が入っていないのは、生成結果の画面のリンクが
-    元からこの形だったため。**どちらの置き場かはルートが
-    `kind` で渡す**（URL から読み取らない）。
-    """
-
-    def initialize(self, kind: str = 'svg') -> None:
-        """置き場の種別を受け取る（`WebServer` のルート定義から）。
-
-        Args:
-            kind (str): 'midi' か 'svg'。
-        """
-        self._kind = kind
-
-    def get(self, fname: str = ''):
-        """ファイルを返す。
-
-        Args:
-            fname (str): ファイル名。URL から来る。
-        """
-        logger.debug('kind={}, fname={}', self._kind, fname)
-
-        try:
-            # 名前は URL から来る。置き場の外を指していないか必ず確かめる
-            path_name = resolve_in(self._webroot / self._kind, fname)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad file name') from e
-
-        if not path_name.is_file():
-            raise tornado.web.HTTPError(404)
-
-        logger.debug('path_name={}', path_name)
-
-        self.set_header('Content-Type', 'application/octet-stream')
-        # 名前をそのまま入れると、日本語のファイル名で 500 になる
-        self.set_header('Content-Disposition',
-                        content_disposition(path_name.name))
-
-        buf_size = 4096
-        with path_name.open('rb') as f:
-            while True:
-                data = f.read(buf_size)
-                if not data:
-                    break
-                self.write(data)
-
-        self.finish()
-
-
-class DownloadTransposedMidi(StorganBaseHandler):
-    """アップロード済みの MIDI を、指定の調に移調して持ち帰る（TODO-042）。
-
-    URL は `/download/midi-transpose/<name>?t=<半音数>`。
-
-    **`Download` とは別にしてある。** あちらは実在するファイルを
-    そのまま返す作りで、こちらは「名前 ＋ 移調量」からその場で作る
-    別物。**作った MIDI は保存しない**（`webroot/midi/` を太らせない）。
-    """
-
-    def get(self, fname: str = ''):
-        """元の MIDI を移調して返す。
-
-        Args:
-            fname (str): 元の MIDI のファイル名。URL から来る。
-        """
-        transpose = self.get_argument('t', '')
-        logger.debug('fname={}, t={}', fname, transpose)
-
-        try:
-            # 名前は URL から来る。置き場の外を指していないか必ず確かめる
-            path_name = resolve_in(self._webroot / 'midi', fname)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad file name') from e
-
-        try:
-            semitones = int(transpose)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad transpose') from e
-
-        if not path_name.is_file():
-            raise tornado.web.HTTPError(404)
-
-        try:
-            data = transpose_midi_bytes(path_name, semitones)
-        except Exception as e:
-            # 読めない MIDI など。既定の 500 ページより理由が分かる
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(
-                400, reason='cannot transpose'
-            ) from e
-
-        self.set_header('Content-Type', 'application/octet-stream')
-        # 名前をそのまま入れると、日本語のファイル名で 500 になる
-        self.set_header(
-            'Content-Disposition',
-            content_disposition(
-                transposed_midi_name(path_name.name, semitones)
-            )
-        )
-        self.write(data)
-        self.finish()
-
-
-class DownloadTransposedMidiZip(StorganBaseHandler):
-    """移調した MIDI を、まとめて ZIP で持ち帰る（TODO-050）。
-
-    URL は `/download/midi-transpose-zip/<name>?t=-5,-2,0,3`。
-
-    **半音数はクエリで受け取る**（候補をサーバー側で作り直さない）。
-    `DownloadTransposedMidi` と同じく、名前と半音数だけから作れる。
-    **作った MIDI も ZIP も保存しない。**
-    """
-
-    # 候補は最大 7 行（TODO-041）。外から好きな数を投げられると
-    # 1 リクエストで何百回も移調させられるので、余裕を見て頭打ちにする
-    MAX_ITEMS = 32
-
-    def get(self, fname: str = ''):
-        """元の MIDI を、指定された調ぶんだけ移調して ZIP で返す。
-
-        Args:
-            fname (str): 元の MIDI のファイル名。URL から来る。
-        """
-        transpose = self.get_argument('t', '')
-        logger.debug('fname={}, t={}', fname, transpose)
-
-        try:
-            # 名前は URL から来る。置き場の外を指していないか必ず確かめる
-            path_name = resolve_in(self._webroot / 'midi', fname)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad file name') from e
-
-        semitones_list = self._parse_transpose(transpose)
-
-        if not path_name.is_file():
-            raise tornado.web.HTTPError(404)
-
-        try:
-            data = transposed_midi_zip_bytes(path_name, semitones_list)
-        except Exception as e:
-            # 読めない MIDI など。既定の 500 ページより理由が分かる
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(
-                400, reason='cannot transpose'
-            ) from e
-
-        self.set_header('Content-Type', 'application/zip')
-        # 名前をそのまま入れると、日本語のファイル名で 500 になる
-        self.set_header(
-            'Content-Disposition',
-            content_disposition(transposed_zip_name(path_name.name))
-        )
-        self.write(data)
-        self.finish()
-
-    def _parse_transpose(self, transpose: str) -> list[int]:
-        """``-5,-2,0,3`` を整数の並びに直す。
-
-        重複は**最初に出たほうを残して削除する**（同じ名前の要素が
-        2 つ入った ZIP を作らないため）。並び順は画面の表と同じ。
-
-        Raises:
-            tornado.web.HTTPError: 空、整数でない、多すぎる場合は 400。
-        """
-        try:
-            values = [int(s) for s in transpose.split(',')]
-        except ValueError as e:
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad transpose') from e
-
-        # dict は挿入順を保つので、これで重複だけ削除できる
-        uniq = list(dict.fromkeys(values))
-
-        if not uniq or len(uniq) > self.MAX_ITEMS:
-            raise tornado.web.HTTPError(400, reason='bad transpose')
-
-        return uniq
-
-
-class AuditionMidi(StorganBaseHandler):
-    """ブラウザで試聴するための MIDI を返す（TODO-063）。
-
-    URL は `/audition/midi/<name>?t=<半音数>&model=<機種名>`。
-
-    **`DownloadTransposedMidi` とは別にしてある。** あちらは持ち帰る
-    素材（元のファイルを移調しただけ）で、こちらは実機の再現
-    （音階に無い音は鳴らない）。目的が違うものを同じ URL から返すと、
-    同じ名前で中身の違う MIDI が 2 種類出回ることになる。
-
-    **`Content-Disposition` は付けない**（持ち帰らせない。試聴のための
-    ものなので、欲しくなったらここに足すのが答え）。**保存もしない。**
-    """
-
-    def get(self, fname: str = ''):
-        """鳴る音だけの MIDI を返す。
-
-        Args:
-            fname (str): 元の MIDI のファイル名。URL から来る。
-        """
-        transpose = self.get_argument('t', '')
-        model = self.get_argument('model', '')
-        logger.debug('fname={}, t={}, model={}', fname, transpose, model)
-
-        try:
-            # 名前は URL から来る。置き場の外を指していないか必ず確かめる
-            path_name = resolve_in(self._webroot / 'midi', fname)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad file name') from e
-
-        try:
-            semitones = int(transpose)
-        except ValueError as e:
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad transpose') from e
-
-        if not path_name.is_file():
-            raise tornado.web.HTTPError(404)
-
-        try:
-            data = playable_midi_bytes(path_name, model, semitones)
-        except ValueError as e:
-            # 知らない機種名、設定の項目が足りない
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='bad model') from e
-        except Exception as e:
-            # 読めない MIDI など。既定の 500 ページより理由が分かる
-            logger.error(exmsg(e))
-            raise tornado.web.HTTPError(400, reason='cannot audition') from e
-
-        self.set_header('Content-Type', 'audio/midi')
-        self.write(data)
-        self.finish()
 
 
 class Handler1(StorganBaseHandler):
@@ -428,42 +108,22 @@ class Handler1(StorganBaseHandler):
             candidates (list | None): 移調の候補（TODO-039）。**移調を
                 指定していなくても渡す。** 最適解が 1 つに定まらないことが
                 多いので、画面で比べて選び直せるようにするのが目的。
-                **添える文（`transpose_notices()`）はここで作る**ので、
+                **添える文も表を出すかも `transpose_view()` が決める**ので、
                 呼ぶ側は候補だけ渡せばよい（TODO-043）。
             midi_name (str): 候補を押したときに作り直す元の MIDI 名。
                 これが無いと再生成できないので、候補も出さない。
 
         Note:
             候補から決まるもの（注記・表を出すか・±0 の成績）は、
-            **呼ぶ側に作らせずここでまとめて作る**（TODO-043）。
+            **呼ぶ側に作らせず `transpose_view()` でまとめて作る**
+            （TODO-043 / TODO-076）。
         """
         size_limit, size_unit = get_size_unit(self._size_limit)
 
-        # 候補から決まるものは、呼ぶ側に作らせず**ここでまとめて作る**。
-        # 片方だけ渡し忘れる余地を無くすため（TODO-043）
-        notices = transpose_notices(candidates) if candidates else []
-
-        # ±0 より良い候補が無ければ、表は出さず notices の一文だけにする
-        # （TODO-041）。1 行だけの表は、選ぶものが無いのに選べそうに見える
-        show_transpose_table = bool(candidates) and transpose_has_improvement(
-            candidates
-        )
-
-        # ±0 の行の成績。テンプレートが、これを下回るセルに印を付ける
-        # （TODO-051）。表には「片方だけ改善する行」といまの移調量の行が
-        # 残るので、見分けが付かないと「良くない候補が出ている」と読める
-        zero = next(
-            (c for c in candidates if c['transpose'] == 0), None
-        ) if candidates else None
-
-        zero_note_pct = zero['note_pct'] if zero else 0.0
-        zero_sec_pct = zero['sec_pct'] if zero else 0.0
-
-        # 印が 1 つも出ない表で「▼ は …」と説明しても意味が無い
-        has_worse = zero is not None and any(
-            c['note_pct'] < zero_note_pct or c['sec_pct'] < zero_sec_pct
-            for c in (candidates or [])
-        )
+        # 候補から決まるものは、呼ぶ側に作らせず**まとめて作る**。
+        # 片方だけ渡し忘れる余地を無くすため（TODO-043）。
+        # 中身は transpose.py にある（HTTP 抜きで確かめられる。TODO-076）
+        view = transpose_view(candidates)
 
         self.render_page(self.HTML_FILE,
                          title=self.TITLE,
@@ -487,11 +147,10 @@ class Handler1(StorganBaseHandler):
                          book=book or {},
                          src_size=src_size,
                          candidates=candidates or [],
-                         zero_note_pct=zero_note_pct,
-                         zero_sec_pct=zero_sec_pct,
-                         has_worse=has_worse,
-                         notices=notices,
-                         show_transpose_table=show_transpose_table,
+                         zero_note_pct=view.zero_note_pct,
+                         zero_sec_pct=view.zero_sec_pct,
+                         notices=view.notices,
+                         show_transpose_table=view.show_table,
                          midi_name=midi_name,
                          msg=msg)
 
@@ -631,14 +290,15 @@ class Handler1(StorganBaseHandler):
 
         return path
 
-    def _book_of(self, rollbook: RollBook, svg_path: Path) -> dict:
+    def _book_of(self, rollbook: RollBook, svg_path: Path) -> BookInfo:
         """ビューアに渡す諸元を組み立てる。
 
         穴の数は「音符の数」と「ブリッジで分割したあとの数」の 2 段階あり、
         さらに実線（穴を開ける）と破線（開けない）で分かれる。
 
         履歴から出し直すときは `storage.book_from_svg()` が同じ形を作る。
-        **項目を増やすときは両方を直すこと。**
+        **項目を増やすときは両方を直すこと**（`BookInfo` に足せば、
+        片側の付け忘れは mypy が拾う。TODO-074）。
         """
         return {
             'model': self._model,

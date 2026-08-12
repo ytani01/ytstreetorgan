@@ -6,7 +6,7 @@ import re
 import shutil
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 from loguru import logger
 
@@ -128,6 +128,34 @@ class ModelConf(TypedDict, total=False):
     memo: str
 
 
+class ValidModelConf(TypedDict):
+    """`validate_config()` を通った機種 1 つ分の設定（TODO-078）。
+
+    **項目は `ModelConf` と同じで、必須かどうかだけが違う。**
+    `ModelConf` は生の JSON の形（どのキーも欠けうる）なので、読む側は
+    `.get(key, 0.0)` と書くしかなく、**0 が入ると黙って高さ 0 の図が出て
+    いた**。図を描く側はこちらを受け取り、`conf['pitch']` の形で読む。
+
+    必須の並びは :data:`NUMERIC_FIELDS` ＋ ``'model'`` ＋ ``'notes'`` で、
+    `validate_config()` が確かめるものと同じ。``'memo'`` だけは
+    動作に影響しないので、無くてもよい。
+
+    設定を**書き換える**側（`Conf.data` と設定エディタ）は、検証前の値も
+    持つので `ModelConf` のまま。
+    """
+
+    model: str
+    book_height: float
+    margin: float
+    pitch: float
+    hole_height: float
+    mm_per_sec: float
+    bridge_width: float
+    bridge_threshold: float
+    notes: list[str]
+    memo: NotRequired[str]
+
+
 # 必須の数値項目と、その値に適用する変換。
 # validate_config() の検証と coerce_numeric_fields() の型変換の両方が
 # この定義を使うので、設定項目を増減させるときはここだけ直せばよい。
@@ -160,8 +188,8 @@ def coerce_numeric_fields(conf: dict) -> dict:
         dict: 数値項目を float / int に直した写し。
     """
     cleaned = dict(conf)
-    for field, cast in NUMERIC_FIELDS.items():
-        cleaned[field] = cast(cleaned[field])
+    for field, convert in NUMERIC_FIELDS.items():
+        cleaned[field] = convert(cleaned[field])
     # 音名の文字列だけの並びにする
     cleaned['notes'] = [str(name).strip() for name in cleaned['notes']]
     return cleaned
@@ -189,14 +217,14 @@ def validate_config(conf: object) -> tuple[bool, str]:
     if not model_name or not isinstance(model_name, str) or not model_name.strip():
         return False, "機種名は必須です（空でない文字列）"
 
-    for field, cast in NUMERIC_FIELDS.items():
+    for field, convert in NUMERIC_FIELDS.items():
         val = conf.get(field)
         if val is None:
             return False, f"必須項目 '{field}' がありません"
         try:
             # 変換そのものを検証に使う。float() で検証して int() で変換すると
             # "60.5" のような値が検証を通ったあとで例外になる。
-            cast(val)
+            convert(val)
         except (ValueError, TypeError):
             return False, f"項目 '{field}' は数値である必要があります"
 
@@ -308,15 +336,21 @@ class Conf:
         # 変えていないので、まとめて捕まえる
         try:
             json_text = self.config_file.read_text(encoding='utf-8')
-            self.data = json.loads(json_text)
-            self.models = self._model_names()
+            data = json.loads(json_text)
+            models = self._model_names(data)
         except Exception as e:
             logger.error(exmsg(e))
             return []
 
+        # 両方が揃ってから差し替える。`self.data` に入れてから機種名を
+        # 数えると、途中で例外になったときに壊れた中身が残る（TODO-070）
+        self.data = data
+        self.models = models
+
         return self.data
 
-    def _model_names(self) -> list[str]:
+    @staticmethod
+    def _model_names(data: list[ModelConf]) -> list[str]:
         """`data` に並んでいる機種名。
 
         **形が違えばそのまま例外にする**（list でない、要素が dict で
@@ -325,7 +359,7 @@ class Conf:
         """
         return [
             d['model']  # pyright: ignore[reportTypedDictNotRequiredAccess]
-            for d in self.data
+            for d in data
         ]
 
     def _index_of(self, model_name: str) -> int | None:
@@ -389,7 +423,7 @@ class Conf:
                 f.write('\n')
 
             tmp_file.replace(self.config_file)
-            self.models = self._model_names()  # 壊れていれば下の except へ
+            self.models = self._model_names(self.data)  # 壊れていれば下の except へ
             logger.info('saved: {}', self.config_file)
             return True, "設定を保存しました"
 
@@ -460,3 +494,41 @@ class Conf:
 
         del self.data[target_idx]
         return self.save()
+
+
+def load_model_conf(model_name: str, conf_file: str = '') -> ValidModelConf:
+    """機種名から、検証を通した設定を 1 つ取り出す（TODO-073）。
+
+    **ここで弾かないと、静かに壊れた図が出る。** `Conf.get()` は知らない
+    機種名に `{}` を返すので、機種名を打ち間違えるだけで「高さ 0 の
+    空のブック」が何事もなかったように生成されていた（TODO-031 の W-1-2）。
+
+    `RollBook.__init__` と `MidiApp.__init__` が、**同じ日本語の
+    メッセージまで含めて**同じ手順をそれぞれ持っていた。片方だけ直すと
+    文面が食い違うので 1 つにまとめた。
+
+    Args:
+        model_name (str): 機種名。
+        conf_file (str): 設定ファイルのパス。空なら
+            :data:`Conf.SEARCH_PATH` を探す。
+
+    Returns:
+        ValidModelConf: 検証を通った設定。
+
+    Raises:
+        ValueError: 機種が設定に無い、または設定の項目が足りないとき
+            （**メッセージはそのまま画面に出る**ので日本語で書いてある）。
+        FileNotFoundError: 設定ファイルがどこにも無いとき（`Conf` が投げる
+            ものをそのまま通す）。
+    """
+    conf = Conf(conf_file).get(model_name)
+    if not conf:
+        raise ValueError(f"機種 '{model_name}' は設定にありません")
+
+    valid, msg = validate_config(conf)
+    if not valid:
+        raise ValueError(f"機種 '{model_name}' の設定が不正です: {msg}")
+
+    # 必須項目が揃っていることは今 `validate_config()` が確かめた。
+    # ここから先は「必ずある」型として扱ってよい（TODO-078）
+    return cast(ValidModelConf, conf)

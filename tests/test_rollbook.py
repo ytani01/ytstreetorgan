@@ -26,6 +26,7 @@ from ytstreetorgan.transpose import (
     transpose_notes,
     transpose_notices,
     transpose_rank_key,
+    transpose_view,
 )
 
 # 移調のテスト用。C から 1 オクターブの、白鍵だけの機種
@@ -40,6 +41,21 @@ DIATONIC_CONF = {
 # **どの調でも 100% 鳴る**ので、「移調しても改善しない」場合を作れる
 CHROMATIC_CONF = {
     'notes': [midi_to_note_name(60 + i) for i in range(24)],
+}
+
+
+# 図を描くのに要る項目を全部持った設定（`ValidModelConf`）。
+# **欠けた設定を渡すと KeyError になる**（既定値 0 で読まない。TODO-078）
+MINIMAL_CONF = {
+    'model': 'test',
+    'notes': ['C4', 'D4', 'E4'],
+    'book_height': 100,
+    'mm_per_sec': 10,
+    'pitch': 5,
+    'margin': 2,
+    'hole_height': 3,
+    'bridge_width': 1,
+    'bridge_threshold': 50,
 }
 
 
@@ -82,17 +98,9 @@ def test_rollbook_parse(mock_parser):
     }
 
     rb = RollBook()
-    # Mock conf slightly if needed, but defaults might work
-    rb._conf = {
-        'notes': [
-            'C4', 'D4', 'E4',
-        ],
-        'mm_per_sec': 10,
-        'pitch': 5,
-        'margin': 2,
-        'hole_height': 3,
-        'book_height': 100
-    }
+    # 必須項目は全部入れる。`HoleInfo` が既定値 0 で読まなくなったので、
+    # 欠けていれば KeyError になる（TODO-078）
+    rb._conf = MINIMAL_CONF
 
     svg = rb.parse('dummy.mid')
     assert '<svg ' in svg
@@ -106,18 +114,28 @@ def test_holeinfo_str():
     mock_note.length.return_value = 2.0
     mock_note.note = 60
 
-    conf = {
-        'notes': [
-            'C4', 'D4', 'E4',
-        ],
-        'mm_per_sec': 10,
-        'pitch': 5,
-        'margin': 2,
-        'hole_height': 3
-    }
-    hi = HoleInfo(mock_note, conf)
+    hi = HoleInfo(mock_note, MINIMAL_CONF)
     s = str(hi)
     assert 'note:060' in s
+
+
+def test_holeinfo_needs_every_field():
+    """項目が欠けていたら KeyError（既定値 0 で読まない。TODO-078）。
+
+    0 が入ると**黙って高さ 0 の図が出る**。`RollBook.__init__` を通る
+    経路は `load_model_conf()` が弾くが、`HoleInfo` を直に作る経路には
+    その関門が無かった。
+    """
+    mock_note = MagicMock()
+    mock_note.abs_time = 1.0
+    mock_note.length.return_value = 2.0
+    mock_note.note = 60
+
+    for missing in ('notes', 'mm_per_sec', 'pitch', 'margin', 'hole_height',
+                    'bridge_width', 'bridge_threshold'):
+        conf = {k: v for k, v in MINIMAL_CONF.items() if k != missing}
+        with pytest.raises(KeyError):
+            HoleInfo(mock_note, conf)
 
 
 def test_rollbook_parse_real_midi():
@@ -638,6 +656,71 @@ def test_transpose_notices_reports_metric_disagreement():
 
 def test_transpose_notices_empty_for_no_candidates():
     assert transpose_notices([]) == []
+
+
+# ---------------------------------------------------------------------
+# transpose_view() — 候補だけから決まる、表を描くための値（TODO-076）
+#
+# かつては `Handler1._render()` の中にあり、HTTP を通さないと
+# 確かめられなかった。
+# ---------------------------------------------------------------------
+
+def test_transpose_view_without_candidates():
+    """候補が無ければ、表は出さず ±0 の成績も 0。"""
+    view = transpose_view(None)
+
+    assert view.notices == []
+    assert view.show_table is False
+    assert view.zero_note_pct == 0.0
+    assert view.zero_sec_pct == 0.0
+
+    # 空のリストでも同じ（ファイル選択の画面と、候補が 1 つも無い場合）
+    assert transpose_view([]) == view
+
+
+def test_transpose_view_shows_the_table_when_something_improves():
+    """±0 より良い候補があれば表を出し、±0 の成績を比べる相手にする。"""
+    cands = [
+        _cand(3, note_pct=80.0, sec_pct=70.0),
+        _cand(0, note_pct=50.0, sec_pct=60.0),
+    ]
+
+    view = transpose_view(cands)
+
+    assert view.show_table is True
+    assert view.zero_note_pct == 50.0
+    assert view.zero_sec_pct == 60.0
+
+
+def test_transpose_view_hides_the_table_without_improvement():
+    """改善が無ければ表は出さない（TODO-041）。文だけは出す。"""
+    cands = [
+        _cand(0, note_pct=100.0, sec_pct=100.0),
+        _cand(3, note_pct=100.0, sec_pct=100.0),
+    ]
+
+    view = transpose_view(cands)
+
+    assert view.show_table is False
+    assert len(view.notices) == 1
+    assert '改善しません' in view.notices[0]
+
+
+def test_transpose_view_notices_come_from_the_rows_on_screen():
+    """注記は、画面に出す行そのものから作る（TODO-041）。
+
+    音符の数の 1 位と音の長さの 1 位が食い違えば、両方を示す。
+    """
+    cands = [
+        _cand(3, note_pct=80.0, sec_pct=10.0),   # 音符の数の 1 位
+        _cand(5, note_pct=60.0, sec_pct=70.0),   # 音の長さの 1 位
+        _cand(0, note_pct=50.0, sec_pct=5.0),
+    ]
+
+    view = transpose_view(cands)
+
+    assert view.show_table is True
+    assert any('音の長さでは' in n for n in view.notices)
 
 
 def test_rollbook_applies_the_transpose():

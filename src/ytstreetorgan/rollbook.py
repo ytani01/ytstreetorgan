@@ -10,10 +10,10 @@ from xml.sax.saxutils import quoteattr
 from loguru import logger
 from ytmidilib import NoteInfo, Parser
 
-from .conf import Conf, ModelConf, note_name_to_midi, validate_config
+from .conf import ValidModelConf, load_model_conf, note_name_to_midi
 from .transpose import (
     TransposeCandidate,
-    parse_transpose_arg,
+    initial_transpose,
     plan_transpose,
 )
 
@@ -216,7 +216,7 @@ class HoleInfo:
 
     Attributes:
         note_info (NoteInfo): MIDIノート情報。
-        conf (ModelConf): モデル設定情報。
+        conf (ValidModelConf): モデル設定情報。
         start_sec (float): ノートの開始時間（秒）。
         sec (float): ノートの長さ（秒）。
         scale (int): 対応するスケール番号（該当しない場合は -1）。
@@ -226,35 +226,36 @@ class HoleInfo:
         h (float): 穴の高さ（mm単位）。
     """
 
-    def __init__(self, note_info: NoteInfo, conf: ModelConf) -> None:
+    def __init__(self, note_info: NoteInfo, conf: ValidModelConf) -> None:
         """HoleInfoのインスタンスを初期化する。
 
         Args:
             note_info (NoteInfo): MIDIノート情報。
-            conf (ModelConf): モデル設定情報。
+            conf (ValidModelConf): モデル設定情報。**`validate_config()`
+                を通ったもの**（`load_model_conf()` が返す）。
+
+        Raises:
+            KeyError: 項目が足りないとき。**既定値 0 で読まない**
+                （TODO-078）。0 が入ると黙って高さ 0 の図が出て、
+                TODO-031 の W-1-2 と同じ事故になる。
         """
-        # 項目が揃っていることは RollBook.__init__ が確かめている。
-        # ここの既定値は、単体で使われたときの保険にすぎない
         self.note_info = note_info
         self.conf = conf
 
         self.start_sec = self.note_info.abs_time
         self.sec = self.note_info.length()
 
-        notes = self.conf.get('notes', [])
-        self.scale = note2scale(self.note_info.note, notes)
+        self.scale = note2scale(self.note_info.note, self.conf['notes'])
 
-        mm_per_sec = self.conf.get('mm_per_sec', 0.0)
-        pitch = self.conf.get('pitch', 0.0)
-        margin = self.conf.get('margin', 0.0)
+        mm_per_sec = self.conf['mm_per_sec']
 
         self.x = self.start_sec * mm_per_sec
-        self.y = self.scale * pitch + margin
+        self.y = self.scale * self.conf['pitch'] + self.conf['margin']
         self.w = self.sec * mm_per_sec
-        self.h = self.conf.get('hole_height', 0.0)
+        self.h = self.conf['hole_height']
 
-        self.bridge_width = self.conf.get('bridge_width')
-        self.bridge_threshold = self.conf.get('bridge_threshold')
+        self.bridge_width = self.conf['bridge_width']
+        self.bridge_threshold = self.conf['bridge_threshold']
 
         # 長い穴はブリッジ（紙のつなぎ）を挟んで分割する。
         # ここで一度だけ求めて svg() と hole_count が同じものを見る。
@@ -333,10 +334,10 @@ class RollBook:
                 `transpose` が整数にも ``'auto'`` にもならないとき。
 
         Note:
-            **ここで弾かないと、静かに壊れた図が出る。** `Conf.get()` は
-            知らない機種名に `{}` を返し、`HoleInfo` は足りない項目を
-            既定値 0 で読むので、機種名を打ち間違えるだけで「高さ 0 の
-            空のブック」が何事もなかったように生成されていた。
+            **ここで弾かないと、静かに壊れた図が出る。** 機種名を
+            打ち間違えるだけで「高さ 0 の空のブック」が何事もなかった
+            ように生成されていた。弾く手順は `load_model_conf()` に
+            まとめてある（TODO-073）。
         """
         logger.info('model={}', model)
 
@@ -344,30 +345,22 @@ class RollBook:
         self._conf_file = conf_file
         logger.debug('model={},conf_file={}', self._model, self._conf_file)
 
-        self._conf: ModelConf = Conf(self._conf_file).get(self._model)
+        # 読み込みと検証は `MidiApp` と同じものを使う（TODO-073）
+        self._conf: ValidModelConf = load_model_conf(
+            self._model, self._conf_file
+        )
         logger.debug('conf={}', json.dumps(self._conf))
-
-        if not self._conf:
-            raise ValueError(f"機種 '{model}' は設定にありません")
-
-        valid, msg = validate_config(self._conf)
-        if not valid:
-            raise ValueError(f"機種 '{model}' の設定が不正です: {msg}")
 
         # 'auto' は parse() が候補から決める。それまでは要求のまま持つ。
         # **型注釈は省かないこと。** 省くと属性の型を推論するときに
         # `Literal['auto']` が `str` へ広げられ、`plan_transpose()` に
         # 渡せなくなる（basedpyright が拾う）
-        self._transpose_req: int | Literal['auto'] = parse_transpose_arg(
-            transpose
-        )
-        self._transpose = 0 if self._transpose_req == 'auto' else int(
-            self._transpose_req
-        )
+        self._transpose_req: int | Literal['auto']
+        self._transpose_req, self._transpose = initial_transpose(transpose)
         self._candidates: list[TransposeCandidate] = []
 
         self._width = 0.0
-        self._height = float(self._conf.get('book_height', 0.0))
+        self._height = float(self._conf['book_height'])
         self._holes: list[HoleInfo] = []
         self._raw_note_count = 0
         self._svg = ''
@@ -473,7 +466,7 @@ class RollBook:
 
         ビューアがスクロール位置を演奏時間に直すのに使う。
         """
-        return float(self._conf.get('mm_per_sec', 0.0))
+        return float(self._conf['mm_per_sec'])
 
     # 履歴からこの SVG を出し直すときのために、**図からは求まらない値**を
     # 属性に埋めておく。寸法と穴の数は描かれているものから読めるが、

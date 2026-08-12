@@ -1,7 +1,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from ytstreetorgan.handler1 import Download, Handler1
+from ytstreetorgan.download import Download
+from ytstreetorgan.handler1 import Handler1
 
 APP_SETTINGS = {
     'urlprefix': '/',

@@ -71,6 +71,48 @@ class FileInfo(TypedDict):
     mtime: str
 
 
+class BookInfo(TypedDict):
+    """ビューアに渡すブックの諸元（TODO-074）。
+
+    **作る場所が 2 つある。** `Handler1._book_of()`（生成したとき）と
+    `book_from_svg()`（履歴から出し直すとき）。項目を増やすときは
+    両方を直すこと。型を付けてあるので、片側だけだと mypy が拾う。
+
+    **`total=True` で値のほうを `| None` にしてある。** キーは必ず全部
+    ある（テンプレートが `book['width']` の形で読む）が、値は揃わない。
+    `created` は `book_from_svg()` が None を入れて呼び出し側が埋め、
+    `width` などは**属性が無い古い SVG** では読めない。読めなかった値は
+    画面では :data:`UNKNOWN` と出る。
+
+    Attributes:
+        model: どの機種で作ったか。
+        created: 生成日時（SVG ファイルの更新日時）。
+        width: ブックの全長 [mm]。
+        height: ブックの高さ [mm]。
+        mm_per_sec: 秒 → mm の変換係数。
+        notes: MIDI から読んだ音符の数（実線と破線の合計）。
+        hole_notes: 実線（音階にある音）の音符の数。
+        holes: 実線の穴の数（ブリッジで分割したあと）。
+        off_scale_notes: 破線（音階に無い音）の音符の数。
+        off_scale: 破線の数（分割したあと）。
+        merged: 重なりをまとめて減った数（TODO-038）。
+        transpose: 移調した半音数（TODO-039）。
+    """
+
+    model: str | None
+    created: str | None
+    width: float | None
+    height: float | None
+    mm_per_sec: float | None
+    notes: int | None
+    hole_notes: int | None
+    holes: int | None
+    off_scale_notes: int | None
+    off_scale: int | None
+    merged: int | None
+    transpose: int | None
+
+
 def safe_name(name: str) -> str:
     """ファイル名として受け取ってよい形か確かめ、そのまま返す。
 
@@ -164,7 +206,7 @@ def mtime_text(path: Path) -> str | None:
         return None
 
 
-def book_from_svg(svg: str) -> dict:
+def book_from_svg(svg: str) -> BookInfo:
     """保存済みの SVG から、ビューアに渡す諸元を読めるだけ読む。
 
     図から読むもの:
@@ -192,12 +234,12 @@ def book_from_svg(svg: str) -> dict:
     その場合は None にする。画面では `---` と出る。
 
     Returns:
-        dict: 読めたものは数値、読めないものは None。
+        BookInfo: 読めたものは数値、読めないものは None。
     """
     m = _SVG_SIZE_RE.search(svg)
     has_svg = '<svg' in svg
 
-    book: dict = {
+    book: BookInfo = {
         'model': _meta(svg, 'model'),
         'created': None,   # ファイルの更新日時。呼び出し側が入れる
         'width': float(m.group(1)) if m else None,

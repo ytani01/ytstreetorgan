@@ -78,13 +78,18 @@ class TestRollBookPage(WebAppTestCase):
         self.assertNotIn(b'<select id="transpose"', response.body)
         self.assertNotIn(b'class="terms"', response.body)
 
-    def test_terms_note_on_the_result_page(self):
-        """生成結果に「移調」の候補パネルが出る。"""
+    def test_transpose_panel_on_the_result_page(self):
+        """生成結果に「移調」の候補パネルが出る。**用語の説明は出さない。**
+
+        `_terms.html` はどこからも include されないまま残っていたので、
+        出さないほうに揃えて削除した（TODO-077）。
+        """
         response = self._upload()
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="transpose-panel"', response.body)
         self.assertIn("キーを変えて作り直す(移調) 候補".encode(), response.body)
+        self.assertNotIn(b'class="terms"', response.body)
 
     def test_post_unknown_model_shows_a_message(self):
         """知らない機種名は 500 にせず、理由を画面に出す。
