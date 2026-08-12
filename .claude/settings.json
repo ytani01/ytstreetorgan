@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=\"${CLAUDE_PROJECT_DIR:-.}/TODO.md\"; [ -f \"$f\" ] || exit 0; awk '/^## 完了済み/{exit} /^## /{sub(/^## /,\"\");sub(/（[^）]*）$/,\"\");s=s (s?\" / \":\"\") $0} /^- \\[ \\]/{n++} END{if(n>0)printf \"TODO に残っているのは %d 件: %s\", n, s}' \"$f\" | jq -Rs 'select(length>0) | {systemMessage: .}'",
+            "command": "f=\"${CLAUDE_PROJECT_DIR:-.}/TODO.md\"; [ -f \"$f\" ] || exit 0; awk '/^## .*完了済み/{exit} /^### /{n++} END{if(n>0)printf \"TODO に残っているのは %d 件\", n}' \"$f\" | jq -Rs 'select(length>0) | {systemMessage: .}'",
             "timeout": 10,
             "statusMessage": "TODO を確認中..."
           }
