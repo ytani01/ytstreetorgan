@@ -153,9 +153,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateTrackNumbers() {
     noteRows().forEach((tr, index) => {
-      tr.querySelector(".track-num").textContent = String(index + 1);
+      const num = index + 1;
+      tr.querySelector(".track-num").textContent = String(num);
+      // 読み上げ用の番号も振り直す。行が動くのは削除のときだけではない
+      // （音名を選ぶと並べ替わる。TODO-069）
+      tr.querySelector(".note-name-select")
+        .setAttribute("aria-label", `トラック ${num} の音名`);
+      tr.querySelector(".btn-delete-row")
+        .setAttribute("aria-label", `トラック ${num} を削除`);
     });
     updateTrackBadge();
+  }
+
+  /* 音名の行を、音の高さの昇順（低い音が上）に並べ替える（TODO-069）。
+     'notes' の並び順がそのままトラック番号なので、**穴の列の並びも変わる**。
+
+     基準は音名の文字列ではなく MIDI ノート番号。雛形の <option> は 0 番から
+     127 番まで順に作ってあるので、`selectedIndex` がそのままノート番号に
+     なる。文字列で比べると "A#2" が "C10" より後ろに来てしまう。 */
+  function sortNoteRows() {
+    const midiNum = tr => tr.querySelector(".note-name-select").selectedIndex;
+
+    // sort は安定なので、同じ音名の行は元の順のまま隣り合う。
+    // 既にある要素を append し直すと、複製ではなく移動になる
+    noteBody.append(...[...noteRows()].sort((a, b) => midiNum(a) - midiNum(b)));
+    updateTrackNumbers();
   }
 
   function updateTrackBadge() {
@@ -226,6 +248,18 @@ document.addEventListener("DOMContentLoaded", function () {
   $("btn-add-note").addEventListener("click", () => {
     appendNoteRow(noteRows().length + 1);
     updateTrackBadge();
+  });
+
+  /* 音名を選んだら、その場で並べ替える（TODO-069）。
+     行を足したときは並べ替えない。既定の C4 のまま末尾に置き、音名を
+     選んだ時点で収まるべき位置へ動く。 */
+  noteBody.addEventListener("change", e => {
+    const sel = e.target.closest(".note-name-select");
+    if (!sel) {
+      return;
+    }
+    sortNoteRows();
+    sel.focus();  // 行が動くとフォーカスが外れる。選んだ行に戻す
   });
 
   noteBody.addEventListener("click", e => {

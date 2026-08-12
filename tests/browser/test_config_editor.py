@@ -79,9 +79,11 @@ def test_save_persists_edited_value(
 
     page.fill('#field-margin', '7.5')
 
-    # トラックの音名も、表から拾って保存されること
+    # トラックの音名も、表から拾って保存されること。
+    # **先頭より低い音を選ぶ**（'F2' → 'E2'）。高い音にすると並べ替えで
+    # 行が動くので（TODO-069）、保存されるかどうかの話と混ざる
     rows = page.locator('#note-table-body tr.note-row')
-    rows.first.locator('.note-name-select').select_option('C#5')
+    rows.first.locator('.note-name-select').select_option('E2')
 
     page.click('#btn-save-config')
 
@@ -94,7 +96,7 @@ def test_save_persists_edited_value(
     assert saved['margin'] == 7.5
     # 編集した先頭トラックだけが変わり、残りは並び順ごと保たれている
     assert len(saved['notes']) == 34
-    assert saved['notes'][0] == 'C#5'
+    assert saved['notes'][0] == 'E2'
     assert saved['notes'][1] == 'G2'
 
 
@@ -278,3 +280,45 @@ def test_note_name_select_shows_existing_value(
     rows = page.locator('#note-table-body tr.note-row')
     expect(rows.first.locator('.note-name-select')).to_have_value('F2')
     expect(rows.nth(1).locator('.note-name-select')).to_have_value('G2')
+
+
+def test_selecting_note_name_sorts_rows(live_server: str, page: Page) -> None:
+    """音名を選ぶと、表全体が音の高さの昇順に並べ替わる（TODO-069）。
+
+    '34notes' の先頭 3 トラックは F2 / G2 / A2。先頭を A#2 にすると
+    A2 の下へ移り、トラック番号も振り直される。
+    """
+    page.goto(f'{live_server}/config')
+
+    rows = page.locator('#note-table-body tr.note-row')
+    rows.first.locator('.note-name-select').select_option('A#2')
+
+    expect(rows.nth(0).locator('.note-name-select')).to_have_value('G2')
+    expect(rows.nth(1).locator('.note-name-select')).to_have_value('A2')
+    expect(rows.nth(2).locator('.note-name-select')).to_have_value('A#2')
+    # もともと 4 番目にあった A#2 は、動いた行の下に残る（並べ替えは安定）
+    expect(rows.nth(3).locator('.note-name-select')).to_have_value('A#2')
+
+    # 番号は上から振り直す
+    expect(rows.nth(0).locator('.track-num')).to_have_text('1')
+    expect(rows.nth(2).locator('.track-num')).to_have_text('3')
+    expect(rows).to_have_count(34)
+
+
+def test_sorted_note_names_are_saved(
+    live_server: str, page: Page, restore_conf: None
+) -> None:
+    """並べ替えた順がそのまま保存される（＝トラック番号が変わる。TODO-069）。"""
+    page.goto(f'{live_server}/config')
+
+    rows = page.locator('#note-table-body tr.note-row')
+    rows.first.locator('.note-name-select').select_option('A#2')
+    expect(rows.nth(2).locator('.note-name-select')).to_have_value('A#2')
+
+    page.click('#btn-save-config')
+    expect(page.locator('#alert-container')).to_contain_text('正常に保存しました')
+
+    saved = next(
+        d for d in _conf_data(page, live_server) if d['model'] == '34notes'
+    )
+    assert saved['notes'][:4] == ['G2', 'A2', 'A#2', 'A#2']
