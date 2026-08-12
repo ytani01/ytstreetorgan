@@ -17,7 +17,7 @@
 
     conf.py → transpose.py → rollbook.py → audition.py → handler1.py
 """
-import tempfile
+import io
 from pathlib import Path
 
 from loguru import logger
@@ -43,9 +43,7 @@ def playable_midi_bytes(
     黙って食い違う（TODO-043 と同じ失敗）。
 
     **ディスクには残さない**（`transpose_midi_bytes()` と同じ）。
-    `ytmidilib.write()` がパスしか受け付けないので一時ファイルを経由するが、
-    **それはこの関数の中だけの都合**で、書いたものは戻る前に消える。
-    `io.BytesIO` を受けられるようになったら、ここだけを直せばよい。
+    `ytmidilib.write()` が `io.BytesIO` を受けるので、それをそのまま返す。
 
     Args:
         src (Path): 元の MIDI ファイル。
@@ -76,10 +74,9 @@ def playable_midi_bytes(
         for ni in book.playable_note_info
     ]
 
-    with tempfile.TemporaryDirectory(prefix='storgan-audition-') as tmp_dir:
-        tmp_path = Path(tmp_dir) / 'audition.mid'
-        write(tmp_path, note_info)
-        data = tmp_path.read_bytes()
+    buf = io.BytesIO()
+    write(buf, note_info)
+    data = buf.getvalue()
 
     logger.debug(
         'src={}, model={}, semitones={}, notes={}, len(data)={}',

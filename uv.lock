@@ -696,8 +696,8 @@ wheels = [
 
 [[package]]
 name = "ytmidilib"
-version = "0.2.1"
-source = { git = "https://github.com/ytani01/ytmidilib.git?tag=0.2.1#08b1c5670576f0e6a8e5a0b3e91b5b92a0349102" }
+version = "0.3.0"
+source = { git = "https://github.com/ytani01/ytmidilib.git?tag=0.3.0#04bbf546bc945e08c038dbc2d7c20c24bf57f7f1" }
 dependencies = [
     { name = "click" },
     { name = "loguru" },
@@ -734,7 +734,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pygame-ce" },
     { name = "tornado" },
-    { name = "ytmidilib", git = "https://github.com/ytani01/ytmidilib.git?tag=0.2.1" },
+    { name = "ytmidilib", git = "https://github.com/ytani01/ytmidilib.git?tag=0.3.0" },
 ]
 
 [package.metadata.requires-dev]
