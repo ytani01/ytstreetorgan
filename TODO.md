@@ -1,6 +1,6 @@
 # = TODO
 
-更新: 2026-08-12
+更新: 2026-08-12（TODO-065 の要求書を出した）
 
 - 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-083` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
@@ -13,7 +13,9 @@
 
 **同じパッケージの `transpose_file()` は既に file-like を受ける**ので、意味論を揃えるだけ。
 
-段取り: 要求書を出す → 0.3.0 タグ → `uv sync --upgrade-package ytmidilib` → `pyproject.toml` の tag を上げる → `audition.py` の一時ファイルを `io.BytesIO` に差し替える（**呼ぶ側とテストは無変更で通るはず**）。
+段取り: ~~要求書を出す~~ → 0.3.0 タグ → `uv sync --upgrade-package ytmidilib` → `pyproject.toml` の tag を上げる → `audition.py` の一時ファイルを `io.BytesIO` に差し替える（**呼ぶ側とテストは無変更で通るはず**）。
+
+**要求書は 2026-08-12 に出した**（[`archives/20260812a-ytmidilib-requests-3.md`](archives/20260812a-ytmidilib-requests-3.md)）。要求は 1 件だけ（`write()` の第 1 引数に `BinaryIO` を足す。引数名 `midi_file` は据え置き、型注釈も広げる）。**次は `ytmidilib` 側で実装・回答書・`0.3.0` タグ**（あちらのリポジトリで別に進める）。
 
 前例は TODO-045（1 通目）・TODO-048（2 通目）。
 
