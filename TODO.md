@@ -1,28 +1,26 @@
 # = TODO
 
-更新: 2026-08-12（TODO-065 の要求書を出した）
+更新: 2026-08-12（TODO-065 を決着。取り込みを TODO-083 に立てた）
 
-- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-083` から。**
+- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-084` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
 
 ## == 着手前 / 検討中
 
-### **TODO-065** (優先度:低) `ytmidilib` に 3 通目の要求書を出す（`write()` を file-like に対応させる）
+### **TODO-083** (優先度:中) `ytmidilib` 0.3.0 を取り込み、試聴の一時ファイルを無くす
 
-`ytmidilib.write()` が `str | os.PathLike` しか受けず、file-like を受けない。そのため TODO-063 の試聴では一時ファイルに書いて読み戻している（「保存しない」という既存 3 ハンドラの原則に小さな穴が開いている）。
+- [ ] `uv sync --upgrade-package ytmidilib` で `0.3.0` を取り込む
+- [ ] `pyproject.toml` の `tag = "0.2.1"` を `"0.3.0"` にする
+- [ ] `audition.py` の一時ディレクトリ経由を `io.BytesIO` に差し替える（46 行目のコメントも直す）
+- [ ] `pytest` / `ruff` / `mypy` を通す
 
-**同じパッケージの `transpose_file()` は既に file-like を受ける**ので、意味論を揃えるだけ。
+`ytmidilib` 0.3.0 で `write()` の第 1 引数が `str | os.PathLike[str] | BinaryIO` になった（TODO-065 の要求と回答。挙動と出力バイト列は `0.2.1` から変わらない）。`playable_midi_bytes()` が「一時ディレクトリを作って書いて読み戻して消す」4 手でやっていたものが、`io.BytesIO` 1 つで済む。**試聴の MIDI は保存しない**という決めごと（TODO-063）どおりの形になる。
 
-段取り: ~~要求書を出す~~ → 0.3.0 タグ → `uv sync --upgrade-package ytmidilib` → `pyproject.toml` の tag を上げる → `audition.py` の一時ファイルを `io.BytesIO` に差し替える（**呼ぶ側とテストは無変更で通るはず**）。
+呼ぶ側とテストは無変更で通るはず（`playable_midi_bytes()` の戻り値は変わらない）。
 
-**要求書は 2026-08-12 に出した**（[`archives/20260812a-ytmidilib-requests-3.md`](archives/20260812a-ytmidilib-requests-3.md)）。要求は 1 件だけ（`write()` の第 1 引数に `BinaryIO` を足す。引数名 `midi_file` は据え置き、型注釈も広げる）。**次は `ytmidilib` 側で実装・回答書・`0.3.0` タグ**（あちらのリポジトリで別に進める）。
+前例は TODO-047（`0.1.0`）・TODO-058（`0.2.1`）。
 
-前例は TODO-045（1 通目）・TODO-048（2 通目）。
-
-**要求書を出して 0.3.0 を取り込むところまでは、TODO-063 と独立に進められる。**
-最後の `audition.py` の差し替えだけが TODO-063 の後になる（差し替える先の
-ファイルが無いため）。逆に、TODO-063 はこの項目を待たずに進められる
-（一時ファイル経由で動く）。
+`0.1.0` のときに当たった、タグを打った直後に `uv` 側でバージョンが `0.0.4.dev20+g...` として入る現象（`uv` の git キャッシュ）に注意。取り込んだあと `uv pip show ytmidilib` などで版を確かめること。
 
 ---
 
@@ -31,6 +29,7 @@
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-065.** `ytmidilib` に 3 通目の要求書を出す（`write()` を file-like に対応させる）](archives/todo/TODO-065.%20ytmidilib%20に%203%20通目の要求書を出す（write%28%29%20を%20file-like%20に対応させる）.md)
 - [**TODO-082.** 起動時の残件表示が、項目ではなくチェックボックスを数えている](archives/todo/TODO-082.%20起動時の残件表示が、項目ではなくチェックボックスを数えている.md)
 - [**TODO-081.** テストがリポジトリに無い MIDI に依存している](archives/todo/TODO-081.%20テストがリポジトリに無い%20MIDI%20に依存している.md)
 - [**TODO-080.** `docs/routine_verification_subagents.md` を削除する](archives/todo/TODO-080.%20routine_verification_subagents.md%20を削除する.md)
