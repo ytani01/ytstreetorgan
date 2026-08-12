@@ -24,26 +24,6 @@
 
 ---
 
-### **TODO-079** ドキュメントとコードの食い違いを直す
-
-- [ ] `docs/Developer.md` のテスト件数と所要時間を実測値に直す
-- [ ] `CLAUDE.md` の「穴の扱い」を `bridge_threshold` / `bridge_width` に直す
-- [ ] `CLAUDE.md` の SVG メタ属性の列挙に `-merged` と `-transpose` を足す
-- [ ] `my.css` と `storgan.html` の「storgan.js が入れる」を `viewer.js` に直す
-- [ ] `webroot/CLAUDE.md` の `:root:root` の説明を実態に合わせる
-
-**文書とコメントだけ。コードの挙動は変えない。**
-
-| 場所 | 書いてあること | 実際 |
-|---|---|---|
-| `docs/Developer.md` | 163 / 35 / 198 件、25 / 20 / 45 秒 | 297 / 49 / 346 件、2.3 / 28 / 35 秒 |
-| `CLAUDE.md:164` | `'bridge threshold'` / `'bridge width'` | `bridge_threshold` / `bridge_width`（**空白入りは読めない旧形式**。同じ `CLAUDE.md` の別の場所では正しい） |
-| `CLAUDE.md:279` 付近 | 属性 5 つ | `_meta_attrs()` は 7 つ（`-merged` / `-transpose` が抜けている） |
-| `my.css:267` / `storgan.html:129` | 「`--book-h` / `--z` / `#dur-t` は storgan.js が入れる」 | `viewer.js`（分離したときの取り残し） |
-| `webroot/CLAUDE.md:14` | 「トークンは `:root:root` で定義」 | 独自トークンは素の `:root`。`:root:root` は Pico の変数への割り当てだけ |
-
----
-
 ## == 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
@@ -52,6 +32,7 @@
 - [**TODO-082.** 起動時の残件表示が、項目ではなくチェックボックスを数えている](archives/todo/TODO-082.%20起動時の残件表示が、項目ではなくチェックボックスを数えている.md)
 - [**TODO-081.** テストがリポジトリに無い MIDI に依存している](archives/todo/TODO-081.%20テストがリポジトリに無い%20MIDI%20に依存している.md)
 - [**TODO-080.** `docs/routine_verification_subagents.md` を削除する](archives/todo/TODO-080.%20routine_verification_subagents.md%20を削除する.md)
+- [**TODO-079.** ドキュメントとコードの食い違いを直す](archives/todo/TODO-079.%20ドキュメントとコードの食い違いを直す.md)
 - [**TODO-078.** `HoleInfo` が設定項目を `.get(key, 0.0)` で読んでいる](archives/todo/TODO-078.%20HoleInfo%20が設定項目を%20.get%28key,%200.0%29%20で読んでいる.md)
 - [**TODO-077.** 画面に出ないものが残っている（文書と食い違っている）](archives/todo/TODO-077.%20画面に出ないものが残っている（文書と食い違っている）.md)
 - [**TODO-076.** `Handler1._render()` が候補の表示ロジックまで抱えている](archives/todo/TODO-076.%20Handler1._render%28%29%20が候補の表示ロジックまで抱えている.md)

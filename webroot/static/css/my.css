@@ -264,7 +264,7 @@ footer.appfoot .spacer { margin-left: auto; }
 .svgbox.is-grabbing { cursor: grabbing; }
 .svgbox > svg {
   display: block; width: auto; max-width: none;
-  /* --book-h / --z は storgan.js が入れる。倍率が未設定でも潰れないよう既定値 */
+  /* --book-h / --z は viewer.js が入れる。倍率が未設定でも潰れないよう既定値 */
   height: calc(var(--book-h, 126mm) * var(--z, .2));
   /* 紙の色。**SVG には背景が入っていない**ので、ここだけで決まる
      （変えても生成物・ダウンロードには影響しない）。

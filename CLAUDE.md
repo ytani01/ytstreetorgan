@@ -161,8 +161,8 @@ conf.py → transpose.py → rollbook.py → audition.py → base_handler.py
 - `note2scale()` はオルガンの音階に無い MIDI ノートに対して `-1` を返す。そうした音は
   **捨てずに黒の破線で描く**（`RollBook.svg()`）。演奏者が欠落を目視できるようにするため。
   scale が `-1` の穴はブックの全長（`_width`）を伸ばさない。
-- 穴の長さが `'bridge threshold'` を超えると `divide_length_by_max_len()` が
-  `'bridge width'` の隙間（ブリッジ）を挟んで複数に分割する。紙のブックが切れないようにする措置。
+- 穴の長さが `'bridge_threshold'` を超えると `divide_length_by_max_len()` が
+  `'bridge_width'` の隙間（ブリッジ）を挟んで複数に分割する。紙のブックが切れないようにする措置。
   分割数は `n = ceil((全長 + 隙間) / (隙間 + 上限))`。
 
 ### Web 層
@@ -284,7 +284,7 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 
 `RollBook.svg()` は、**図からは求まらない値を `<svg>` の属性に埋める**
 （`data-storgan-model` / `-mm-per-sec` / `-notes` / `-hole-notes` /
-`-off-scale-notes`）。履歴から保存済みの SVG を出し直すとき、
+`-off-scale-notes` / `-merged` / `-transpose`）。履歴から保存済みの SVG を出し直すとき、
 `storage.book_from_svg()` がこれを読む。寸法と穴の数は図から読めるので
 埋めない（二重に持つと手で編集したときに食い違う）。
 **属性が無い古い SVG もある**ので、無ければ `---` に落とす。
