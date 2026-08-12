@@ -221,6 +221,34 @@
              一文だけにする（TODO-041）。1 行だけの表は、選ぶものが無いのに
              選べそうに見える。 -->
         {% if candidates and midi_name %}
+        <!-- 試聴のプレーヤー（TODO-063、TODO-068）。表の下に 1 つだけ
+             置き、**いま表示しているロールブックの移調量の音**を
+             読み込む。表から移調を選ぶとページごと作り直すので、
+             そのたびにここも切り替わる。
+             **URL はここに丸ごと書く**（JS で組み立てると prefix や
+             引数の付け方が 2 か所に分かれる）。src に直接書くので
+             JS は要らない。**自動再生はしない**（ブラウザが止める
+             ことがあり、環境によって鳴ったり鳴らなかったりする）。
+             **sound-font 属性は付けない**（付けると音源を外部から
+             取りに行く。ネットに繋がっていなくても動くこと）。
+             **visualizer も付けない**（鳴らない音も同じ見た目で
+             描くので、ロールブックの実線と破線の描き分けと
+             食い違って読み違いを招く） -->
+        <div class="midi-audition">
+          <midi-player id="audition-player"
+            src="{{urlprefix}}/audition/midi/{{ url_escape(midi_name) }}?t={{ book['transpose'] or 0 }}&amp;model={{ url_escape(book['model']) }}">
+          </midi-player>
+          <p class="field__hint field__hint--center" id="audition-hint">
+            {% if book['transpose'] %}
+            <b>{{ '%+d' % book['transpose'] }} 半音</b>の移調
+            {% else %}
+            <b>移調しない</b>場合
+            {% end %}
+            の音を読み込んであります。
+            下の表で移調を選ぶと、ロールブックと一緒に切り替わります。
+          </p>
+        </div>
+
         <section class="panel" id="transpose-panel">
           <h2>キーを変えて作り直す(移調) 候補</h2>
           <div class="panel__body">
@@ -296,30 +324,6 @@
                   {% end %}
                 </tbody>
               </table>
-            </div>
-
-            <!-- 試聴のプレーヤー（TODO-063、TODO-068）。表の下に 1 つだけ
-                 置き、**いま表示しているロールブックの移調量の音**を
-                 読み込む。表から移調を選ぶとページごと作り直すので、
-                 そのたびにここも切り替わる。
-                 **URL はここに丸ごと書く**（JS で組み立てると prefix や
-                 引数の付け方が 2 か所に分かれる）。src に直接書くので
-                 JS は要らない。**自動再生はしない**（ブラウザが止める
-                 ことがあり、環境によって鳴ったり鳴らなかったりする）。
-                 **sound-font 属性は付けない**（付けると音源を外部から
-                 取りに行く。ネットに繋がっていなくても動くこと）。
-                 **visualizer も付けない**（鳴らない音も同じ見た目で
-                 描くので、ロールブックの実線と破線の描き分けと
-                 食い違って読み違いを招く） -->
-            <div class="midi-audition">
-              <midi-player id="audition-player"
-                src="{{urlprefix}}/audition/midi/{{ url_escape(midi_name) }}?t={{ book['transpose'] or 0 }}&amp;model={{ url_escape(book['model']) }}"></midi-player>
-              <p class="field__hint field__hint--center" id="audition-hint">
-                {% if book['transpose'] %}<b>{{ '%+d' % book['transpose'] }} 半音</b>の移調{% else %}<b>移調しない</b>場合{% end %}の音を読み込んであります。鳴るのは
-                <b>この機種で実際に鳴る音だけ</b> で、音階に無い音は鳴りません。
-                音色は簡易な電子音です。上の表で移調を選び直すと、
-                ロールブックと一緒に切り替わります。
-              </p>
             </div>
 
             <!-- 候補ぶんの MIDI をまとめて（TODO-050）。1 行ずつ押すと

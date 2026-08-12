@@ -10,7 +10,6 @@
       <section class="wrap">
         <h1 class="page-title">機種設定</h1>
         <p class="page-lead">
-          オルガンの機種ごとの寸法と、トラックに対応する音階を編集します。
         </p>
 
         <div id="alert-container"></div>
@@ -22,6 +21,7 @@
             <option value="{{ m }}">{{ m }}</option>
             {% end %}
           </select>
+          <button type="button" id="btn-save-config">変更を保存</button>
           <span class="spacer"></span>
           <button type="button" class="secondary outline" id="btn-add-model">
             ＋ 機種を追加
@@ -86,16 +86,6 @@
                       name="mm_per_sec" required>
                     <span class="field__unit">mm</span>
                   </div>
-                </div>
-              </section>
-
-              <section class="panel">
-                <h2>ブリッジ</h2>
-                <div class="panel__body">
-                  <p class="field__hint" style="margin-top:0;">
-                    長い穴は途中で切らずに、隙間（ブリッジ）を挟んで分割します。
-                    紙が切れてしまわないための措置です。
-                  </p>
                   <div class="field">
                     <label for="field-bridge-width">ブリッジ幅<small>bridge_width</small></label>
                     <input type="number" step="0.1" id="field-bridge-width"
@@ -117,15 +107,14 @@
                 <h2>
                   音階マッピング
                   <span class="count" id="note-count-badge">0 トラック</span>
+                  <button type="button" class="secondary outline" id="btn-add-note"
+                    style="width:auto; margin:0; padding:.35rem .8rem; font-size:.84rem;">
+                    ＋ トラックを追加
+                  </button>
                 </h2>
                 <div class="notes-scroll">
                   <table class="notes">
                     <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>音名</th>
-                        <th style="width:2.5rem;"></th>
-                      </tr>
                     </thead>
                     <tbody id="note-table-body">
                       <!-- config_editor.js が生成する -->
@@ -133,26 +122,9 @@
                   </table>
                 </div>
                 <div class="panel__body" style="border-top:1px solid var(--rule);">
-                  <button type="button" class="secondary outline" id="btn-add-note"
-                    style="width:auto; margin:0; padding:.35rem .8rem; font-size:.84rem;">
-                    ＋ トラックを追加
-                  </button>
-                  <!-- 丸括弧の数字が何なのか、表の中には書く場所が無い -->
-                  <p class="field__hint" style="margin:.5rem 0 0;">
-                    各トラックの穴の位置は、選んだ音名で決まります。<br>
-                    一覧の丸括弧の中は、参考として出している
-                    MIDI ノート番号です（60 = C4）。
-                  </p>
                 </div>
               </section>
             </div>
-          </div>
-
-          <div class="savebar">
-            <span class="savebar__msg">
-              設定を変更したら「変更を保存」を押してください。
-            </span>
-            <button type="button" id="btn-save-config">変更を保存</button>
           </div>
         </form>
       </section>
