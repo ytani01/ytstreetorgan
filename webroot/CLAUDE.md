@@ -35,11 +35,16 @@ Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書い
 `<dialog>` で確認するときは、**ESC や ✕ で閉じた場合もキャンセルと同じ扱い**に
 すること（選んだものを覚えてから閉じ、`close` イベント 1 か所で処理する）。
 
-## MIDI の試聴（TODO-063）
+## MIDI の試聴（TODO-063、TODO-068）
 
-移調の候補の表から、その機種で実際に鳴る音だけをブラウザで鳴らして
-確かめられる。同梱した 3 本（Tone.js / core.js / html-midi-player.js）と
-バージョンは `docs/tech-stack.md`。
+いま表示しているロールブックの音を、その機種で実際に鳴る音だけ、
+ブラウザで鳴らして確かめられる。同梱した 3 本（Tone.js / core.js /
+html-midi-player.js）とバージョンは `docs/tech-stack.md`。
+
+**試聴の対象は「いま出しているブックの移調量」だけ**（TODO-068）。
+行ごとの「試聴」列は無い。移調を選ぶと `#transpose-form` の POST で
+ページごと作り直されるので、そのたびにプレーヤーも切り替わる。
+**JS は要らない**（`midi_audition.js` は TODO-068 で削除した）。
 
 **落とし穴（忘れると黙って壊れる）**
 
@@ -47,14 +52,10 @@ Pico が配色を `:root:not([data-theme=dark])`（詳細度 (0,2,0)）で書い
   「属性なし＝素の Player」「**属性が空文字（`sound-font=""`）＝
   googleapis から音源を取得**」なので、空で書くと外部通信が発生する
   （実装中に実際に書きかけて気付いた）
-- **試聴ボタンに `data-transpose` を付けない。** `storgan.js` の委譲
-  ハンドラが拾ってフォームを submit し、ロールブックの作り直しに
-  行ってしまう。`data-audition` にする
-- **試聴ボタンを `<a>` にしない。** 行内のリンク数を数えているブラウザ
-  テストが落ちる。`<button type="button">` にする
-- **試聴の URL はテンプレートが `data-audition` に丸ごと書き、JS は
-  `<midi-player>` の `src` へ写すだけ。** JS で URL を組み立てない
-  （prefix と引数の付け方が 2 か所に分かれる）
+- **試聴の URL はテンプレートが `<midi-player>` の `src` に丸ごと書く。**
+  JS で組み立てない（prefix と引数の付け方が 2 か所に分かれる）
+- **自動再生はしない。** 読み込むところまで。ブラウザが止めることが
+  あり、環境によって鳴ったり鳴らなかったりする
 - **同梱 3 本の読み込み順は Tone → core → midi-player。** UMD なので
   順序が要る。`type="module"` にしない。`base.html` には入れず、
   結果画面（`svg_data` があるとき）でだけ読む

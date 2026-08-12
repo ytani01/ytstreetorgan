@@ -639,14 +639,3 @@ table.hist .num.is-worse, .field__hint .is-worse { color: var(--hole); }
 }
 .midi-audition midi-player::part(play-button) { color: var(--cut); }
 .midi-audition midi-player::part(time) { color: var(--pico-muted-color); }
-/* 注記の中のアイコンは、字と同じ大きさに落として行に馴染ませる */
-#audition-hint .icon {
-  width: .9rem; height: .9rem; vertical-align: -.15em;
-  color: var(--cut);
-}
-/* いま読み込んでいる行。いま出しているブックの行（.is-current）とは
-   別の意味なので、色ではなく左の縦線で示す（両方が同じ行のことも多い） */
-#transpose-table tr.is-audition > td:first-child {
-  box-shadow: inset 3px 0 0 var(--cut);
-}
-#transpose-table tr.is-audition .audition-btn { color: var(--ok); }
