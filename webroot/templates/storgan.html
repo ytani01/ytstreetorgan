@@ -240,12 +240,11 @@
           </midi-player>
           <p class="field__hint field__hint--center" id="audition-hint">
             {% if book['transpose'] %}
-            <b>{{ '%+d' % book['transpose'] }} 半音</b>の移調
-            {% else %}
-            <b>移調しない</b>場合
-            {% end %}
-            の音を読み込んであります。
+            <b>{{ '%+d' % book['transpose'] }} 半音</b>の移調{% else %}
+            <b>移調しない</b>場合{% end %}の音を読み込んであります。
+            {% if show_transpose_table %}
             下の表で移調を選ぶと、ロールブックと一緒に切り替わります。
+            {% end %}
           </p>
         </div>
 

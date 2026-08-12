@@ -363,7 +363,7 @@ footer.appfoot .spacer { margin-left: auto; }
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: .9rem; align-items: stretch;
 }
-/* 音階マッピングの高さは左カラム（基本寸法＋ブリッジ）に揃え、
+/* 音階マッピングの高さは左カラム（基本寸法）に揃え、
    トラックの表はその中でスクロールさせる。
    height:0 + min-height:100% は、右の中身が行の高さを押し上げないため
    （素の height:100% だと、行高が中身で決まってから伸びるので揃わない）。 */
@@ -495,18 +495,6 @@ table.notes td.track-num {
 .btn-row.btn-danger:hover, .btn-delete-row:hover { background: var(--hole-weak); }
 .btn-row.btn-danger:focus-visible,
 .btn-delete-row:focus-visible { outline-color: var(--hole); }
-
-.savebar {
-  position: sticky; bottom: 0; z-index: 5;
-  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
-  padding: .55rem .9rem; margin-top: .25rem;
-  border: 1px solid var(--rule); border-radius: 10px;
-  background: color-mix(in srgb, var(--pico-card-background-color) 97%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 -2px 10px rgba(19, 23, 34, .07);
-}
-.savebar__msg { font-size: .82rem; color: var(--pico-muted-color); }
-.savebar button { margin: 0; width: auto; margin-left: auto; }
 
 /* Pico はボタン要素の中で --pico-color を上書きする。破壊的操作の色は
    自前のトークンから直接指定しないと、ボタン内で白くなる。            */
