@@ -16,3 +16,7 @@
 ## テスト
 
 - [routine_verification_subagents.md](file:///home/ytani/work/ytstreetorgan/docs/routine_verification_subagents.md) のマークダウンフォーマット、リンク整合性、指示内容の妥当性を確認。
+
+## その後
+
+**この文書は TODO-080 で削除した**（中身が Gemini 前提のままで、現在の運用と食い違っていたため）。

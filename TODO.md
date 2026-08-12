@@ -42,21 +42,6 @@
 | `my.css:267` / `storgan.html:129` | 「`--book-h` / `--z` / `#dur-t` は storgan.js が入れる」 | `viewer.js`（分離したときの取り残し） |
 | `webroot/CLAUDE.md:14` | 「トークンは `:root:root` で定義」 | 独自トークンは素の `:root`。`:root:root` は Pico の変数への割り当てだけ |
 
-### **TODO-080** `docs/routine_verification_subagents.md` を削除する
-
-- [ ] `docs/routine_verification_subagents.md` を削除する
-- [ ] `archives/todo/TODO-061` と `TODO-062` に、削除した旨を一行だけ添える
-
-TODO-061 で作った文書だが、中身が Gemini 前提のまま現在の運用と食い違っている。
-
-- モデル名が `flash_lite` / `pro`、呼び出しが `invoke_subagent` / `define_subagent`
-- 永続化先を `.agents/agents/<name>/AGENTS.md` としているが、実際は
-  `.claude/agents/*.md` に置き、済んだら `archives/agents/TODO-NNN/` へ移す
-- 「全 60 件の TODO」（いまは 78 件）、使っていない `ruff format --check`
-- アーカイブへのリンクが 3 件切れている（TODO-066 のファイル名修正に追従していない）
-
-TODO-062（追記する話）は既に（対応しない）で決着している。**archives のリンク切れは書き換えない**（当時の記録なので）。代わりに TODO-061 / TODO-062 のファイルへ「この文書は TODO-080 で削除した」と添えて辿れるようにする。
-
 ### **TODO-081** テストがリポジトリに無い MIDI に依存している
 
 - [ ] mido で合成した MIDI を、生成スクリプトごと `tests/data/` に置いて追跡する
@@ -86,6 +71,7 @@ TODO-062（追記する話）は既に（対応しない）で決着している
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
 - [**TODO-082.** 起動時の残件表示が、項目ではなくチェックボックスを数えている](archives/todo/TODO-082.%20起動時の残件表示が、項目ではなくチェックボックスを数えている.md)
+- [**TODO-080.** `docs/routine_verification_subagents.md` を削除する](archives/todo/TODO-080.%20routine_verification_subagents.md%20を削除する.md)
 - [**TODO-078.** `HoleInfo` が設定項目を `.get(key, 0.0)` で読んでいる](archives/todo/TODO-078.%20HoleInfo%20が設定項目を%20.get%28key,%200.0%29%20で読んでいる.md)
 - [**TODO-077.** 画面に出ないものが残っている（文書と食い違っている）](archives/todo/TODO-077.%20画面に出ないものが残っている（文書と食い違っている）.md)
 - [**TODO-076.** `Handler1._render()` が候補の表示ロジックまで抱えている](archives/todo/TODO-076.%20Handler1._render%28%29%20が候補の表示ロジックまで抱えている.md)
