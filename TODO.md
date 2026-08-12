@@ -2,7 +2,7 @@
 
 更新: 2026-08-12
 
-- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-079` から。**
+- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-082` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
 
 ## == 着手前 / 検討中
@@ -21,6 +21,62 @@
 最後の `audition.py` の差し替えだけが TODO-063 の後になる（差し替える先の
 ファイルが無いため）。逆に、TODO-063 はこの項目を待たずに進められる
 （一時ファイル経由で動く）。
+
+---
+
+### **TODO-079** ドキュメントとコードの食い違いを直す
+
+- [ ] `docs/Developer.md` のテスト件数と所要時間を実測値に直す
+- [ ] `CLAUDE.md` の「穴の扱い」を `bridge_threshold` / `bridge_width` に直す
+- [ ] `CLAUDE.md` の SVG メタ属性の列挙に `-merged` と `-transpose` を足す
+- [ ] `my.css` と `storgan.html` の「storgan.js が入れる」を `viewer.js` に直す
+- [ ] `webroot/CLAUDE.md` の `:root:root` の説明を実態に合わせる
+
+**文書とコメントだけ。コードの挙動は変えない。**
+
+| 場所 | 書いてあること | 実際 |
+|---|---|---|
+| `docs/Developer.md` | 163 / 35 / 198 件、25 / 20 / 45 秒 | 297 / 49 / 346 件、2.3 / 28 / 35 秒 |
+| `CLAUDE.md:164` | `'bridge threshold'` / `'bridge width'` | `bridge_threshold` / `bridge_width`（**空白入りは読めない旧形式**。同じ `CLAUDE.md` の別の場所では正しい） |
+| `CLAUDE.md:279` 付近 | 属性 5 つ | `_meta_attrs()` は 7 つ（`-merged` / `-transpose` が抜けている） |
+| `my.css:267` / `storgan.html:129` | 「`--book-h` / `--z` / `#dur-t` は storgan.js が入れる」 | `viewer.js`（分離したときの取り残し） |
+| `webroot/CLAUDE.md:14` | 「トークンは `:root:root` で定義」 | 独自トークンは素の `:root`。`:root:root` は Pico の変数への割り当てだけ |
+
+### **TODO-080** `docs/routine_verification_subagents.md` を削除する
+
+- [ ] `docs/routine_verification_subagents.md` を削除する
+- [ ] `archives/todo/TODO-061` と `TODO-062` に、削除した旨を一行だけ添える
+
+TODO-061 で作った文書だが、中身が Gemini 前提のまま現在の運用と食い違っている。
+
+- モデル名が `flash_lite` / `pro`、呼び出しが `invoke_subagent` / `define_subagent`
+- 永続化先を `.agents/agents/<name>/AGENTS.md` としているが、実際は
+  `.claude/agents/*.md` に置き、済んだら `archives/agents/TODO-NNN/` へ移す
+- 「全 60 件の TODO」（いまは 78 件）、使っていない `ruff format --check`
+- アーカイブへのリンクが 3 件切れている（TODO-066 のファイル名修正に追従していない）
+
+TODO-062（追記する話）は既に（対応しない）で決着している。**archives のリンク切れは書き換えない**（当時の記録なので）。代わりに TODO-061 / TODO-062 のファイルへ「この文書は TODO-080 で削除した」と添えて辿れるようにする。
+
+### **TODO-081** テストがリポジトリに無い MIDI に依存している
+
+- [ ] mido で合成した MIDI を、生成スクリプトごと `tests/data/` に置いて追跡する
+- [ ] `webroot/midi/` を読んでいる参照を差し替える
+- [ ] `if not midi_file.exists(): return` の黙ったスキップを無くす
+- [ ] `docs/Developer.md` の「送る MIDI の中身はリポジトリの `webroot/midi/` から読む」を直す
+
+テストは `webroot/midi/` の `holy.mid` / `d-kaeru.mid` / `sounstest.mid` を読むが、**`.gitignore` 済みで追跡されていない**（`git ls-files` に出るのは `.dummy` だけ）。クローン直後は次の 2 通りに壊れる。
+
+- `tests/webapp_base.py` の `SAMPLE_MIDI` とブラウザテストは、存在を確かめずに読むので落ちる
+- `tests/test_rollbook.py` の 6 つは `if not midi_file.exists(): return` なので、
+  **何も検証しないまま「成功」と表示される**（`pytest.skip` ではない）
+
+期待値は固定の数値ではなく相対的な条件なので、合成した MIDI で置き換えられる。満たすべき性質は次の 2 つ。
+
+- 機種の音階に無い音を含む（破線が出る。`off_scale_note_count > 0`）
+- `bridge_threshold` の違い（`'20notes'` の 50.0 と `'20notes a'` の 2.7）で
+  分割後の数が 2 倍以上変わる長さの音符を含む
+
+**実曲の MIDI は追跡しない**（出所がはっきりしないため）。合成なら何を試しているかがコードで読める。
 
 ---
 
