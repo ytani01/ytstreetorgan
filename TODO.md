@@ -42,27 +42,6 @@
 | `my.css:267` / `storgan.html:129` | 「`--book-h` / `--z` / `#dur-t` は storgan.js が入れる」 | `viewer.js`（分離したときの取り残し） |
 | `webroot/CLAUDE.md:14` | 「トークンは `:root:root` で定義」 | 独自トークンは素の `:root`。`:root:root` は Pico の変数への割り当てだけ |
 
-### **TODO-081** テストがリポジトリに無い MIDI に依存している
-
-- [ ] mido で合成した MIDI を、生成スクリプトごと `tests/data/` に置いて追跡する
-- [ ] `webroot/midi/` を読んでいる参照を差し替える
-- [ ] `if not midi_file.exists(): return` の黙ったスキップを無くす
-- [ ] `docs/Developer.md` の「送る MIDI の中身はリポジトリの `webroot/midi/` から読む」を直す
-
-テストは `webroot/midi/` の `holy.mid` / `d-kaeru.mid` / `sounstest.mid` を読むが、**`.gitignore` 済みで追跡されていない**（`git ls-files` に出るのは `.dummy` だけ）。クローン直後は次の 2 通りに壊れる。
-
-- `tests/webapp_base.py` の `SAMPLE_MIDI` とブラウザテストは、存在を確かめずに読むので落ちる
-- `tests/test_rollbook.py` の 6 つは `if not midi_file.exists(): return` なので、
-  **何も検証しないまま「成功」と表示される**（`pytest.skip` ではない）
-
-期待値は固定の数値ではなく相対的な条件なので、合成した MIDI で置き換えられる。満たすべき性質は次の 2 つ。
-
-- 機種の音階に無い音を含む（破線が出る。`off_scale_note_count > 0`）
-- `bridge_threshold` の違い（`'20notes'` の 50.0 と `'20notes a'` の 2.7）で
-  分割後の数が 2 倍以上変わる長さの音符を含む
-
-**実曲の MIDI は追跡しない**（出所がはっきりしないため）。合成なら何を試しているかがコードで読める。
-
 ---
 
 ## == 完了済み
@@ -71,6 +50,7 @@
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
 - [**TODO-082.** 起動時の残件表示が、項目ではなくチェックボックスを数えている](archives/todo/TODO-082.%20起動時の残件表示が、項目ではなくチェックボックスを数えている.md)
+- [**TODO-081.** テストがリポジトリに無い MIDI に依存している](archives/todo/TODO-081.%20テストがリポジトリに無い%20MIDI%20に依存している.md)
 - [**TODO-080.** `docs/routine_verification_subagents.md` を削除する](archives/todo/TODO-080.%20routine_verification_subagents.md%20を削除する.md)
 - [**TODO-078.** `HoleInfo` が設定項目を `.get(key, 0.0)` で読んでいる](archives/todo/TODO-078.%20HoleInfo%20が設定項目を%20.get%28key,%200.0%29%20で読んでいる.md)
 - [**TODO-077.** 画面に出ないものが残っている（文書と食い違っている）](archives/todo/TODO-077.%20画面に出ないものが残っている（文書と食い違っている）.md)

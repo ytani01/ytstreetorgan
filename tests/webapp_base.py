@@ -13,12 +13,11 @@ from tornado.testing import AsyncHTTPTestCase
 
 from ytstreetorgan.webapp import WebServer
 
-from .conftest import TEST_URL_PREFIX
+from .conftest import SAMPLE_MIDI, TEST_URL_PREFIX
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# 中身のある MIDI が要るテスト向け。短い曲のほうが速い
-SAMPLE_MIDI = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+__all__ = ['SAMPLE_MIDI', 'WebAppTestCase']
 
 
 class WebAppTestCase(AsyncHTTPTestCase):

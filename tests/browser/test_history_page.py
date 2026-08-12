@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, expect
 
-from .conftest import REPO_ROOT, upload_midi
+from ..conftest import SAMPLE_MIDI
+from .conftest import upload_midi
 
 pytestmark = pytest.mark.browser
 
@@ -18,7 +19,7 @@ def test_lists_uploaded_files(
 ) -> None:
     """アップロードしたものが両方の欄に出る。"""
     midi = tmp_path / 'hist-listed.mid'
-    midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
+    midi.write_bytes(SAMPLE_MIDI.read_bytes())
     upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
@@ -38,7 +39,7 @@ def test_show_stored_svg_keeps_all_values(
     `<svg>` に埋めた属性から読む。
     """
     midi = tmp_path / 'hist-show.mid'
-    midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
+    midi.write_bytes(SAMPLE_MIDI.read_bytes())
     upload_midi(page, live_server, midi)
     generated = page.locator('.viewer-card > .viewer-head').inner_text()
 
@@ -61,7 +62,7 @@ def test_regenerate_from_stored_midi(
 ) -> None:
     """「再生成」なら諸元が全部出る。"""
     midi = tmp_path / 'hist-regen.mid'
-    midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
+    midi.write_bytes(SAMPLE_MIDI.read_bytes())
     upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
@@ -81,7 +82,7 @@ def test_file_name_is_the_action(
     分からなくなる。そこも一緒に見ている。
     """
     midi = tmp_path / 'hist-name.mid'
-    midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
+    midi.write_bytes(SAMPLE_MIDI.read_bytes())
     upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
@@ -107,7 +108,7 @@ def test_delete_one_file(
 ) -> None:
     """個別削除。確認してから消え、一覧から居なくなる。"""
     midi = tmp_path / 'hist-delete.mid'
-    midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
+    midi.write_bytes(SAMPLE_MIDI.read_bytes())
     upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')
@@ -130,7 +131,7 @@ def test_delete_cancelled_keeps_the_file(
 ) -> None:
     """確認でキャンセルしたら、何も送らず消さない。"""
     midi = tmp_path / 'hist-keep.mid'
-    midi.write_bytes((REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes())
+    midi.write_bytes(SAMPLE_MIDI.read_bytes())
     upload_midi(page, live_server, midi)
 
     page.goto(f'{live_server}/history')

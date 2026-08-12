@@ -149,6 +149,25 @@ uv sync --reinstall-package ytstreetorgan   # ← これを省かない
 
 ## テストを書くときの注意
 
+### 中身のある MIDI は `tests/data/` のものを使うこと
+
+`tests/conftest.py` の `SAMPLE_MIDI` / `LONG_MIDI` / `IN_SCALE_MIDI` から
+引く。**`webroot/midi/` から読まないこと。** あちらは実行時の作業用で
+`.gitignore` 済みなので、クローン直後は落ちるか、存在を確かめる書き方に
+していると**何も検証しないまま「成功」と表示される**（TODO-081）。
+
+`tests/data/*.mid` は `tests/data/make_midi.py` が mido で合成したもので、
+リポジトリで追跡している。どの MIDI が何を試すためのものかは、その
+docstring にある。作り直すのは次のとおり（中身は変わらない）。
+
+```bash
+uv run python tests/data/make_midi.py
+```
+
+**音を変えると期待値が動く。** テストは「この機種では破線が出る」
+「`bridge_threshold` を小さくすると分割後の穴が 2 倍以上になる」といった
+性質に依っているので、変えたら `pytest` を通して確かめること。
+
 ### HTTP テストは `WebAppTestCase` を継承すること
 
 `tests/webapp_base.py` の `WebAppTestCase` が、**`webroot` をテストごとに
@@ -159,8 +178,7 @@ uv sync --reinstall-package ytstreetorgan   # ← これを省かない
 - 置き場に何か置きたいときは `setup_files()` を上書きする
 - `PORT` と `SERVER_KWARGS`（`debug` / `size_limit`）は subclass が決める
 - 後片付けは `addCleanup` 任せ。`tearDown` は書かない
-- 送る MIDI の中身はリポジトリの `webroot/midi/` から読む
-  （複製先は空で始まるため）
+- 送る MIDI の中身は `tests/data/` から読む（複製先は空で始まるため）
 
 ### ブラウザテストのアップロードは `upload_midi()` を使うこと
 

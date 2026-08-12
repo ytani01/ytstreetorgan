@@ -11,6 +11,14 @@ from ytstreetorgan.conf import Conf
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+# テスト用に合成した MIDI（TODO-081）。中身と作り方は
+# `tests/data/make_midi.py` にある。**`webroot/midi/` は追跡していない**
+# ので、そこから読むとクローン直後に落ちる（実際そうなっていた）
+DATA_DIR = Path(__file__).resolve().parent / 'data'
+SAMPLE_MIDI = DATA_DIR / 'sample.mid'
+LONG_MIDI = DATA_DIR / 'long-notes.mid'
+IN_SCALE_MIDI = DATA_DIR / 'in-scale.mid'
+
 # WebServer / ConfigHandler は Conf() を引数なしで生成するため、
 # 何もしないと Conf.SEARCH_PATH 経由で ~/etc/storgan-conf.json
 # （利用者の実設定）を読み書きしてしまう。

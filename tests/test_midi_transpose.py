@@ -91,10 +91,10 @@ class TestTransposeMidiBytes:
 
 
 @pytest.mark.parametrize(('name', 'semitones', 'expected'), [
-    ('holy.mid', 3, 'holy.t+3.mid'),
-    ('holy.mid', -5, 'holy.t-5.mid'),
+    ('sample.mid', 3, 'sample.t+3.mid'),
+    ('sample.mid', -5, 'sample.t-5.mid'),
     # ±0 の行にもボタンを出す（元のキーのまま MIDI だけ欲しい場合がある）
-    ('holy.mid', 0, 'holy.t+0.mid'),
+    ('sample.mid', 0, 'sample.t+0.mid'),
     ('a.b.midi', 1, 'a.b.t+1.mid'),
 ])
 def test_transposed_midi_name(name, semitones, expected):
@@ -114,7 +114,7 @@ class TestTransposedMidiZipBytes:
         data = transposed_midi_zip_bytes(SAMPLE_MIDI, [-5, 0, 3])
 
         assert zip_names(data) == [
-            'holy.t-5.mid', 'holy.t+0.mid', 'holy.t+3.mid'
+            'sample.t-5.mid', 'sample.t+0.mid', 'sample.t+3.mid'
         ]
 
     def test_each_entry_is_transposed(self):
@@ -122,7 +122,7 @@ class TestTransposedMidiZipBytes:
         data = transposed_midi_zip_bytes(SAMPLE_MIDI, [4])
 
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
-            body = zf.read('holy.t+4.mid')
+            body = zf.read('sample.t+4.mid')
 
         assert notes_of(body) == [
             n + 4 for n in notes_of(SAMPLE_MIDI.read_bytes())
@@ -130,7 +130,7 @@ class TestTransposedMidiZipBytes:
 
 
 def test_transposed_zip_name():
-    assert transposed_zip_name('holy.mid') == 'holy.transposed.zip'
+    assert transposed_zip_name('sample.mid') == 'sample.transposed.zip'
     assert transposed_zip_name('a.b.midi') == 'a.b.transposed.zip'
 
 
@@ -140,34 +140,34 @@ class TestDownloadTransposedMidiZip(WebAppTestCase):
     PORT = 10087
 
     def setup_files(self):
-        self.put_midi('holy.mid')
+        self.put_midi('sample.mid')
 
     def test_zip_has_every_candidate(self):
-        response = self.fetch(f'{ZIP_URL}/holy.mid?t=-5,-2,0,3')
+        response = self.fetch(f'{ZIP_URL}/sample.mid?t=-5,-2,0,3')
 
         assert response.code == 200
         assert response.headers['Content-Type'] == 'application/zip'
         assert zip_names(response.body) == [
-            'holy.t-5.mid', 'holy.t-2.mid', 'holy.t+0.mid', 'holy.t+3.mid'
+            'sample.t-5.mid', 'sample.t-2.mid', 'sample.t+0.mid', 'sample.t+3.mid'
         ]
 
     def test_filename(self):
-        response = self.fetch(f'{ZIP_URL}/holy.mid?t=0')
+        response = self.fetch(f'{ZIP_URL}/sample.mid?t=0')
 
-        assert 'filename="holy.transposed.zip"' in response.headers[
+        assert 'filename="sample.transposed.zip"' in response.headers[
             'Content-Disposition'
         ]
 
     def test_duplicates_are_removed(self):
         """同じ名前の要素が 2 つ入った ZIP を作らない。"""
-        response = self.fetch(f'{ZIP_URL}/holy.mid?t=3,3,0,3')
+        response = self.fetch(f'{ZIP_URL}/sample.mid?t=3,3,0,3')
 
-        assert zip_names(response.body) == ['holy.t+3.mid', 'holy.t+0.mid']
+        assert zip_names(response.body) == ['sample.t+3.mid', 'sample.t+0.mid']
 
     def test_nothing_is_stored(self):
         before = self.names('midi')
 
-        self.fetch(f'{ZIP_URL}/holy.mid?t=-5,0,3')
+        self.fetch(f'{ZIP_URL}/sample.mid?t=-5,0,3')
 
         assert self.names('midi') == before
         assert self.names('svg') == []
@@ -179,16 +179,16 @@ class TestDownloadTransposedMidiZip(WebAppTestCase):
         assert self.fetch(f'{ZIP_URL}/%2e%2e%2fx.mid?t=1').code == 400
 
     def test_bad_transpose_is_400(self):
-        assert self.fetch(f'{ZIP_URL}/holy.mid?t=abc').code == 400
-        assert self.fetch(f'{ZIP_URL}/holy.mid?t=1,,2').code == 400
-        assert self.fetch(f'{ZIP_URL}/holy.mid?t=').code == 400
-        assert self.fetch(f'{ZIP_URL}/holy.mid').code == 400
+        assert self.fetch(f'{ZIP_URL}/sample.mid?t=abc').code == 400
+        assert self.fetch(f'{ZIP_URL}/sample.mid?t=1,,2').code == 400
+        assert self.fetch(f'{ZIP_URL}/sample.mid?t=').code == 400
+        assert self.fetch(f'{ZIP_URL}/sample.mid').code == 400
 
     def test_too_many_is_400(self):
         """1 リクエストで何百回も移調させられないようにしてある。"""
         many = ','.join(str(n) for n in range(40))
 
-        assert self.fetch(f'{ZIP_URL}/holy.mid?t={many}').code == 400
+        assert self.fetch(f'{ZIP_URL}/sample.mid?t={many}').code == 400
 
 
 class TestDownloadTransposedMidi(WebAppTestCase):
@@ -197,11 +197,11 @@ class TestDownloadTransposedMidi(WebAppTestCase):
     PORT = 10086
 
     def setup_files(self):
-        self.put_midi('holy.mid')
+        self.put_midi('sample.mid')
         self.put_midi('テスト曲.mid')
 
     def test_download_shifts_notes(self):
-        response = self.fetch(f'{URL}/holy.mid?t=4')
+        response = self.fetch(f'{URL}/sample.mid?t=4')
 
         assert response.code == 200
         assert notes_of(response.body) == [
@@ -209,10 +209,10 @@ class TestDownloadTransposedMidi(WebAppTestCase):
         ]
 
     def test_filename_has_semitones(self):
-        response = self.fetch(f'{URL}/holy.mid?t=-2')
+        response = self.fetch(f'{URL}/sample.mid?t=-2')
 
         assert response.code == 200
-        assert 'filename="holy.t-2.mid"' in response.headers[
+        assert 'filename="sample.t-2.mid"' in response.headers[
             'Content-Disposition'
         ]
 
@@ -220,7 +220,7 @@ class TestDownloadTransposedMidi(WebAppTestCase):
         """作った MIDI は置き場に残さない（TODO-042）。"""
         before = self.names('midi')
 
-        self.fetch(f'{URL}/holy.mid?t=4')
+        self.fetch(f'{URL}/sample.mid?t=4')
 
         assert self.names('midi') == before
         assert self.names('svg') == []
@@ -235,9 +235,9 @@ class TestDownloadTransposedMidi(WebAppTestCase):
         assert self.fetch(f'{URL}/sub%2fx.mid?t=1').code == 400
 
     def test_bad_transpose_is_400(self):
-        assert self.fetch(f'{URL}/holy.mid?t=abc').code == 400
-        assert self.fetch(f'{URL}/holy.mid?t=1.5').code == 400
-        assert self.fetch(f'{URL}/holy.mid').code == 400
+        assert self.fetch(f'{URL}/sample.mid?t=abc').code == 400
+        assert self.fetch(f'{URL}/sample.mid?t=1.5').code == 400
+        assert self.fetch(f'{URL}/sample.mid').code == 400
 
     def test_unreadable_midi_is_400(self):
         (self.webroot / 'midi' / 'broken.mid').write_bytes(b'not midi')

@@ -9,6 +9,9 @@ tmp*
 *.midi
 *.mid
 *.MID
+# テスト用に合成した MIDI は成果物ではないので追跡する
+# （tests/data/make_midi.py が作る。TODO-081）
+!tests/data/*.mid
 
 ## Obsidian
 .obsidian/

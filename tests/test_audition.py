@@ -178,10 +178,10 @@ class TestAuditionMidi(WebAppTestCase):
     PORT = 10089
 
     def setup_files(self):
-        self.put_midi('holy.mid')
+        self.put_midi('sample.mid')
 
     def test_returns_midi(self):
-        response = self.fetch(f'{URL}/holy.mid?t=0&model={MODEL}')
+        response = self.fetch(f'{URL}/sample.mid?t=0&model={MODEL}')
 
         assert response.code == 200
         assert response.headers['Content-Type'] == 'audio/midi'
@@ -190,26 +190,26 @@ class TestAuditionMidi(WebAppTestCase):
 
     def test_no_content_disposition(self):
         """試聴のためのものなので、持ち帰らせない。"""
-        response = self.fetch(f'{URL}/holy.mid?t=0&model={MODEL}')
+        response = self.fetch(f'{URL}/sample.mid?t=0&model={MODEL}')
 
         assert 'Content-Disposition' not in response.headers
 
     def test_nothing_is_stored(self):
         before = self.names('midi')
 
-        self.fetch(f'{URL}/holy.mid?t=3&model={MODEL}')
+        self.fetch(f'{URL}/sample.mid?t=3&model={MODEL}')
 
         assert self.names('midi') == before
         assert self.names('svg') == []
 
     def test_bad_transpose_is_400(self):
-        assert self.fetch(f'{URL}/holy.mid?t=abc&model={MODEL}').code == 400
-        assert self.fetch(f'{URL}/holy.mid?t=1.5&model={MODEL}').code == 400
-        assert self.fetch(f'{URL}/holy.mid?model={MODEL}').code == 400
+        assert self.fetch(f'{URL}/sample.mid?t=abc&model={MODEL}').code == 400
+        assert self.fetch(f'{URL}/sample.mid?t=1.5&model={MODEL}').code == 400
+        assert self.fetch(f'{URL}/sample.mid?model={MODEL}').code == 400
 
     def test_unknown_model_is_400(self):
-        assert self.fetch(f'{URL}/holy.mid?t=0&model=nope').code == 400
-        assert self.fetch(f'{URL}/holy.mid?t=0').code == 400
+        assert self.fetch(f'{URL}/sample.mid?t=0&model=nope').code == 400
+        assert self.fetch(f'{URL}/sample.mid?t=0').code == 400
 
     def test_bad_name_is_400(self):
         # 素の '..' はクライアント側で畳まれて別のハンドラに届くので、

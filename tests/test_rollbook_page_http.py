@@ -6,8 +6,8 @@
 """
 import tornado.websocket
 
-from .conftest import TEST_URL_PREFIX
-from .webapp_base import REPO_ROOT, WebAppTestCase
+from .conftest import LONG_MIDI, SAMPLE_MIDI, TEST_URL_PREFIX
+from .webapp_base import WebAppTestCase
 
 
 class TestRollBookPage(WebAppTestCase):
@@ -29,11 +29,11 @@ class TestRollBookPage(WebAppTestCase):
         # Should contain the default message
         self.assertIn("MIDI ファイルを選んでください".encode(), response.body)
 
-    def _upload(self, fname='dummy.mid', overwrite=False, src='d-kaeru.mid',
+    def _upload(self, fname='dummy.mid', overwrite=False, src=LONG_MIDI,
                 reuse=False, model='34notes'):
         """MIDI を 1 本アップロードする（multipart を手で組み立てる）。"""
-        # 送る中身はリポジトリの実ファイルから読む。書き込む先は複製のほう
-        midi_data = (REPO_ROOT / 'webroot' / 'midi' / src).read_bytes()
+        # 送る中身は `tests/data/` の MIDI。書き込む先は複製のほう
+        midi_data = src.read_bytes()
 
         boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
         fields = f'--{boundary}\r\n' \
@@ -116,7 +116,7 @@ class TestRollBookPage(WebAppTestCase):
         before = (self.webroot / 'midi' / 'dummy.mid').read_bytes()
 
         # 同じ名前で別の中身を送る
-        response = self._upload(src='holy.mid')
+        response = self._upload(src=SAMPLE_MIDI)
 
         self.assertEqual(response.code, 200)
         self.assertIn("既にあります".encode(), response.body)
@@ -132,13 +132,13 @@ class TestRollBookPage(WebAppTestCase):
         """overwrite=1 なら置き換えて、新しい中身で作り直す。"""
         self.assertEqual(self._upload().code, 200)
 
-        response = self._upload(src='holy.mid', overwrite=True)
+        response = self._upload(src=SAMPLE_MIDI, overwrite=True)
 
         self.assertEqual(response.code, 200)
         self.assertIn(b"<svg ", response.body)
         self.assertEqual(
             (self.webroot / 'midi' / 'dummy.mid').read_bytes(),
-            (REPO_ROOT / 'webroot' / 'midi' / 'holy.mid').read_bytes(),
+            SAMPLE_MIDI.read_bytes(),
         )
 
     def test_download(self):
@@ -157,7 +157,7 @@ class TestRollBookPage(WebAppTestCase):
         before = (self.webroot / 'midi' / 'dummy.mid').read_bytes()
 
         # 同じ名前で別の中身を送るが、使うのは前回のほう
-        response = self._upload(src='holy.mid', reuse=True)
+        response = self._upload(src=SAMPLE_MIDI, reuse=True)
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="svgbox"', response.body)
@@ -191,10 +191,10 @@ class TestTransposeWorseMark(WebAppTestCase):
     PORT = 10088
 
     def setup_files(self):
-        self.put_midi('holy.mid')
+        self.put_midi('sample.mid')
 
     def _regenerate(self, transpose: int):
-        body = f'stored_midi=holy.mid&model=34notes&transpose={transpose}'
+        body = f'stored_midi=sample.mid&model=34notes&transpose={transpose}'
         return self.fetch(
             f'{TEST_URL_PREFIX}/', method='POST', body=body,
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
@@ -203,10 +203,10 @@ class TestTransposeWorseMark(WebAppTestCase):
     def test_current_row_below_zero_is_marked(self):
         """いまの移調量の行は、改善しなくても残る。そこに印が出る。
 
-        `holy.mid` を `34notes` で +1 すると、音符も音の長さも ±0 を
+        `sample.mid` を `34notes` で +2 すると、音符も音の長さも ±0 を
         下回る（それでも自分がどれを見ているか分かるように残している）。
         """
-        response = self._regenerate(1)
+        response = self._regenerate(2)
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'class="num is-worse"', response.body)

@@ -8,7 +8,8 @@ from urllib.parse import urljoin
 import pytest
 from playwright.sync_api import Page, expect
 
-from .conftest import REPO_ROOT, upload_midi
+from ..conftest import IN_SCALE_MIDI, LONG_MIDI, SAMPLE_MIDI
+from .conftest import upload_midi
 
 pytestmark = pytest.mark.browser
 
@@ -364,15 +365,15 @@ def test_transpose_table_is_capped_and_hidden_when_no_improvement(
 ) -> None:
     """候補は改善する 5 個 + ±0 に絞る。改善が無ければ表そのものを隠す（TODO-041）。
 
-    - `holy.mid` は '20notes a' で大きく改善するので、表は最大 6 行
+    - `sample.mid` は '20notes a' で大きく改善するので、表は最大 6 行
       （改善 5 ＋ ±0）に収まる
-    - `sounstest.mid` は '20notes a' でどう移調しても改善しないので、
-      表を出さず、注記の一文だけにする（1 行だけの表は選べそうに見える）
+    - `in-scale.mid` は '20notes a' の音階に全部の音があり、どう移調しても
+      改善しないので、表を出さず、注記の一文だけにする
+      （1 行だけの表は選べそうに見える）
     """
-    holy = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
     page.goto(f'{live_server}/')
     page.select_option('#model', '20notes a')
-    page.set_input_files('input[name="file1"]', str(holy))
+    page.set_input_files('input[name="file1"]', str(SAMPLE_MIDI))
     if page.locator('#same-name-modal').is_visible():
         page.click('#btn-same-replace')
     expect(page.locator('#svgbox svg')).to_be_visible()
@@ -380,10 +381,9 @@ def test_transpose_table_is_capped_and_hidden_when_no_improvement(
     rows = page.locator('#transpose-table tbody tr')
     expect(rows).to_have_count(6)   # 改善 5 個 + ±0
 
-    sounstest = REPO_ROOT / 'webroot' / 'midi' / 'sounstest.mid'
     page.goto(f'{live_server}/')
     page.select_option('#model', '20notes a')
-    page.set_input_files('input[name="file1"]', str(sounstest))
+    page.set_input_files('input[name="file1"]', str(IN_SCALE_MIDI))
     if page.locator('#same-name-modal').is_visible():
         page.click('#btn-same-replace')
     expect(page.locator('#svgbox svg')).to_be_visible()
@@ -461,14 +461,18 @@ def test_broken_upload_is_not_kept(
 
 
 def test_upload_over_size_limit_is_stopped_before_sending(
-    small_limit_server: str, page: Page, sample_midi: Path
+    small_limit_server: str, page: Page, tmp_path: Path
 ) -> None:
     """上限を超えるファイルは、送る前に止めて理由を出す。
 
     送ってしまうと tornado が本文を読まずに接続を切るので、ブラウザには
     真っ白なページが残る（実際そうなっていた）。
+
+    **大きさだけが問題なので、中身は MIDI でなくてよい**（送る前に
+    止まるため、サーバーは受け取らない）。
     """
-    assert sample_midi.stat().st_size > 4096
+    big = tmp_path / 'too-big.mid'
+    big.write_bytes(b'x' * 5000)
 
     page.goto(f'{small_limit_server}/')
     # size_limit がそのまま画面の案内になっている
@@ -479,7 +483,7 @@ def test_upload_over_size_limit_is_stopped_before_sending(
         sent.append(r.url) if r.method == 'POST' else None
     ))
 
-    upload_midi(page, small_limit_server, sample_midi, wait_result=False)
+    upload_midi(page, small_limit_server, big, wait_result=False)
 
     status = page.locator('#drop-status')
     expect(status).to_contain_text('大きすぎます')
@@ -503,8 +507,8 @@ def test_same_name_replaces_after_confirming(
     かつては送られてきた中身を捨てて古いほうを解析していたので、
     **成功したように見えて前回の結果が返っていた**。
     """
-    short = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
-    long = REPO_ROOT / 'webroot' / 'midi' / 'd-kaeru.mid'
+    short = SAMPLE_MIDI
+    long = LONG_MIDI
     same = tmp_path / 'replace-me.mid'
 
     page.goto(f'{live_server}/')
@@ -528,7 +532,7 @@ def test_same_name_cancelled_sends_nothing(
     live_server: str, page: Page, tmp_path: Path
 ) -> None:
     """置き換えないと答えたら、送らずにその場で止まる。"""
-    midi = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+    midi = SAMPLE_MIDI
     same = tmp_path / 'keep-me.mid'
     same.write_bytes(midi.read_bytes())
 
@@ -560,8 +564,8 @@ def test_same_name_reuse_shows_the_previous_file(
 
     どちらのボタンでも変換はする。違うのは使うファイルだけ。
     """
-    first = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
-    second = REPO_ROOT / 'webroot' / 'midi' / 'd-kaeru.mid'
+    first = SAMPLE_MIDI
+    second = LONG_MIDI
     same = tmp_path / 'reuse-me.mid'
 
     page.goto(f'{live_server}/')
@@ -598,7 +602,7 @@ def test_same_name_dialog_closed_by_esc_is_a_cancel(
     live_server: str, page: Page, tmp_path: Path
 ) -> None:
     """ESC で閉じた場合も、キャンセルと同じ（送らない）。"""
-    midi = REPO_ROOT / 'webroot' / 'midi' / 'holy.mid'
+    midi = SAMPLE_MIDI
     same = tmp_path / 'esc-me.mid'
     same.write_bytes(midi.read_bytes())
 

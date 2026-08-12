@@ -2,7 +2,7 @@
 
 `tests/` 配下を触るときだけ読み込まれる（ルートの `CLAUDE.md` は常時読み込み）。
 
-**守ること 3 つ。** 使い方の詳細と、ブラウザテストの走らせ方は
+**守ること 4 つ。** 使い方の詳細と、ブラウザテストの走らせ方は
 `docs/Developer.md`「テストを書くときの注意」にある。
 
 1. **`tests/conftest.py` の `isolate_user_config` は消さないこと。**
@@ -16,3 +16,7 @@
 3. **ブラウザテストのアップロードは `tests/browser/conftest.py` の
    `upload_midi()` を使う。** 生成結果を待たずに次へ進むと、書き終える
    前に履歴を読みにいって落ちる
+4. **中身のある MIDI は `tests/data/` のものを使う**（`tests/conftest.py` の
+   `SAMPLE_MIDI` / `LONG_MIDI` / `IN_SCALE_MIDI`）。**`webroot/midi/` から
+   読まないこと。** 追跡していないので、クローン直後に落ちる（TODO-081）。
+   何を試している MIDI かと作り直し方は `tests/data/make_midi.py` にある

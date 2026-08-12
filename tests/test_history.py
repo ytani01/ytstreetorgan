@@ -16,13 +16,13 @@ class HistoryTestBase(WebAppTestCase):
     PORT = 10084
 
     def setup_files(self):
-        self.put_midi('holy.mid')
+        self.put_midi('sample.mid')
         (self.webroot / 'midi' / 'other.mid').write_bytes(b'not midi')
         # 名前の扱い（L）を確かめるためのもの
         self.put_midi('テスト曲.mid')
         self.put_midi('a b.mid')
         # 諸元の属性が無い、古い形の SVG
-        (self.webroot / 'svg' / 'holy.mid.svg').write_text(
+        (self.webroot / 'svg' / 'sample.mid.svg').write_text(
             '<svg xmlns="http://www.w3.org/2000/svg"'
             ' width="2089.30mm" height="126.00mm"'
             ' viewBox="-2089.30 -126.00 2089.30 126.00"></svg>\n',
@@ -42,20 +42,20 @@ class TestHistoryPage(HistoryTestBase):
         response = self.fetch(f'{TEST_URL_PREFIX}/history')
 
         self.assertEqual(response.code, 200)
-        self.assertIn(b'holy.mid', response.body)
-        self.assertIn(b'holy.mid.svg', response.body)
+        self.assertIn(b'sample.mid', response.body)
+        self.assertIn(b'sample.mid.svg', response.body)
         # ダウンロードのリンクが両方ある
         self.assertIn(
-            f'{TEST_URL_PREFIX}/download/midi/holy.mid'.encode(), response.body
+            f'{TEST_URL_PREFIX}/download/midi/sample.mid'.encode(), response.body
         )
         self.assertIn(
-            f'{TEST_URL_PREFIX}/download/holy.mid.svg'.encode(), response.body
+            f'{TEST_URL_PREFIX}/download/sample.mid.svg'.encode(), response.body
         )
 
 
 class TestHistoryDelete(HistoryTestBase):
     def test_delete_one(self):
-        response = self.delete(kind='svg', name='holy.mid.svg')
+        response = self.delete(kind='svg', name='sample.mid.svg')
 
         self.assertEqual(response.code, 200)
         body = json.loads(response.body)
@@ -63,7 +63,7 @@ class TestHistoryDelete(HistoryTestBase):
         self.assertEqual(body['removed'], 1)
         self.assertEqual(self.names('svg'), [])
         # MIDI のほうは残っている
-        self.assertIn('holy.mid', self.names('midi'))
+        self.assertIn('sample.mid', self.names('midi'))
 
     def test_delete_all(self):
         before = len(self.names('midi'))
@@ -73,7 +73,7 @@ class TestHistoryDelete(HistoryTestBase):
         body = json.loads(response.body)
         self.assertEqual(body['removed'], before)
         self.assertEqual(self.names('midi'), [])
-        self.assertEqual(self.names('svg'), ['holy.mid.svg'])
+        self.assertEqual(self.names('svg'), ['sample.mid.svg'])
 
     def test_delete_missing_is_404(self):
         response = self.delete(kind='svg', name='nope.svg')
@@ -115,9 +115,9 @@ class TestHistoryActions(HistoryTestBase):
 
     def test_show_stored_svg(self):
         """保存済みの SVG をそのまま出す。生成し直さない。"""
-        before = (self.webroot / 'svg' / 'holy.mid.svg').stat().st_mtime_ns
+        before = (self.webroot / 'svg' / 'sample.mid.svg').stat().st_mtime_ns
 
-        response = self._post_root(stored_svg='holy.mid.svg', model='34notes')
+        response = self._post_root(stored_svg='sample.mid.svg', model='34notes')
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="svgbox"', response.body)
@@ -128,7 +128,7 @@ class TestHistoryActions(HistoryTestBase):
         self.assertIn(b'---', response.body)
         # 触っていない
         self.assertEqual(
-            (self.webroot / 'svg' / 'holy.mid.svg').stat().st_mtime_ns, before
+            (self.webroot / 'svg' / 'sample.mid.svg').stat().st_mtime_ns, before
         )
 
     def test_show_missing_svg(self):
@@ -148,10 +148,10 @@ class TestHistoryActions(HistoryTestBase):
 
     def test_regenerate_from_stored_midi(self):
         """保存済みの MIDI から作り直す。SVG が新しくなる。"""
-        svg = self.webroot / 'svg' / 'holy.mid.svg'
+        svg = self.webroot / 'svg' / 'sample.mid.svg'
         before = svg.read_text(encoding='utf-8')
 
-        response = self._post_root(stored_midi='holy.mid', model='34notes')
+        response = self._post_root(stored_midi='sample.mid', model='34notes')
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'id="svgbox"', response.body)
@@ -170,15 +170,15 @@ class TestHistoryActions(HistoryTestBase):
 
 class TestDownload(HistoryTestBase):
     def test_download_midi(self):
-        response = self.fetch(f'{TEST_URL_PREFIX}/download/midi/holy.mid')
+        response = self.fetch(f'{TEST_URL_PREFIX}/download/midi/sample.mid')
 
         self.assertEqual(response.code, 200)
         self.assertEqual(
-            response.body, (self.webroot / 'midi' / 'holy.mid').read_bytes()
+            response.body, (self.webroot / 'midi' / 'sample.mid').read_bytes()
         )
 
     def test_download_svg(self):
-        response = self.fetch(f'{TEST_URL_PREFIX}/download/holy.mid.svg')
+        response = self.fetch(f'{TEST_URL_PREFIX}/download/sample.mid.svg')
 
         self.assertEqual(response.code, 200)
         self.assertIn(b'<svg', response.body)
@@ -202,7 +202,7 @@ class TestDownload(HistoryTestBase):
 
         self.assertEqual(response.code, 200)
         self.assertEqual(
-            response.body, (self.webroot / 'midi' / 'holy.mid').read_bytes()
+            response.body, (self.webroot / 'midi' / 'sample.mid').read_bytes()
         )
 
         cd = response.headers['Content-Disposition']

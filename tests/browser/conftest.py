@@ -22,7 +22,7 @@ from playwright.sync_api import expect
 from ytstreetorgan.conf import Conf
 from ytstreetorgan.webapp import WebServer
 
-from ..conftest import TEST_URL_PREFIX
+from ..conftest import LONG_MIDI, TEST_URL_PREFIX
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -92,8 +92,12 @@ def _start_server(tmp: Path, **kwargs) -> tuple[str, Callable[[], None]]:
 
 @pytest.fixture(scope='session')
 def sample_midi() -> Path:
-    """アップロードテスト用の実 MIDI ファイル。"""
-    return REPO_ROOT / 'webroot' / 'midi' / 'd-kaeru.mid'
+    """アップロードテスト用の MIDI（`tests/data/make_midi.py` が作る）。
+
+    **ビューアのテストがこれを使う**ので、高さを合わせた状態で横に
+    大きくはみ出すもの（全長 2350mm）を渡す。
+    """
+    return LONG_MIDI
 
 
 @pytest.fixture(scope='session')

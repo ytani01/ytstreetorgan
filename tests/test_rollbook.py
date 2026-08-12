@@ -29,6 +29,8 @@ from ytstreetorgan.transpose import (
     transpose_view,
 )
 
+from .conftest import LONG_MIDI, SAMPLE_MIDI
+
 # 移調のテスト用。C から 1 オクターブの、白鍵だけの機種
 DIATONIC_CONF = {
     'notes': [
@@ -140,15 +142,13 @@ def test_holeinfo_needs_every_field():
 
 def test_rollbook_parse_real_midi():
     # Verify that parse works with a real MIDI file (fixture)
-    midi_file = Path('webroot/midi/d-kaeru.mid')
-    if midi_file.exists():
-        rb = RollBook()
-        svg = rb.parse(midi_file)
-        assert '<svg ' in svg
-        assert '</svg>' in svg
-        # There should be some notes parsed
-        assert len(rb._holes) > 0
-        assert rb._width > 0
+    rb = RollBook()
+    svg = rb.parse(LONG_MIDI)
+    assert '<svg ' in svg
+    assert '</svg>' in svg
+    # There should be some notes parsed
+    assert len(rb._holes) > 0
+    assert rb._width > 0
 
 
 def test_rollbook_dimension_properties():
@@ -157,10 +157,6 @@ def test_rollbook_dimension_properties():
     width / height は SVG にも出るので、値が食い違わないこと。
     穴の数と mm_per_sec は SVG から取り出せない。
     """
-    midi_file = Path('webroot/midi/d-kaeru.mid')
-    if not midi_file.exists():
-        return
-
     rb = RollBook()
 
     # parse() する前は全長が決まらない
@@ -169,7 +165,7 @@ def test_rollbook_dimension_properties():
     assert rb.note_count == 0
     assert rb.hole_count == 0
 
-    svg = rb.parse(midi_file)
+    svg = rb.parse(LONG_MIDI)
 
     assert rb.width > 0
     assert rb.mm_per_sec > 0
@@ -207,15 +203,11 @@ def test_parse_twice_gives_the_same_book():
     かつては `_holes` を初期化せずに追加していたので、2 回目は穴が二重に
     なり、`_width` も `max()` で伸びたままだった。
     """
-    midi_file = Path('webroot/midi/d-kaeru.mid')
-    if not midi_file.exists():
-        return
-
     rb = RollBook('34notes')
-    first = rb.parse(midi_file)
+    first = rb.parse(LONG_MIDI)
     counts = (rb.width, rb.note_count, rb.hole_count, rb.off_scale_count)
 
-    second = rb.parse(midi_file)
+    second = rb.parse(LONG_MIDI)
 
     assert (rb.width, rb.note_count, rb.hole_count, rb.off_scale_count) == counts
     assert second == first
@@ -226,12 +218,8 @@ def test_hole_counts_are_split_into_solid_and_dashed():
 
     合計と、実際に描かれる `<path>` の数が合うこと。
     """
-    midi_file = Path('webroot/midi/d-kaeru.mid')
-    if not midi_file.exists():
-        return
-
     rb = RollBook('34notes')
-    svg = rb.parse(midi_file)
+    svg = rb.parse(LONG_MIDI)
 
     # 音符は実線と破線に分かれる
     assert rb.hole_note_count + rb.off_scale_note_count == rb.note_count
@@ -250,12 +238,8 @@ def test_hole_counts_are_split_into_solid_and_dashed():
 
 def test_hole_count_counts_only_the_solid_ones():
     """穴の数は実線だけ。破線は音階に無い音なので穴を開けない。"""
-    midi_file = Path('webroot/midi/d-kaeru.mid')
-    if not midi_file.exists():
-        return
-
     rb = RollBook('34notes')
-    rb.parse(midi_file)
+    rb.parse(LONG_MIDI)
 
     solid = [h for h in rb._holes if h.scale >= 0]
     assert rb.hole_note_count == len(solid)
@@ -269,14 +253,10 @@ def test_hole_count_grows_when_holes_are_divided_more():
     `bridge_threshold`（50.0 と 2.7）だけ。**音符の数は変わらないのに
     穴の数だけ増える**ので、SVG から逆算できないことがこれで分かる。
     """
-    midi_file = Path('webroot/midi/d-kaeru.mid')
-    if not midi_file.exists():
-        return
-
     coarse = RollBook('20notes')      # bridge_threshold = 50.0
-    coarse.parse(midi_file)
+    coarse.parse(LONG_MIDI)
     fine = RollBook('20notes a')      # bridge_threshold = 2.7
-    fine.parse(midi_file)
+    fine.parse(LONG_MIDI)
 
     # 音符の数は同じ
     assert coarse.note_count == fine.note_count
@@ -725,42 +705,30 @@ def test_transpose_view_notices_come_from_the_rows_on_screen():
 
 def test_rollbook_applies_the_transpose():
     """`transpose` を渡すと、その半音数だけずれた穴になる。"""
-    midi_file = Path('webroot/midi/holy.mid')
-    if not midi_file.exists():
-        return
-
     plain = RollBook('20notes a')
-    plain.parse(midi_file)
+    plain.parse(SAMPLE_MIDI)
 
-    shifted = RollBook('20notes a', transpose=-24)
-    svg = shifted.parse(midi_file)
+    shifted = RollBook('20notes a', transpose=-1)
+    svg = shifted.parse(SAMPLE_MIDI)
 
-    assert shifted.transpose == -24
+    assert shifted.transpose == -1
     assert shifted.hole_note_count > plain.hole_note_count
-    assert 'data-storgan-transpose="-24"' in svg
+    assert 'data-storgan-transpose="-1"' in svg
 
 
 def test_rollbook_auto_picks_the_best_candidate():
     """`'auto'` は候補の 1 位を採り、`transpose` に実際の値が入る。"""
-    midi_file = Path('webroot/midi/holy.mid')
-    if not midi_file.exists():
-        return
-
     rb = RollBook('20notes a', transpose='auto')
-    rb.parse(midi_file)
+    rb.parse(SAMPLE_MIDI)
 
     assert rb.transpose == rb.candidates[0]['transpose']
-    assert rb.transpose == -24   # 調そのままで 2 オクターブ下
+    assert rb.transpose == -1   # 半音 1 つ下げると C 長調に収まる
 
 
 def test_rollbook_makes_candidates_even_without_transposing():
     """移調しなくても候補は作る。**選び直せるように見せるのが目的。**"""
-    midi_file = Path('webroot/midi/holy.mid')
-    if not midi_file.exists():
-        return
-
     rb = RollBook('20notes a')
-    rb.parse(midi_file)
+    rb.parse(SAMPLE_MIDI)
 
     assert rb.transpose == 0
     # 改善する候補は上位 5 個まで（TODO-041）＋ いまの ±0 で 6 個
@@ -775,13 +743,9 @@ def test_rollbook_candidates_always_include_zero_and_current():
     しか返さないので、`±0` は並ばないことが多い。**無いと、一度移調したら
     元に戻せない。**
     """
-    midi_file = Path('webroot/midi/holy.mid')
-    if not midi_file.exists():
-        return
-
     for t in (0, -24, -3):
         rb = RollBook('20notes a', transpose=t)
-        rb.parse(midi_file)
+        rb.parse(SAMPLE_MIDI)
 
         got = [c['transpose'] for c in rb.candidates]
         assert t in got, f'いまの値 {t} が表に無い'

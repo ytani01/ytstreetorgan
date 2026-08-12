@@ -167,10 +167,10 @@ class TestContentDisposition:
     """ヘッダは latin-1 しか通らない。名前をそのまま入れると 500 になる。"""
 
     def test_ascii_name_is_quoted(self):
-        value = content_disposition('holy.mid')
+        value = content_disposition('sample.mid')
 
-        assert 'filename="holy.mid"' in value
-        assert "filename*=UTF-8''holy.mid" in value
+        assert 'filename="sample.mid"' in value
+        assert "filename*=UTF-8''sample.mid" in value
 
     def test_space_is_kept_inside_the_quotes(self):
         assert 'filename="a b.mid"' in content_disposition('a b.mid')
@@ -209,17 +209,13 @@ class TestBookFromSvgMatchesRollBook:
     """
 
     def test_round_trip(self):
-        from pathlib import Path
-
         from ytstreetorgan.rollbook import RollBook
 
-        midi = Path('webroot/midi/d-kaeru.mid')
-        if not midi.exists():
-            return
+        from .conftest import LONG_MIDI
 
         for model in ('34notes', '20notes a'):
             rb = RollBook(model)
-            svg = rb.parse(midi)
+            svg = rb.parse(LONG_MIDI)
 
             book = book_from_svg(svg)
 
