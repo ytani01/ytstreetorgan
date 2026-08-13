@@ -1,11 +1,43 @@
 # = TODO
 
-更新: 2026-08-14（TODO-086 を決着）
+更新: 2026-08-14（TODO-087 を追加）
 
-- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-087` から。**
+- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-088` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
 
 ## == 着手前 / 検討中
+
+## TODO-087. ドキュメントと実装の食い違いを直す
+
+Sonnet / effort medium（文書だけの修正。5 は 1 行、6 だけ判断が要る）。
+
+- [ ] 1. `docs/Developer.md` のテスト件数を実測に合わせる（297 / 49 / 346 → **303 / 49 / 352**）
+- [ ] 2. `CLAUDE.md` の `long-notes.mid` の分割後の数を直す（`20notes a` が **608 → 677**。音符 69・実線 68・`20notes` の 76 は合っている）
+- [ ] 3. `CLAUDE.md` のモジュール依存図に `storage.py` と `utils.py` を入れる
+- [ ] 4. `CLAUDE.md` が参照する `docs/Developer.md` の見出し名を直す（「コミット前に通すもの」→「一括で回す」）
+- [ ] 5. `TODO.md` の TODO-064 のリンクを直す（`(国際標準)` を `%28` / `%29` にする）
+- [ ] 6. `docs/multi_agent_token_savings.md` をどうするか決める
+
+全体を突き合わせて出てきたもの。1〜5 は事実の書き換えだけで済む。
+
+3 は、図が
+`conf.py → transpose.py → rollbook.py → audition.py → base_handler.py` と
+書いてあるが、`base_handler.py` が import するのは `storage.py` で
+`audition.py` ではない（`audition.py` を import するのは `download.py`）。
+`storage.py → rollbook.py`、`handler1.py → utils.py` も図に出ていない。
+
+5 は、他の行は `%20` にしてあるのにこの行だけファイル名中の括弧が素のままで、
+Markdown では `音名(国際標準` までしか URL にならない。TODO-066 で
+アーカイブのファイル名を直したときの取りこぼし。
+
+**6 は決めること。** Gemini CLI の `define_subagent` / `invoke_subagent` を
+前提に書かれていて、モデル名も Claude 3.5 Haiku / 3.7 Sonnet / 3 Opus。
+件数は「pytest 236 件 + ブラウザテスト 42 件」、`CLAUDE.md` のサイズも
+「約 19KB」（実際は 23KB）。**実装との食い違いというより、文書ごと現状に
+合っていない。** 現行の運用（サブエージェントの編成は `~/.claude/CLAUDE.md`
+に書いてある）と重なるので、更新するか、TODO-080 で
+`docs/routine_verification_subagents.md` を削除したのと同じように
+消してしまうかを決める。
 
 ---
 
