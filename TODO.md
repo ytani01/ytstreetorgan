@@ -1,11 +1,41 @@
 # = TODO
 
-更新: 2026-08-13（TODO-085 を決着）
+更新: 2026-08-14（TODO-086 を追加）
 
-- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-086` から。**
+- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-087` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
 
 ## == 着手前 / 検討中
+
+## TODO-086. `mylog.py` を差し替え、呼び出し側を `getLogger` に移行する
+
+- [ ] `mylog-new.py` の内容で `mylog.py` を置き換え、`mylog-new.py` を削除する
+- [ ] クラスのあるモジュールは、クラス本体に `__log = getLogger(__qualname__)` を置く
+- [ ] クラスの無いモジュール（`__main__.py` など）は、モジュール先頭に `_log = getLogger(...)` を置く
+- [ ] `from loguru import logger` の直接 import を `src/` から無くす
+- [ ] `tests/test_mylog.py` に `getLogger()` / `setLevel()` のテストを足す
+- [ ] `docs/tech-stack.md` の「ロギング設計」と `CLAUDE.md` の「ロギング」を書き直す
+- [ ] `pytest` / `ruff` / `mypy` を通す
+
+`mylog-new.py` は名前ごとにログの水準を持てる版。`logger.bind(log_name=...)`
+で名前を付け、`logger.add(level=0, filter=_filter)` の `_filter()` が
+名前ごとの水準（`_levels`）と突き合わせる。`getLogger(name, level)` /
+`setLevel(name, level)` で、コードから名前ごとに切り替えられる。
+
+既存の API（`LOG_FMT` / `logLevel` / `loggerInit` / `exmsg`）はそのまま
+残っているので、差し替えだけなら呼び出し側は無変更でも動く（`log_name`
+が無い＝既定水準で判定される）。**が、それでは名前を付けた意味が無い**
+ので、呼び出し側も移行する。
+
+対象は `src/` の 15 ファイル、`logger.` の呼び出しが 100 か所ほど。
+クラスの外にある関数（`audition.py` / `transpose.py` / `storage.py`）を
+どの名前に紐づけるかは、実物を見て決める。
+
+サブエージェント（Agent Team）は編成しない。複数のファイルにまたがるが、
+判断が一貫している書き換えで、分担するとメンバーごとに `mylog` の設計と
+命名の決めごとを読み直すぶん高くつく。
+
+モデル: Opus / effort medium
 
 ---
 
