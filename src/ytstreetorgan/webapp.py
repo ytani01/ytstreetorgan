@@ -6,7 +6,6 @@ from pathlib import Path
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
-from loguru import logger
 
 from . import __version__
 from .conf import Conf
@@ -20,7 +19,7 @@ from .download import (
 from .handler1 import Handler1
 from .history import HistoryHandler
 from .livereload import LiveReloadHandler, watch_webroot
-from .mylog import exmsg
+from .mylog import exmsg, getLogger
 
 
 class WebServer:
@@ -28,6 +27,9 @@ class WebServer:
 
     URL のプレフィックスは :data:`URL_PREFIX`（既定 `/storgan2`）。
     """
+
+    __log = getLogger(__qualname__)
+
     DEF_PORT = 10081
 
     DEF_WEBROOT = './webroot'
@@ -62,11 +64,11 @@ class WebServer:
                 autoreload の監視対象にする）。
         """
         # loggerInit(debug)
-        logger.debug(
+        self.__log.debug(
             'port={}, urlprefix={}, webroot={}, workdir={}, size_limit={}',
             port, urlprefix, webroot, workdir, size_limit
         )
-        logger.debug('version={}', version)
+        self.__log.debug('version={}', version)
 
         self._port = port
         self._urlprefix = urlprefix
@@ -80,12 +82,12 @@ class WebServer:
         # 機種の一覧は各ハンドラがその都度読み直すので、app.settings には
         # 載せない。載せていた頃は誰も読まないうえ、機種を足しても
         # 起動時の値のままだった。
-        logger.info('models={}', Conf().models)
+        self.__log.info('models={}', Conf().models)
 
         try:
             self._workdir.mkdir(parents=True, exist_ok=True)
         except Exception as ex:
-            logger.error(exmsg(ex))
+            self.__log.error(exmsg(ex))
             raise ex
 
         # 形を揃える。`/config.*` は `/configXYZ` まで拾っていた
@@ -162,7 +164,7 @@ class WebServer:
 
     def main(self):
         """待ち受けを始めて、イベントループを回す（戻らない）。"""
-        logger.debug('')
+        self.__log.debug('')
 
         self._svr.listen(self._port)
 
@@ -172,8 +174,8 @@ class WebServer:
         # 出したいのと、file:line が付くと URL だけの行にならないため。
         print(f'\n  {self.url}\n', flush=True)
 
-        logger.info('start server: run forever ..')
+        self.__log.info('start server: run forever ..')
 
         tornado.ioloop.IOLoop.current().start()
 
-        logger.debug('done')
+        self.__log.debug('done')

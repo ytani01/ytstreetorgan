@@ -10,10 +10,10 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-from loguru import logger
 from ytmidilib import NoteInfo, Player, mk_visual, parse, print_visual
 
 from .conf import ValidModelConf, load_model_conf
+from .mylog import getLogger
 from .rollbook import RollBook, merge_overlapping_notes, note2scale
 from .transpose import (
     TransposeCandidate,
@@ -97,6 +97,9 @@ class RollBookApp:
     Attributes:
         DEF_OUT_DIR: `-o` を省略したときの出力先。
     """
+
+    __log = getLogger(__qualname__)
+
     DEF_OUT_DIR = '~/Desktop'
 
     def __init__(
@@ -122,11 +125,11 @@ class RollBookApp:
             version と debug は受け取っていたが使っていなかったので外した
             （ログの初期化は `__main__` の `loggerInit()` が済ませている）。
         """
-        logger.debug('midi_file={}, conf_file={}', midi_file, conf_file)
-        logger.debug('model_name={}', model_name)
-        logger.debug('channel={}', channel)
-        logger.debug('out_file={}', out_file)
-        logger.debug('transpose={}', transpose)
+        self.__log.debug('midi_file={}, conf_file={}', midi_file, conf_file)
+        self.__log.debug('model_name={}', model_name)
+        self.__log.debug('channel={}', channel)
+        self.__log.debug('out_file={}', out_file)
+        self.__log.debug('transpose={}', transpose)
 
         self._midi_file = midi_file
         self._conf_file = conf_file
@@ -141,7 +144,7 @@ class RollBookApp:
             # 未指定なら DEF_OUT_DIR に <MIDIファイル名>.svg で出す
             name = Path(f'{self._midi_file}.svg').name
             self._out_file = str((Path(self.DEF_OUT_DIR) / name).expanduser())
-        logger.debug('[fix] out_file={}', self._out_file)
+        self.__log.debug('[fix] out_file={}', self._out_file)
 
         self._rollbook = RollBook(
             self._model_name, self._conf_file, self._transpose
@@ -153,7 +156,7 @@ class RollBookApp:
         移調の候補は**指定の有無によらず**出す。1 つに定まらないことが
         多いので、選び直せるように見せておく（TODO-039）。
         """
-        logger.debug('')
+        self.__log.debug('')
 
         self._rollbook.parse_to_file(
             self._midi_file, self._out_file, self._channel
@@ -171,6 +174,9 @@ class RollBookApp:
 
 class MidiApp:
     """`parse` と `play` コマンド。MIDI を解析して、表示または再生する。"""
+
+    __log = getLogger(__qualname__)
+
     def __init__(self, midi_file: str,
                  channel: Sequence[int] = (),
                  parse_only: bool = False,
@@ -212,13 +218,13 @@ class MidiApp:
             渡しても水準は変わらなくなったので外した（TODO-058。
             `RollBookApp` と同じ理由）。
         """
-        logger.debug('midi_file={}, channel={}', midi_file, channel)
-        logger.debug('parse_only={}, visual_flag={}', parse_only, visual_flag)
-        logger.debug('rate={}', rate)
-        logger.debug('sec_min/max={}/{}', sec_min, sec_max)
-        logger.debug('pos_sec={}', pos_sec)
-        logger.debug('model_name={}, conf_file={}', model_name, conf_file)
-        logger.debug('transpose={}', transpose)
+        self.__log.debug('midi_file={}, channel={}', midi_file, channel)
+        self.__log.debug('parse_only={}, visual_flag={}', parse_only, visual_flag)
+        self.__log.debug('rate={}', rate)
+        self.__log.debug('sec_min/max={}/{}', sec_min, sec_max)
+        self.__log.debug('pos_sec={}', pos_sec)
+        self.__log.debug('model_name={}, conf_file={}', model_name, conf_file)
+        self.__log.debug('transpose={}', transpose)
 
         self._midi_file = midi_file
         self._channel = list(channel)
@@ -283,13 +289,13 @@ class MidiApp:
         # **どう変換したのかを INFO で残す。** 候補の表は `parse` だけなので、
         # `play` ではこれが唯一の手がかりになる
         if self._chosen is not None:
-            logger.info(
+            self.__log.info(
                 transpose_summary(
                     self._chosen, self._model_name or '',
                     self._transpose_req == 'auto',
                 )
             )
-        logger.debug(
+        self.__log.debug(
             '{} -> {} (merge) -> {} (transpose={:+d}, scale)',
             len(note_info), len(merged), len(converted), self._transpose
         )
@@ -297,7 +303,7 @@ class MidiApp:
 
     def main(self) -> None:
         """解析し、必要なら図にして出し、`parse_only` でなければ再生する。"""
-        logger.debug('')
+        self.__log.debug('')
 
         parsed_data = parse(self._midi_file, self._channel)
 
@@ -326,7 +332,7 @@ class MidiApp:
                 print(f'({i:4d}) {data}', flush=True)
         else:
             for i, data in enumerate(parsed_data['note_info']):
-                logger.debug('({:4d}) {}', i, data)
+                self.__log.debug('({:4d}) {}', i, data)
 
         print('channel_set=', parsed_data['channel_set'], flush=True)
 

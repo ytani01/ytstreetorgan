@@ -5,8 +5,6 @@
 import os
 from importlib.metadata import PackageNotFoundError, version
 
-from loguru import logger
-
 # pygame は import されるだけでバナーを出す。`ytmidilib.Player` 経由で
 # 必ず読み込まれるので、**その前に**黙らせる（ytmidilib 0.1.0 の回答書。
 # ライブラリ側からは触らない方針なので、利用側でやる）。
@@ -27,7 +25,7 @@ else:
     __version__ = "_._._"
 
 from .conf import Conf
-from .mylog import exmsg, loggerInit
+from .mylog import exmsg, getLogger, loggerInit
 from .rollbook import RollBook
 from .webapp import WebServer
 
@@ -35,7 +33,7 @@ __all__ = [
     "__author__",
     "__copyright_year__",
     "__version__",
-    "logger",
+    "getLogger",
     "Conf",
     "loggerInit",
     "exmsg",

@@ -22,10 +22,12 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal, NamedTuple, TypedDict
 
-from loguru import logger
 from ytmidilib import NoteInfo, transpose_file
 
 from .conf import ValidModelConf, note_name_to_midi
+from .mylog import getLogger
+
+_log = getLogger('transpose')
 
 
 def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
@@ -62,8 +64,8 @@ def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
         transpose_file(f, buf, semitones, clip=True)
 
     data = buf.getvalue()
-    logger.debug('src={}, semitones={}, len(data)={}',
-                 src, semitones, len(data))
+    _log.debug('src={}, semitones={}, len(data)={}',
+               src, semitones, len(data))
     return data
 
 
@@ -107,8 +109,8 @@ def transposed_midi_zip_bytes(
             )
 
     data = buf.getvalue()
-    logger.debug('src={}, semitones_list={}, len(data)={}',
-                 src, list(semitones_list), len(data))
+    _log.debug('src={}, semitones_list={}, len(data)={}',
+               src, list(semitones_list), len(data))
     return data
 
 
@@ -683,7 +685,7 @@ def plan_transpose(
     if requested == 'auto':
         # 1 位を採る。候補が空（音符 0 個）なら移調しない
         transpose = raw_candidates[0]['transpose'] if raw_candidates else 0
-        logger.info('transpose=auto -> {}', transpose)
+        _log.info('transpose=auto -> {}', transpose)
     else:
         transpose = requested
 

@@ -20,10 +20,12 @@
 import io
 from pathlib import Path
 
-from loguru import logger
 from ytmidilib import NoteInfo, write
 
+from .mylog import getLogger
 from .rollbook import RollBook
+
+_log = getLogger('audition')
 
 # 鳴らすチャンネル。**必ず 0 に揃える。** ブラウザ側の再生に使う Magenta
 # は channel 9 をドラムとして扱い、合成ドラムの音で鳴らすため、元の MIDI の
@@ -78,7 +80,7 @@ def playable_midi_bytes(
     write(buf, note_info)
     data = buf.getvalue()
 
-    logger.debug(
+    _log.debug(
         'src={}, model={}, semitones={}, notes={}, len(data)={}',
         src, model, semitones, len(note_info), len(data)
     )

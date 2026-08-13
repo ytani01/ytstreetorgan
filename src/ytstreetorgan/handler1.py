@@ -12,11 +12,9 @@
 """
 from pathlib import Path
 
-from loguru import logger
-
 from .base_handler import StorganBaseHandler
 from .conf import Conf
-from .mylog import exmsg
+from .mylog import exmsg, getLogger
 from .rollbook import RollBook
 from .storage import (
     UNKNOWN,
@@ -36,6 +34,9 @@ class Handler1(StorganBaseHandler):
     MIDI のアップロード → SVG 生成 → プレビュー。履歴からの
     再生成（`stored_midi`）と再表示（`stored_svg`）もここが受ける。
     """
+
+    __log = getLogger(__qualname__)
+
     TITLE = 'Street Organ Roll Book Maker'
 
     HTML_FILE = 'storgan.html'
@@ -53,7 +54,7 @@ class Handler1(StorganBaseHandler):
 
         super().__init__(app, req, **kwargs)
 
-        logger.debug(
+        self.__log.debug(
             "conf_file={}, model_name={}", self._conf_file, self._model_name
         )
 
@@ -68,7 +69,7 @@ class Handler1(StorganBaseHandler):
 
         末尾のスラッシュが無ければ、付けた URL へリダイレクトする。
         """
-        logger.debug('uri={}', self.request.uri)
+        self.__log.debug('uri={}', self.request.uri)
 
         if self.request.uri != self._url_path:
             self.redirect(self._url_path, permanent=True)
@@ -178,7 +179,7 @@ class Handler1(StorganBaseHandler):
         svg1_path = self._webroot / 'svg' / svg1_fname
 
         self._model = self.get_argument('model')
-        logger.debug('model=\'{}\'', self._model)
+        self.__log.debug('model=\'{}\'', self._model)
 
         rollbook = self._rollbook_of(
             self._model, self.get_argument('transpose', '0')
@@ -220,7 +221,7 @@ class Handler1(StorganBaseHandler):
         except Exception as e:
             # 捕まえないと tornado 既定の 500 ページに置き換わり、
             # 画面ごと失われて選び直すこともできなくなる。
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
 
             # 読めなかったものは残さない。残すと、次に同じ名前で正しい
             # ファイルを送るたびに「既にあります」と言われることになる。
@@ -231,7 +232,7 @@ class Handler1(StorganBaseHandler):
             )
             return
 
-        logger.debug('len(svg_data)={}', len(svg_data))
+        self.__log.debug('len(svg_data)={}', len(svg_data))
 
         self._render(
             svg_data=svg_data,
@@ -263,7 +264,7 @@ class Handler1(StorganBaseHandler):
         try:
             return RollBook(model, self._conf_file, transpose)
         except ValueError as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             self._render(msg=str(e), msg_error=True)
             return None
 
@@ -280,7 +281,7 @@ class Handler1(StorganBaseHandler):
         try:
             path = resolve_in(self._webroot / subdir, name)
         except ValueError as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             self._render(msg=f'{name} は開けません。', msg_error=True)
             return None
 
@@ -362,7 +363,7 @@ class Handler1(StorganBaseHandler):
         try:
             svg_data = rollbook.parse_to_file(midi_path, svg_path)
         except Exception as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             self._render(
                 msg=self.UNREADABLE_MSG.format(midi_path.name), msg_error=True
             )

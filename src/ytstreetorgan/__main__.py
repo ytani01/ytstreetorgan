@@ -7,15 +7,16 @@
 アプリクラスに任せる（テストしやすくするため）。
 """
 import click
-from loguru import logger
 from ytmidilib import Player
 
 from . import __version__
 from .apps import MidiApp, RollBookApp
 from .click_utils import click_common_opts
-from .mylog import loggerInit
+from .mylog import getLogger, loggerInit
 from .rollbook import RollBook
 from .webapp import WebServer
+
+_log = getLogger('main')
 
 """
 # click コマンド群
@@ -27,8 +28,8 @@ from .webapp import WebServer
 def cli(ctx, debug):
     """MIDI から手回しオルガン用のロールブックを作る。"""
     loggerInit(debug)
-    logger.debug(ctx)
-    logger.debug(debug)
+    _log.debug(ctx)
+    _log.debug(debug)
 
     subcmd = ctx.invoked_subcommand
 
@@ -58,14 +59,14 @@ def cli(ctx, debug):
 def webapp(ctx, port, urlprefix, webroot, workdir, size_limit, debug):
     """Web サーバーを起動する（--debug でブラウザの live reload も有効）。"""
     loggerInit(debug)
-    logger.debug('command={!r}', ctx.command.name)
-    logger.debug("__version__={}", __version__)
+    _log.debug('command={!r}', ctx.command.name)
+    _log.debug("__version__={}", __version__)
 
     app = WebServer(port, urlprefix, webroot, workdir, size_limit, debug=debug)
     try:
         app.main()
     finally:
-        logger.info('end')
+        _log.info('end')
 
 
 @cli.command()
@@ -103,7 +104,7 @@ def rollbook(
 ) -> None:
     """MIDI からロールブックの SVG を作る（-o 省略時は ~/Desktop）。"""
     loggerInit(debug)
-    logger.debug('command={!r}', ctx.command.name)
+    _log.debug('command={!r}', ctx.command.name)
 
     app = RollBookApp(
         midi_file, conf_file, model_name, channel, out_file, transpose
@@ -111,7 +112,7 @@ def rollbook(
     try:
         app.main()
     finally:
-        logger.debug('finally')
+        _log.debug('finally')
         app.end()
 
 
@@ -150,7 +151,7 @@ def parse(
 ) -> None:
     """MIDI を解析して中身を表示する（-v で図、-m で移調の候補）。"""
     loggerInit(debug)
-    logger.debug('command={!r}', ctx.command.name)
+    _log.debug('command={!r}', ctx.command.name)
 
     app = MidiApp(
         midi_file, channel, parse_only=True, visual_flag=visual_flag,
@@ -159,7 +160,7 @@ def parse(
     try:
         app.main()
     finally:
-        logger.debug('finally')
+        _log.debug('finally')
         app.end()
 
 
@@ -212,7 +213,7 @@ def play(
 ) -> None:
     """MIDI を再生する（-m で機種を指定すると、その機種用に変換して再生する）。"""
     loggerInit(debug)
-    logger.debug('command={!r}', ctx.command.name)
+    _log.debug('command={!r}', ctx.command.name)
 
     app = MidiApp(
         midi_file, channel, parse_only=False,
@@ -223,7 +224,7 @@ def play(
     try:
         app.main()
     finally:
-        logger.debug('finally')
+        _log.debug('finally')
         app.end()
 
 

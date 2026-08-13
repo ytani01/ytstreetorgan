@@ -19,7 +19,10 @@ from pathlib import Path
 
 import tornado.autoreload
 import tornado.websocket
-from loguru import logger
+
+from .mylog import getLogger
+
+_log = getLogger('livereload')
 
 
 class LiveReloadHandler(tornado.websocket.WebSocketHandler):
@@ -28,17 +31,19 @@ class LiveReloadHandler(tornado.websocket.WebSocketHandler):
     ブラウザは切断を再起動の合図として使うので、こちらから送るものは無い。
     """
 
+    __log = getLogger(__qualname__)
+
     def open(self, *args, **kwargs) -> None:
         """接続。"""
-        logger.debug('live reload: connected')
+        self.__log.debug('live reload: connected')
 
     def on_close(self) -> None:
         """切断。"""
-        logger.debug('live reload: closed')
+        self.__log.debug('live reload: closed')
 
     def on_message(self, message) -> None:
         """受け取るものは無い（ブラウザ側は送ってこない）。"""
-        logger.debug('live reload: unexpected message: {}', message)
+        self.__log.debug('live reload: unexpected message: {}', message)
 
 
 def watch_webroot(webroot: Path) -> int:
@@ -68,5 +73,5 @@ def watch_webroot(webroot: Path) -> int:
                 tornado.autoreload.watch(str(path))
                 count += 1
 
-    logger.info('live reload: watching {} files under {}', count, webroot)
+    _log.info('live reload: watching {} files under {}', count, webroot)
     return count

@@ -7,15 +7,17 @@ from pathlib import Path
 from typing import Literal
 from xml.sax.saxutils import quoteattr
 
-from loguru import logger
 from ytmidilib import NoteInfo, parse
 
 from .conf import ValidModelConf, load_model_conf, note_name_to_midi
+from .mylog import getLogger
 from .transpose import (
     TransposeCandidate,
     initial_transpose,
     plan_transpose,
 )
+
+_log = getLogger('rollbook')
 
 DEF_LINE_WIDTH = 0.2
 
@@ -139,7 +141,7 @@ def svg_square(
     Returns:
         str: 生成されたSVGパス要素の文字列。
     """
-    logger.debug('w={}', w)
+    _log.debug('w={}', w)
 
     style_str:str = 'fill:none;'
     style_str += f'stroke:{color};'
@@ -174,7 +176,7 @@ def divide_length_by_max_len(
         分割数 n と 1 要素あたりの長さも計算しているが、**返さない**
         （誰も読んでいなかった）。
     """
-    logger.debug(
+    _log.debug(
         'total_len={}, unit_len_max={}, gap={}',
         total_len, unit_len_max, gap
     )
@@ -182,10 +184,10 @@ def divide_length_by_max_len(
     NO_DIVISION: list[tuple[float, float]] = [(0.0, total_len)]
 
     if total_len <= 0:
-        logger.error('{} <=0', total_len)
+        _log.error('{} <=0', total_len)
         return NO_DIVISION
     if unit_len_max is None or unit_len_max <= 0:
-        logger.error('{} <= 0', unit_len_max)
+        _log.error('{} <= 0', unit_len_max)
         return NO_DIVISION
     if gap is None or gap <= 0.0:
         return NO_DIVISION
@@ -205,7 +207,7 @@ def divide_length_by_max_len(
         segments.append((round(current_pos, 4), round(end_pos, 4)))
         current_pos = end_pos + gap
 
-        logger.debug("n={}, unit_len={}, segment={}", n, round(unit_len, 4), segments)
+        _log.debug("n={}, unit_len={}, segment={}", n, round(unit_len, 4), segments)
 
     return segments
 
@@ -225,6 +227,8 @@ class HoleInfo:
         w (float): 穴の幅（mm単位）。
         h (float): 穴の高さ（mm単位）。
     """
+
+    __log = getLogger(__qualname__)
 
     def __init__(self, note_info: NoteInfo, conf: ValidModelConf) -> None:
         """HoleInfoのインスタンスを初期化する。
@@ -292,14 +296,14 @@ class HoleInfo:
         """
         svg = ''
         for (x1, x2) in self.segments:
-            logger.debug("({}, {})", x1, x2)
+            self.__log.debug("({}, {})", x1, x2)
 
             svg += svg_square(
                 self.x + x1, self.y, x2 - x1, self.h, color,
                 stroke_dasharray=stroke_dasharray
             )
 
-        logger.debug('svg={}', svg)
+        self.__log.debug('svg={}', svg)
         return svg
 
 
@@ -310,6 +314,8 @@ class RollBook:
         DEF_MODEL_NAME (str): デフォルトのモデル名 ('34notes')。
         DEF_CONF_FILE (str): デフォルトの設定ファイルパス。
     """
+
+    __log = getLogger(__qualname__)
 
     DEF_MODEL_NAME = '34notes'
     DEF_CONF_FILE = ''
@@ -339,17 +345,17 @@ class RollBook:
             ように生成されていた。弾く手順は `load_model_conf()` に
             まとめてある（TODO-073）。
         """
-        logger.info('model={}', model)
+        self.__log.info('model={}', model)
 
         self._model = model
         self._conf_file = conf_file
-        logger.debug('model={},conf_file={}', self._model, self._conf_file)
+        self.__log.debug('model={},conf_file={}', self._model, self._conf_file)
 
         # 読み込みと検証は `MidiApp` と同じものを使う（TODO-073）
         self._conf: ValidModelConf = load_model_conf(
             self._model, self._conf_file
         )
-        logger.debug('conf={}', json.dumps(self._conf))
+        self.__log.debug('conf={}', json.dumps(self._conf))
 
         # 'auto' は parse() が候補から決める。それまでは要求のまま持つ。
         # **型注釈は省かないこと。** 省くと属性の型を推論するときに
@@ -545,7 +551,7 @@ class RollBook:
         """
         if channel is None:
             channel = []
-        logger.debug('midi_file={}', midi_file)
+        self.__log.debug('midi_file={}', midi_file)
 
         # 前回の結果を捨てる。持ち越すと穴が二重になる
         self._width = 0.0
@@ -555,11 +561,11 @@ class RollBook:
         self._svg = ''
 
         midi = parse(midi_file, channel)
-        logger.debug('midi[channel_set]={}', midi['channel_set'])
+        self.__log.debug('midi[channel_set]={}', midi['channel_set'])
 
         self._raw_note_count = len(midi['note_info'])
         note_info = merge_overlapping_notes(midi['note_info'])
-        logger.debug(
+        self.__log.debug(
             'raw={}, merged={}', self._raw_note_count, len(note_info)
         )
 
@@ -574,7 +580,7 @@ class RollBook:
 
         for ni in note_info:
             hi = HoleInfo(ni, self._conf)
-            logger.debug('hi={}', hi)
+            self.__log.debug('hi={}', hi)
 
             if hi.scale >= 0:
                 # ロールブックを伸ばす
@@ -582,7 +588,7 @@ class RollBook:
 
             self._holes.append(hi)
 
-        logger.debug('width={}, len(hole)={}', self._width, len(self._holes))
+        self.__log.debug('width={}, len(hole)={}', self._width, len(self._holes))
 
     def parse(self, midi_file: str | Path, channel: list | None = None) -> str:
         """MIDIファイルを解析して穴情報を生成し、SVGデータを作成する。
@@ -621,5 +627,5 @@ class RollBook:
             channel = []
         svg = self.parse(midi_file, channel)
         Path(out_file).write_text(svg, encoding='utf-8')
-        logger.debug('svg written to {}', out_file)
+        self.__log.debug('svg written to {}', out_file)
         return svg

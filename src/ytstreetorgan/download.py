@@ -15,11 +15,10 @@
                       config_handler.py
 """
 import tornado.web
-from loguru import logger
 
 from .audition import playable_midi_bytes
 from .base_handler import StorganBaseHandler
-from .mylog import exmsg
+from .mylog import exmsg, getLogger
 from .storage import content_disposition
 from .transpose import (
     transpose_midi_bytes,
@@ -38,6 +37,8 @@ class Download(StorganBaseHandler):
     `kind` で渡す**（URL から読み取らない）。
     """
 
+    __log = getLogger(__qualname__)
+
     def initialize(self, kind: str = 'svg') -> None:
         """置き場の種別を受け取る（`WebServer` のルート定義から）。
 
@@ -52,11 +53,11 @@ class Download(StorganBaseHandler):
         Args:
             fname (str): ファイル名。URL から来る。
         """
-        logger.debug('kind={}, fname={}', self._kind, fname)
+        self.__log.debug('kind={}, fname={}', self._kind, fname)
 
         path_name = self.stored_file(self._kind, fname)
 
-        logger.debug('path_name={}', path_name)
+        self.__log.debug('path_name={}', path_name)
 
         self.set_header('Content-Type', 'application/octet-stream')
         # 名前をそのまま入れると、日本語のファイル名で 500 になる
@@ -84,13 +85,15 @@ class DownloadTransposedMidi(StorganBaseHandler):
     別物。**作った MIDI は保存しない**（`webroot/midi/` を太らせない）。
     """
 
+    __log = getLogger(__qualname__)
+
     def get(self, fname: str = ''):
         """元の MIDI を移調して返す。
 
         Args:
             fname (str): 元の MIDI のファイル名。URL から来る。
         """
-        logger.debug('fname={}, t={}', fname, self.get_argument('t', ''))
+        self.__log.debug('fname={}, t={}', fname, self.get_argument('t', ''))
 
         path_name = self.stored_file('midi', fname)
         semitones = self.transpose_arg()
@@ -99,7 +102,7 @@ class DownloadTransposedMidi(StorganBaseHandler):
             data = transpose_midi_bytes(path_name, semitones)
         except Exception as e:
             # 読めない MIDI など。既定の 500 ページより理由が分かる
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             raise tornado.web.HTTPError(
                 400, reason='cannot transpose'
             ) from e
@@ -126,6 +129,8 @@ class DownloadTransposedMidiZip(StorganBaseHandler):
     **作った MIDI も ZIP も保存しない。**
     """
 
+    __log = getLogger(__qualname__)
+
     # 候補は最大 7 行（TODO-041）。外から好きな数を投げられると
     # 1 リクエストで何百回も移調させられるので、余裕を見て頭打ちにする
     MAX_ITEMS = 32
@@ -137,7 +142,7 @@ class DownloadTransposedMidiZip(StorganBaseHandler):
             fname (str): 元の MIDI のファイル名。URL から来る。
         """
         transpose = self.get_argument('t', '')
-        logger.debug('fname={}, t={}', fname, transpose)
+        self.__log.debug('fname={}, t={}', fname, transpose)
 
         path_name = self.stored_file('midi', fname)
         semitones_list = self._parse_transpose(transpose)
@@ -146,7 +151,7 @@ class DownloadTransposedMidiZip(StorganBaseHandler):
             data = transposed_midi_zip_bytes(path_name, semitones_list)
         except Exception as e:
             # 読めない MIDI など。既定の 500 ページより理由が分かる
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             raise tornado.web.HTTPError(
                 400, reason='cannot transpose'
             ) from e
@@ -172,7 +177,7 @@ class DownloadTransposedMidiZip(StorganBaseHandler):
         try:
             values = [int(s) for s in transpose.split(',')]
         except ValueError as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             raise tornado.web.HTTPError(400, reason='bad transpose') from e
 
         # dict は挿入順を保つので、これで重複だけ削除できる
@@ -198,6 +203,8 @@ class AuditionMidi(StorganBaseHandler):
     ものなので、欲しくなったらここに足すのが答え）。**保存もしない。**
     """
 
+    __log = getLogger(__qualname__)
+
     def get(self, fname: str = ''):
         """鳴る音だけの MIDI を返す。
 
@@ -205,8 +212,8 @@ class AuditionMidi(StorganBaseHandler):
             fname (str): 元の MIDI のファイル名。URL から来る。
         """
         model = self.get_argument('model', '')
-        logger.debug('fname={}, t={}, model={}',
-                     fname, self.get_argument('t', ''), model)
+        self.__log.debug('fname={}, t={}, model={}',
+                         fname, self.get_argument('t', ''), model)
 
         path_name = self.stored_file('midi', fname)
         semitones = self.transpose_arg()
@@ -215,11 +222,11 @@ class AuditionMidi(StorganBaseHandler):
             data = playable_midi_bytes(path_name, model, semitones)
         except ValueError as e:
             # 知らない機種名、設定の項目が足りない
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             raise tornado.web.HTTPError(400, reason='bad model') from e
         except Exception as e:
             # 読めない MIDI など。既定の 500 ページより理由が分かる
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             raise tornado.web.HTTPError(400, reason='cannot audition') from e
 
         self.set_header('Content-Type', 'audio/midi')

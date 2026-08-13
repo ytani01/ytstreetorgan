@@ -8,17 +8,17 @@
 import json
 from pathlib import Path
 
-from loguru import logger
-
 from .base_handler import StorganBaseHandler
 from .conf import Conf
-from .mylog import exmsg
+from .mylog import exmsg, getLogger
 from .rollbook import RollBook
 from .storage import KINDS, list_files, resolve_in
 
 
 class HistoryHandler(StorganBaseHandler):
     """履歴の画面と、その削除 API。"""
+
+    __log = getLogger(__qualname__)
 
     HTML_FILE = 'history.html'
     TITLE = 'Roll Book History'
@@ -37,7 +37,7 @@ class HistoryHandler(StorganBaseHandler):
 
     def get(self):
         """一覧を描画する。"""
-        logger.debug('request uri={}', self.request.uri)
+        self.__log.debug('request uri={}', self.request.uri)
 
         conf = Conf(self._conf_file)
 
@@ -57,7 +57,7 @@ class HistoryHandler(StorganBaseHandler):
         try:
             req = json.loads(self.request.body.decode('utf-8'))
         except Exception as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             self._error(400, 'リクエストの形式が不正です（JSON として読めません）')
             return
 
@@ -84,7 +84,7 @@ class HistoryHandler(StorganBaseHandler):
             self._error(404, f'{name} は見つかりません')
             return
         except Exception as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             self._error(500, f'削除できませんでした: {exmsg(e)}')
             return
 
@@ -106,7 +106,7 @@ class HistoryHandler(StorganBaseHandler):
 
     def _error(self, code: int, msg: str) -> None:
         """エラーを JSON で返す。"""
-        logger.error('{}: {}', code, msg)
+        self.__log.error('{}: {}', code, msg)
         self.set_status(code)
         self.write(json.dumps(
             {'status': 'error', 'message': msg}, ensure_ascii=False

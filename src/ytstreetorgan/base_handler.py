@@ -15,10 +15,9 @@
 from pathlib import Path
 
 import tornado.web
-from loguru import logger
 
 from . import __author__, __copyright_year__
-from .mylog import exmsg
+from .mylog import exmsg, getLogger
 from .storage import resolve_in
 
 
@@ -27,6 +26,8 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
     `webroot` / `workdir` は `WebServer` が `Path` に正規化して渡している。
     """
+
+    __log = getLogger(__qualname__)
 
     def __init__(self, app, req, **kwargs):
         """設定を取り出してから、tornado の初期化を呼ぶ。
@@ -43,7 +44,7 @@ class StorganBaseHandler(tornado.web.RequestHandler):
 
         # app や request を丸ごと出すと -d のとき数百行になるので、
         # 使う値だけ 1 行にまとめる
-        logger.debug(
+        self.__log.debug(
             'urlprefix={}, webroot={}, workdir={}, size_limit={}',
             self._urlprefix, self._webroot, self._workdir, self._size_limit
         )
@@ -123,7 +124,7 @@ class StorganBaseHandler(tornado.web.RequestHandler):
         try:
             path_name = resolve_in(self._webroot / subdir, name)
         except ValueError as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             raise tornado.web.HTTPError(400, reason='bad file name') from e
 
         if not path_name.is_file():
@@ -145,5 +146,5 @@ class StorganBaseHandler(tornado.web.RequestHandler):
         try:
             return int(transpose)
         except ValueError as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             raise tornado.web.HTTPError(400, reason='bad transpose') from e

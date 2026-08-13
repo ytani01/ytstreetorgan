@@ -3,11 +3,9 @@
 #
 import json
 
-from loguru import logger
-
 from .base_handler import StorganBaseHandler
 from .conf import Conf
-from .mylog import exmsg
+from .mylog import exmsg, getLogger
 from .rollbook import RollBook
 
 
@@ -17,6 +15,9 @@ class ConfigHandler(StorganBaseHandler):
     `?api=1` または `/config/api/data` なら JSON を返す。
     POST は save / update / add / delete を JSON で受ける。
     """
+
+    __log = getLogger(__qualname__)
+
     HTML_FILE = 'config_editor.html'
     TITLE = 'Organ Model Config Editor'
 
@@ -27,7 +28,7 @@ class ConfigHandler(StorganBaseHandler):
 
     def get(self):
         """エディタの画面を出す。API として呼ばれたら JSON を返す。"""
-        logger.debug('request uri={}', self.request.uri)
+        self.__log.debug('request uri={}', self.request.uri)
 
         # Check if API request for JSON data
         if (self.get_argument('api', '0') == '1'
@@ -62,7 +63,7 @@ class ConfigHandler(StorganBaseHandler):
         **`message` はそのまま画面に出る**（日本語で書くこと）。
         """
         self.set_header('Content-Type', 'application/json')
-        logger.debug('request body={}', self.request.body)
+        self.__log.debug('request body={}', self.request.body)
 
         req_data = {}
         try:
@@ -75,7 +76,7 @@ class ConfigHandler(StorganBaseHandler):
                     'config': json.loads(self.get_argument('config', '{}'))
                 }
         except Exception as ex:
-            logger.error('リクエストを読めません: {}', exmsg(ex))
+            self.__log.error('リクエストを読めません: {}', exmsg(ex))
             self.set_status(400)
             self.write(json.dumps({
                 'status': 'error',

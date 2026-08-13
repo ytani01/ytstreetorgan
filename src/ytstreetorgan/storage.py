@@ -14,10 +14,11 @@ from pathlib import Path
 from typing import TypedDict
 from urllib.parse import quote
 
-from loguru import logger
-
+from .mylog import getLogger
 from .rollbook import HOLE_COLOR, META_PREFIX, OFF_SCALE_COLOR
 from .utils import get_size_unit
+
+_log = getLogger('storage')
 
 # 置き場の名前 → webroot 下のディレクトリ名
 KINDS = {'midi': 'midi', 'svg': 'svg'}
@@ -257,7 +258,7 @@ def book_from_svg(svg: str) -> BookInfo:
         'merged': _meta_int(svg, 'merged'),
         'transpose': _meta_int(svg, 'transpose'),
     }
-    logger.debug('book={}', book)
+    _log.debug('book={}', book)
     return book
 
 

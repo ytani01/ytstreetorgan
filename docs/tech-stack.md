@@ -89,10 +89,24 @@ db と checkouts を消してから入れ直す（TODO-047 に手順がある）
 
 - **入口**: `mylog.py`（loguru の薄い包み）
 - **初期化**: 各 CLI コマンドの先頭で `loggerInit(debug)` を 1 度だけ呼ぶ
-- **各モジュール**: `from loguru import logger` でグローバル logger を使う
-- **書式**: `logger.debug('x={}', x)` の形にする（f-string にしない。
-  レベルで抑止されるときに整形しなくて済む）
+- **クラス**: クラス本体に `__log = getLogger(__qualname__)` を置き、
+  `self.__log.debug(...)` で書く（TODO-086）
+- **クラスの無いモジュール**: 先頭に `_log = getLogger('<モジュール名>')`
+  を置く（`__main__.py` だけは `'main'`）
+- **`from loguru import logger` は書かない**（`mylog.py` の中だけ）
+- **書式**: `self.__log.debug('x={}', x)` の形にする（f-string にしない。
+  水準で抑止されるときに整形しなくて済む）
 - **例外**: `exmsg(e)` で 1 行に整形する
+
+**名前ごとに水準を変えられる**（TODO-086）。`getLogger(name, level)` か
+`setLevel(name, level)` で、そこだけ `-d` 無しで DEBUG にしたり、逆に
+黙らせたりできる。`setLevel(name, None)` で既定に戻る。既定の水準（名前は
+`''`）は `loggerInit(debug)` が決める。仕掛けは `logger.bind(log_name=...)`
+と、`loggerInit()` が張るシンクの `filter=_filter`。
+
+**名前そのものはログに出ない**（`LOG_FMT` に入れていない）。水準を
+切り替える単位でしかなく、どこから出たかは `{file}:{line} {function}()`
+で分かる。
 
 ## 開発ツール
 

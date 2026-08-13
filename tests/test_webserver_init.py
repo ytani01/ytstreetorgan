@@ -60,8 +60,7 @@ def test_main_prints_the_url(
     lines = [ln.strip() for ln in capsys.readouterr().out.splitlines()]
     assert server.url in lines, "URL だけの行になっていない"
 
-@patch('ytstreetorgan.webapp.logger')
-def test_webserver_makedirs_exception(mock_logger, tmp_path):
+def test_webserver_makedirs_exception(tmp_path):
     # Make tmp_path read-only so makedirs fails
     file_path = tmp_path / "file"
     file_path.write_text("")

@@ -8,9 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, NotRequired, TypedDict, cast
 
-from loguru import logger
-
-from .mylog import exmsg
+from .mylog import exmsg, getLogger
 
 #: 1 オクターブぶんの音名。変化記号はシャープのみ。
 NOTE_NAMES: tuple[str, ...] = (
@@ -263,6 +261,9 @@ class Conf:
         SEARCH_PATH: 探す場所の並び。
         CONF_FNAME: 設定ファイルの名前。
     """
+
+    __log = getLogger(__qualname__)
+
     SEARCH_PATH = [
         Path('.'),
         Path('~/.config'),
@@ -283,7 +284,7 @@ class Conf:
             FileNotFoundError: どこにも見つからないとき（探した場所を
                 メッセージに並べる）。
         """
-        logger.debug('config_file={!r}', config_file)
+        self.__log.debug('config_file={!r}', config_file)
 
         self.config_file = Path(config_file).expanduser()
 
@@ -298,10 +299,10 @@ class Conf:
             for dir in self.SEARCH_PATH:
                 candidate = (dir / self.CONF_FNAME).expanduser()
                 searched.append(candidate)
-                logger.debug('search config_file={!r}', candidate)
+                self.__log.debug('search config_file={!r}', candidate)
 
                 if candidate.is_file():
-                    logger.debug('find: {!r}', candidate)
+                    self.__log.debug('find: {!r}', candidate)
                     self.config_file = candidate
                     break
             else:
@@ -320,7 +321,7 @@ class Conf:
             else:
                 msg = f'{self.config_file} が見つかりません'
 
-            logger.error(msg)
+            self.__log.error(msg)
             raise FileNotFoundError(msg)
 
     def load(self) -> list[ModelConf]:
@@ -330,7 +331,7 @@ class Conf:
             list[ModelConf]: 読めた設定。読めなければ空のリスト
                 （理由はログに出す。**例外にはしない**）。
         """
-        logger.debug('config_file={!r}', self.config_file)
+        self.__log.debug('config_file={!r}', self.config_file)
 
         # 読めない理由（文字コード / JSON / 'model' が無い）で扱いを
         # 変えていないので、まとめて捕まえる
@@ -339,7 +340,7 @@ class Conf:
             data = json.loads(json_text)
             models = self._model_names(data)
         except Exception as e:
-            logger.error(exmsg(e))
+            self.__log.error(exmsg(e))
             return []
 
         # 両方が揃ってから差し替える。`self.data` に入れてから機種名を
@@ -386,11 +387,11 @@ class Conf:
                 呼ぶ側が空かどうか確かめること（`RollBook.__init__` は
                 空なら `ValueError` にする）。
         """
-        logger.debug('model_name={!r}', model_name)
+        self.__log.debug('model_name={!r}', model_name)
 
         idx = self._index_of(model_name)
         if idx is None:
-            logger.error('model={!r}: not found', model_name)
+            self.__log.error('model={!r}: not found', model_name)
             return {}
 
         return self.data[idx]
@@ -406,7 +407,7 @@ class Conf:
         """
         if not self.config_file:
             msg = "設定ファイルのパスが設定されていません"
-            logger.error(msg)
+            self.__log.error(msg)
             return False, msg
 
         try:
@@ -414,7 +415,7 @@ class Conf:
             if self.config_file.exists():
                 bak_file = self.config_file.with_name(self.config_file.name + '.bak')
                 shutil.copy2(self.config_file, bak_file)
-                logger.debug('created backup: {}', bak_file)
+                self.__log.debug('created backup: {}', bak_file)
 
             # Atomic save via temporary file
             tmp_file = self.config_file.with_name(self.config_file.name + '.tmp')
@@ -424,12 +425,12 @@ class Conf:
 
             tmp_file.replace(self.config_file)
             self.models = self._model_names(self.data)  # 壊れていれば下の except へ
-            logger.info('saved: {}', self.config_file)
+            self.__log.info('saved: {}', self.config_file)
             return True, "設定を保存しました"
 
         except Exception as e:
             msg = f"設定の保存に失敗しました: {exmsg(e)}"
-            logger.error(msg)
+            self.__log.error(msg)
             return False, msg
 
     def update_model(self, model_name: str, new_conf: dict) -> tuple[bool, str]:
@@ -449,7 +450,7 @@ class Conf:
         target_idx = self._index_of(model_name)
         if target_idx is None:
             msg = f"機種 '{model_name}' が見つかりません"
-            logger.error(msg)
+            self.__log.error(msg)
             return False, msg
 
         self.data[target_idx] = coerce_numeric_fields(new_conf)  # type: ignore
@@ -471,7 +472,7 @@ class Conf:
         model_name = new_conf['model']
         if model_name in self.models:
             msg = f"機種 '{model_name}' は既に存在します"
-            logger.error(msg)
+            self.__log.error(msg)
             return False, msg
 
         self.data.append(coerce_numeric_fields(new_conf))  # type: ignore
@@ -489,7 +490,7 @@ class Conf:
         target_idx = self._index_of(model_name)
         if target_idx is None:
             msg = f"機種 '{model_name}' が見つかりません"
-            logger.error(msg)
+            self.__log.error(msg)
             return False, msg
 
         del self.data[target_idx]

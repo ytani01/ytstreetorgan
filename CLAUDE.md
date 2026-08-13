@@ -334,6 +334,12 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 **標準 `logging` は使わない。** loguru を `mylog.py` 経由で使い、例外は
 `exmsg(e)` で整形する。初期化と書式の決めごとは `docs/tech-stack.md`。
 
+**`from loguru import logger` を直接書かない**（TODO-086）。クラス本体に
+`__log = getLogger(__qualname__)` を置いて `self.__log.debug(...)` と書き、
+クラスの無いモジュールは先頭に `_log = getLogger('<モジュール名>')` を置く。
+こうすると `getLogger(name, level)` / `setLevel(name, level)` で
+**名前ごとに水準を変えられる**（そこだけ DEBUG にする、そこだけ黙らせる）。
+
 ## 注意
 
 - `RollBookApp` は `-o` 未指定のとき `~/Desktop/<MIDIファイル名>.svg` に出力する
