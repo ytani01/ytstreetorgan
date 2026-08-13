@@ -18,9 +18,9 @@ uv run playwright install chromium   # ブラウザテストを走らせる場�
 
 | コマンド | 対象 | 件数 | 所要（手元での目安） |
 |---|---|---|---|
-| `uv run pytest` | 通常テスト | 297 | 約 2 秒 |
+| `uv run pytest` | 通常テスト | 303 | 約 2 秒 |
 | `uv run pytest -m browser` | ブラウザテスト | 49 | 約 28 秒 |
-| `uv run pytest -m ""` | 両方 | 346 | 約 28 秒 |
+| `uv run pytest -m ""` | 両方 | 352 | 約 28 秒 |
 
 `pyproject.toml` の `addopts = "-m 'not browser'"` により、`uv run pytest` は
 ブラウザテストを除外する。実 Chromium を起動して桁違いに遅いため。

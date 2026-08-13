@@ -24,7 +24,7 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 ```
 
 **完了と報告する前に、`pytest` / `ruff` / `mypy` を通すこと。** 画面を変えたら
-ブラウザで描画も確かめる（`docs/Developer.md` の「コミット前に通すもの」）。
+ブラウザで描画も確かめる（`docs/Developer.md` の「一括で回す」）。
 
 - **実行方法の詳細は `docs/Developer.md`** — 環境の用意、絞り込み、
   カバレッジ、basedpyright、ruff の設定方針、コミット前に通すもの、
@@ -44,8 +44,11 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 **モジュールの依存は一方向に保つ**（TODO-043）。
 
 ```
-conf.py → transpose.py → rollbook.py → audition.py → base_handler.py
+conf.py → transpose.py → rollbook.py → storage.py → base_handler.py
     → handler1.py / download.py / history.py / config_handler.py
+
+rollbook.py → audition.py → download.py
+storage.py → utils.py ← handler1.py
 ```
 
 | モジュール | 受け持ち |
@@ -310,7 +313,7 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 **音符 1 個が `<path>` 複数本になる**。`'20notes'` と `'20notes a'` は音階の
 定義が同じで `'bridge_threshold'` だけ違い（50.0 と 2.7）、`tests/data/`
 の `long-notes.mid` では音符 69・実線 68 は変わらないのに、分割後は
-76 と 608 になる。
+76 と 677 になる。
 
 つまり**分割後の数は `<path>` を数えれば分かるが、分割前の音符の数は
 逆算できない**（多対一のため）。前者は数え、後者は属性に埋めてある。
