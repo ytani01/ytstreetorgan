@@ -1,32 +1,11 @@
 # = TODO
 
-更新: 2026-08-13（TODO-085 を追加）
+更新: 2026-08-13（TODO-085 を決着）
 
 - 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-086` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
 
 ## == 着手前 / 検討中
-
-## TODO-085. `ytmidilib` 0.5.1 を取り込み、新しいモジュール関数に乗り換える
-
-- [ ] `pyproject.toml` の tag を 0.3.0 → 0.5.1 にし、`uv sync --upgrade-package ytmidilib`
-- [ ] `apps.py` の `self._parser` を無くし、`parse()` / `mk_visual()` / `print_visual()` を直接呼ぶ
-- [ ] `rollbook.py` の `self._midi_parser` を無くし、`parse()` を直接呼ぶ
-- [ ] `docs/tech-stack.md` の `ytmidilib` の記述を更新する
-- [ ] `pytest` / `ruff` / `mypy` を通す
-
-0.3.0 → 0.5.1 に破壊的変更は無い（`Parser` は互換のために残っている）。
-向こうの TODO-016 で `Parser` のメソッドがモジュール関数へ切り出され、
-可視化は `midi_visual.py` に独立した。`Parser` は関数を呼ぶだけの
-クラスになったので、状態を持たないフィールドを 2 つ抱える理由が無い。
-
-`NoteInfo` は dataclass になり、`__post_init__` が時刻を小数第 3 位に
-丸める。`audition.py` / `transpose.py` / `rollbook.py` が組み立てる
-`NoteInfo` にも効くので、テストで確かめる。ハッシュ不可になったが、
-`set` や dict のキーには使っていない。
-
-モデル: Sonnet / effort medium（既存 API の置き換えが主で、判断が要る
-箇所が少ないため）
 
 ---
 
@@ -35,6 +14,7 @@
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-085.** `ytmidilib` 0.5.1 を取り込み、新しいモジュール関数に乗り換える](archives/todo/TODO-085.%20ytmidilib%200.5.1%20を取り込み、新しいモジュール関数に乗り換える.md)
 - [**TODO-084.** 画面を簡素にしたあとの取りこぼしを直す](archives/todo/TODO-084.%20画面を簡素にしたあとの取りこぼしを直す.md)
 - [**TODO-083.** `ytmidilib` 0.3.0 を取り込み、試聴の一時ファイルを無くす](archives/todo/TODO-083.%20ytmidilib%200.3.0%20を取り込み、試聴の一時ファイルを無くす.md)
 - [**TODO-065.** `ytmidilib` に 3 通目の要求書を出す（`write()` を file-like に対応させる）](archives/todo/TODO-065.%20ytmidilib%20に%203%20通目の要求書を出す（write%28%29%20を%20file-like%20に対応させる）.md)

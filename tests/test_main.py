@@ -87,14 +87,13 @@ def test_rollbook_app_class(mock_rollbook, tmp_path):
 
     assert (tmp_path / "out.svg").exists()
 
-@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.parse')
 @patch('ytstreetorgan.apps.Player')
-def test_midi_app_class(mock_player, mock_parser, tmp_path):
+def test_midi_app_class(mock_player, mock_parse, tmp_path):
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, channel=[1])
 
-    mock_parser_instance = mock_parser.return_value
-    mock_parser_instance.parse.return_value = {
+    mock_parse.return_value = {
         'note_info': ['note1'],
         'channel_set': {1}
     }
@@ -102,13 +101,13 @@ def test_midi_app_class(mock_player, mock_parser, tmp_path):
     app.main()
     app.end()
 
-    mock_parser_instance.parse.assert_called_once()
+    mock_parse.assert_called_once()
     mock_player.return_value.play.assert_called_once()
 
 
-@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.parse')
 @patch('ytstreetorgan.apps.Player')
-def test_midi_app_converts_for_model(mock_player, mock_parser, tmp_path):
+def test_midi_app_converts_for_model(mock_player, mock_parse, tmp_path):
     """`-m` 指定時は、機種の音階に無い音を再生前に取り除く。"""
     from ytmidilib import NoteInfo
 
@@ -121,8 +120,7 @@ def test_midi_app_converts_for_model(mock_player, mock_parser, tmp_path):
     off_scale = NoteInfo(abs_time=0.0, channel=0, note=40,
                          velocity=100, end_time=1.0)
 
-    mock_parser_instance = mock_parser.return_value
-    mock_parser_instance.parse.return_value = {
+    mock_parse.return_value = {
         'note_info': [on_scale, off_scale],
         'channel_set': {0}
     }
@@ -140,10 +138,10 @@ def test_midi_app_unknown_model_raises(tmp_path):
         MidiApp(midi_file, model_name='no-such-model')
 
 
-@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.parse')
 @patch('ytstreetorgan.apps.Player')
 def test_play_logs_how_it_transposed_at_info(
-    mock_player, mock_parser, tmp_path, capsys
+    mock_player, mock_parse, tmp_path, capsys
 ):
     """`play -t auto` は、どう変換したかを INFO のログで出す（TODO-039）。
 
@@ -163,7 +161,7 @@ def test_play_logs_how_it_transposed_at_info(
     app = MidiApp(midi_file, model_name='34notes', transpose='auto')
 
     # '34notes' の notes[0] は F2（41）。オクターブ上げれば音階に乗る音（29=F1）を置く
-    mock_parser.return_value.parse.return_value = {
+    mock_parse.return_value = {
         'note_info': [NoteInfo(abs_time=0.0, channel=0, note=29,
                                velocity=100, end_time=1.0)],
         'channel_set': {0},
@@ -181,9 +179,9 @@ def test_play_logs_how_it_transposed_at_info(
     assert '音の長さ' not in capsys.readouterr().out
 
 
-@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.parse')
 @patch('ytstreetorgan.apps.Player')
-def test_play_does_not_list_parsed_notes(mock_player, mock_parser, tmp_path, capsys):
+def test_play_does_not_list_parsed_notes(mock_player, mock_parse, tmp_path, capsys):
     """`play` は解析した音符の一覧を標準出力に並べない（DEBUG へ回す）。
 
     **再生中に出る行は別の話。** あれは `ytmidilib` の `Player.play()` が
@@ -194,7 +192,7 @@ def test_play_does_not_list_parsed_notes(mock_player, mock_parser, tmp_path, cap
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, parse_only=False)
 
-    mock_parser.return_value.parse.return_value = {
+    mock_parse.return_value = {
         'note_info': [NoteInfo(abs_time=0.0, channel=0, note=60,
                                velocity=100, end_time=1.0)],
         'channel_set': {0},
@@ -208,16 +206,16 @@ def test_play_does_not_list_parsed_notes(mock_player, mock_parser, tmp_path, cap
     assert 'channel_set=' in out, 'まとめの 1 行は残すこと'
 
 
-@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.parse')
 @patch('ytstreetorgan.apps.Player')
-def test_parse_still_prints_each_note(mock_player, mock_parser, tmp_path, capsys):
+def test_parse_still_prints_each_note(mock_player, mock_parse, tmp_path, capsys):
     """`parse` は中身を見るのが目的なので、音符の一覧を出したままにする。"""
     from ytmidilib import NoteInfo
 
     midi_file = str(tmp_path / "test.mid")
     app = MidiApp(midi_file, parse_only=True)
 
-    mock_parser.return_value.parse.return_value = {
+    mock_parse.return_value = {
         'note_info': [NoteInfo(abs_time=0.0, channel=0, note=60,
                                velocity=100, end_time=1.0)],
         'channel_set': {0},
@@ -229,9 +227,9 @@ def test_parse_still_prints_each_note(mock_player, mock_parser, tmp_path, capsys
     assert '(   0)' in capsys.readouterr().out
 
 
-@patch('ytstreetorgan.apps.Parser')
+@patch('ytstreetorgan.apps.parse')
 @patch('ytstreetorgan.apps.Player')
-def test_midi_app_merges_overlapping_same_note(mock_player, mock_parser, tmp_path):
+def test_midi_app_merges_overlapping_same_note(mock_player, mock_parse, tmp_path):
     """`-m` 指定時は、同じ音の重なりも 1 つにまとめてから再生する（TODO-038）。
 
     実機は 1 つの音に 1 本のパイプしか無く、複数パートが同じ高さを
@@ -246,8 +244,7 @@ def test_midi_app_merges_overlapping_same_note(mock_player, mock_parser, tmp_pat
     a = NoteInfo(abs_time=0.0, channel=0, note=41, velocity=60, end_time=1.5)
     b = NoteInfo(abs_time=0.5, channel=1, note=41, velocity=100, end_time=1.0)
 
-    mock_parser_instance = mock_parser.return_value
-    mock_parser_instance.parse.return_value = {
+    mock_parse.return_value = {
         'note_info': [a, b],
         'channel_set': {0, 1}
     }

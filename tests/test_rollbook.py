@@ -77,11 +77,9 @@ def test_svg_square():
     assert 'stroke:#123456' in svg
     assert 'd="M -10.00,-20.00 h -30.00 v -40.00 h 30.00 Z"' in svg
 
-@patch('ytstreetorgan.rollbook.Parser')
-def test_rollbook_parse(mock_parser):
-    mock_instance = mock_parser.return_value
-
-    # Mock the return value of Parser.parse
+@patch('ytstreetorgan.rollbook.parse')
+def test_rollbook_parse(mock_parse):
+    # Mock the return value of parse()
     mock_note1 = MagicMock()
     mock_note1.abs_time = 1.0
     mock_note1.end_time = 3.0
@@ -94,7 +92,7 @@ def test_rollbook_parse(mock_parser):
     mock_note2.length.return_value = 1.0
     mock_note2.note = 999  # Invalid note to test scale < 0
 
-    mock_instance.parse.return_value = {
+    mock_parse.return_value = {
         'channel_set': {1},
         'note_info': [mock_note1, mock_note2]
     }
@@ -333,19 +331,17 @@ def test_merge_overlapping_notes_sorts_by_abs_time():
     assert [ni.abs_time for ni in merged] == [1.0, 5.0]
 
 
-@patch('ytstreetorgan.rollbook.Parser')
-def test_overlapping_same_note_does_not_starve_bridges(mock_parser):
+@patch('ytstreetorgan.rollbook.parse')
+def test_overlapping_same_note_does_not_starve_bridges(mock_parse):
     """TODO-038: 統合前は、重なった相手の穴がブリッジを食い、紙が分離した。
 
     A（0.0〜3.0秒）に B（1.0〜2.0秒）が内包される、同じ音階の音。
     統合しないと A を分割したブリッジの一部が B の穴と重なって消える。
     """
-    mock_instance = mock_parser.return_value
-
     a = RealNoteInfo(abs_time=0.0, channel=0, note=60, velocity=50, end_time=3.0)
     b = RealNoteInfo(abs_time=1.0, channel=1, note=60, velocity=80, end_time=2.0)
 
-    mock_instance.parse.return_value = {
+    mock_parse.return_value = {
         'channel_set': {0, 1},
         'note_info': [a, b],
     }

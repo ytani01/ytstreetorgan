@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 from loguru import logger
-from ytmidilib import NoteInfo, Parser, Player
+from ytmidilib import NoteInfo, Player, mk_visual, parse, print_visual
 
 from .conf import ValidModelConf, load_model_conf
 from .rollbook import RollBook, merge_overlapping_notes, note2scale
@@ -208,7 +208,7 @@ class MidiApp:
                 `transpose` が整数にも ``'auto'`` にもならないとき。
 
         Note:
-            debug は `Parser` / `Player` へ渡すためだけに受け取っていたが、
+            debug は `parse()` / `Player` へ渡すためだけに受け取っていたが、
             渡しても水準は変わらなくなったので外した（TODO-058。
             `RollBookApp` と同じ理由）。
         """
@@ -243,7 +243,6 @@ class MidiApp:
         if self._model_name:
             self._model_conf = load_model_conf(self._model_name, conf_file)
 
-        self._parser = Parser()
         self._player = Player(rate=self._rate)
 
     def _convert_for_model(self, note_info: list[NoteInfo]) -> list[NoteInfo]:
@@ -300,7 +299,7 @@ class MidiApp:
         """解析し、必要なら図にして出し、`parse_only` でなければ再生する。"""
         logger.debug('')
 
-        parsed_data = self._parser.parse(self._midi_file, self._channel)
+        parsed_data = parse(self._midi_file, self._channel)
 
         if self._model_conf is not None:
             parsed_data['note_info'] = self._convert_for_model(
@@ -332,9 +331,9 @@ class MidiApp:
         print('channel_set=', parsed_data['channel_set'], flush=True)
 
         if self._visual_flag:
-            v_data = self._parser.mk_visual(parsed_data['note_info'])
+            v_data = mk_visual(parsed_data['note_info'])
             print()
-            self._parser.print_visual(v_data, parsed_data['channel_set'])
+            print_visual(v_data, parsed_data['channel_set'])
 
         if self._parse_only:
             return

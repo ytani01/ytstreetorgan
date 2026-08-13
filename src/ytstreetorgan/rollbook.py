@@ -8,7 +8,7 @@ from typing import Literal
 from xml.sax.saxutils import quoteattr
 
 from loguru import logger
-from ytmidilib import NoteInfo, Parser
+from ytmidilib import NoteInfo, parse
 
 from .conf import ValidModelConf, load_model_conf, note_name_to_midi
 from .transpose import (
@@ -97,7 +97,7 @@ def merge_overlapping_notes(note_info: list[NoteInfo]) -> list[NoteInfo]:
 
         cur = group[0]
         for nxt in group[1:]:
-            # 音符の end_time は Parser.parse() が必ず埋めている
+            # 音符の end_time は parse() が必ず埋めている
             assert cur.end_time is not None and nxt.end_time is not None
             if nxt.abs_time <= cur.end_time:
                 # 重なっている（内包も含む）か、接している
@@ -365,8 +365,6 @@ class RollBook:
         self._raw_note_count = 0
         self._svg = ''
 
-        self._midi_parser = Parser()
-
     # ブックの寸法。SVG 文字列を作らないと分からない値なので、
     # Web のビューアが初期倍率とスクロール位置を決めるのに使う。
     @property
@@ -556,7 +554,7 @@ class RollBook:
         self._candidates = []
         self._svg = ''
 
-        midi = self._midi_parser.parse(midi_file, channel)
+        midi = parse(midi_file, channel)
         logger.debug('midi[channel_set]={}', midi['channel_set'])
 
         self._raw_note_count = len(midi['note_info'])
