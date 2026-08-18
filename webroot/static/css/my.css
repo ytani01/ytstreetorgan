@@ -424,6 +424,8 @@ footer.appfoot .spacer { margin-left: auto; }
   height: auto; resize: vertical;
 }
 .field__hint { grid-column: 1 / -1; font-size: .72rem; color: var(--pico-muted-color); margin: -.1rem 0 .2rem; }
+.field__hint--list { padding-left: 1.1rem; margin-top: 0; }
+.field__hint--list li { margin-bottom: .15rem; }
 
 /* 用語の説明（TODO-053）。畳んであるので、開くまでは 1 行しか占めない。
    Pico の <details> は下に余白を付けるので、ヒントと同じ詰め方に戻す */

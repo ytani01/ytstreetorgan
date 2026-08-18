@@ -24,6 +24,13 @@
       <section class="wrap wrap--narrow">
         <h1 class="page-title">MIDIアップロード</h1>
         <p class="page-lead">MIDIファイルから、手回しオルガン(Street Organ)用ロールブックを作成します。</p>
+        <!-- 画面全体の振る舞いの説明はここにまとめる（TODO-103）。個々の
+             操作の説明（機種セレクトの下、ドロップ欄）とは分けてある -->
+        <ul class="field__hint field__hint--list">
+          <li>機種の音階に無い音は穴が開きませんが、キーを変えて音源に近いメロディーになるよう最適化します。</li>
+          <li>生成後、候補の一覧を表示します。</li>
+          <li>アップロードした MIDI と生成した SVG はサーバーに残ります。<a href="{{urlprefix}}/history">履歴</a>から削除できます。</li>
+        </ul>
 
         <article>
           <form id="upload-form" enctype="multipart/form-data"
@@ -46,11 +53,8 @@
                  **「移調」の用語の説明も出さない。** かつては
                  `_terms.html` を候補の表に置くつもりだったが、結局
                  どこからも include されないまま残っていたので、
-                 出さないほうに揃えて削除した（TODO-056 / TODO-077） -->
-            <p class="field__hint">
-              機種の音階に無い音は穴が開きませんが、キーを変えて、なるべく音源に近いメロディーになるよう最適化します。
-              生成後、候補の一覧を表示します。
-            </p>
+                 出さないほうに揃えて削除した（TODO-056 / TODO-077）。
+                 音階と候補の説明自体は、リードの下にまとめてある（TODO-103） -->
 
             <hr>
             {% end %}
@@ -79,10 +83,6 @@
           <p class="drop__status{% if msg_error %} drop__status--error{% end %}"
             id="drop-status">{{ msg }}</p>
         </article>
-        <p class="field__hint">
-          アップロードした MIDI と生成した SVG はサーバーに残ります。
-          <a href="{{urlprefix}}/history">履歴</a>から削除できます。
-        </p>
       </section>
 
       {% else %}
