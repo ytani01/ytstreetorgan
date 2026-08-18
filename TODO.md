@@ -1,13 +1,128 @@
 # = TODO
 
-更新: 2026-08-19（TODO-092〜094 が決着）
+更新: 2026-08-19（TODO-095〜099 を追加）
 
-- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-095` から。**
+- 新しく足すときは、 **完了済み** の上に節を作る（完了したら「完了済み」へ移す）。**番号は `TODO-100` から。**
 - **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項目の中の一部だけ見送ったものもある。蒸し返す前に記録を読むこと。
 
 ## == 着手前 / 検討中
 
-未完了の項目は無い。
+### TODO-095. ハンドラの JSON 応答が 2 か所に写してある
+
+- [ ] `StorganBaseHandler` に JSON を返すところを足す
+- [ ] `history.py` を寄せる
+- [ ] `config_handler.py` を寄せる
+
+担当: `core`（opus / high）
+
+**編成（TODO-095〜099 で共通）。** 定義は TODO-088 で用意した
+`.claude/agents/` の現行のものをそのまま使う（複製は作らない）。
+
+- `core`（opus / high）— TODO-095・096・097・098。4 つとも `src/` の
+  Python で、095 と 096 は `base_handler.py` を共有するので、**同じ担当が
+  順に**進める
+- `web`（sonnet / medium）— TODO-099。`webroot/static/js/` だけなので、
+  `core` と**並列で動かす**
+- `tests`（sonnet / medium）— **最後に 1 体。** 両方が終わってから、
+  テストの追従と `pytest` / `ruff` / `mypy`。途中で回すと、落ちた原因が
+  どちらの未追従なのか分からなくなる
+
+`history.py` と `config_handler.py` が、`json.dumps(..., ensure_ascii=False)`
+と `set_status()` と `{'status': 'error', 'message': ...}` の組み立てを
+それぞれ持っている。`HistoryHandler._error()` にあたるものが
+`ConfigHandler` には無く、POST の中に 2 か所直書きしてある。
+
+そのうち `config_handler.py` の 400 を返す 1 か所だけ `ensure_ascii=False`
+が付いていない。JSON としては正しく画面でも読めるので不具合ではないが、
+**同じ文面が経路によって違う形で返る**のは、ここが写しである証拠。
+
+土台（`base_handler.py`）へ寄せる。名前と粒度は `core` が決める。
+リクエストの本文を JSON として読むところも同じ形で 2 か所にある。
+
+### TODO-096. 持ち帰り系のヘッダ組み立てが 3 か所に写してある
+
+- [ ] ヘッダを組み立てて返すところを土台に足す
+- [ ] `download.py` の 3 ハンドラを寄せる
+- [ ] `Download.get()` の読み込みを直す
+
+担当: `core`（opus / high。編成は TODO-095 に書いた）
+
+`download.py` の `Download` / `DownloadTransposedMidi` /
+`DownloadTransposedMidiZip` が、`Content-Type` → `Content-Disposition`
+（`content_disposition()` を通す）→ `write()` → `finish()` を同じ順で
+並べている。`AuditionMidi` だけは `Content-Disposition` を付けない
+（TODO-063 で決めた）ので、**そこは揃えない**。
+
+あわせて `Download.get()` が 4096 バイトずつ読んでいるのを直す。
+`self.write()` は呼ぶたびに応答へ積むだけで、`finish()` まで送り出さない。
+分けて読んでも同じ量がメモリに載るので、いま分けている意味が無い。
+
+TODO-072 で `stored_file()` / `transpose_arg()` を土台へ寄せた続き。
+あちらは前処理で、こちらは後処理にあたる。
+
+### TODO-097. `Handler1.post()` が 88 行で、解析の失敗の扱いが二重
+
+- [ ] 履歴からの分岐と、アップロードからの生成を分ける
+- [ ] `parse_to_file()` の失敗の扱いを 1 か所にする
+- [ ] `await` の無い `async` を外す
+
+担当: `core`（opus / high。編成は TODO-095 に書いた）
+
+`handler1.py` の `post()` に、履歴からの分岐・同名だったときの判定
+（overwrite / reuse）・ファイルの保存・解析・描画がまとまって入っている。
+`stored_svg` / `stored_midi` の 2 つは既に別のメソッドへ出してあるので、
+**アップロードから作るぶんも同じ高さに揃える**のが素直。
+
+`parse_to_file()` を `try` で囲んで `UNREADABLE_MSG` を出すところが、
+`post()` と `_generate_from_stored()` に 1 つずつある。ただし
+**同じではない**。`post()` のほうは読めなかった MIDI を消す
+（残すと次に同じ名前で正しいものを送るたび「既にあります」になる）。
+まとめるなら、この違いを消さないこと。
+
+`post()` は `async` だが `await` が 1 つも無い。tornado は同期の
+`post()` もそのまま受けるので、外して差し支えない。
+
+### TODO-098. `MidiApp.main()` の `parse_only` の分岐が 4 か所に散っている
+
+- [ ] `parse` のときだけ出すものを 1 か所にまとめる
+- [ ] `main()` の見通しを整える
+
+担当: `core`（opus / high。編成は TODO-095 に書いた）
+
+`apps.py` の `MidiApp.main()` が、`if self._parse_only:` を 4 回書いて
+いる（候補の表、音符の一覧、`return`、その手前の DEBUG 側）。`parse` と
+`play` で何が違うのかが、上から下まで読まないと分からない。
+
+**`parse` と `play` を別のクラスに割らない。** 解析までは同じ手順で、
+違うのは「そのあと出すか鳴らすか」だけ。分けると `_convert_for_model()`
+を持ち回すことになる。
+
+### TODO-099. JS の通信と小物が 3 ファイルに写してある
+
+- [ ] JSON を POST するところを共通化する
+- [ ] `通信エラーが発生しました` の扱いを 1 か所にする
+- [ ] `$()` と機種セレクタの引き継ぎをまとめる
+
+担当: `web`（sonnet / medium。編成は TODO-095 に書いた）
+
+- `history.js` の `postDelete()` と `config_editor.js` の `postConfig()` が、
+  URL 以外は同じ（`method` / `headers` / `JSON.stringify` / `res.json()`）
+- `通信エラーが発生しました: ${err}` を `showAlert()` に渡す `.catch()`
+  が 5 か所にある。`config_editor.js` の 2 か所は、その前に
+  `setBusy()` や `closeDialog()` を挟むので**そこだけ形が違う**
+- `const $ = id => document.getElementById(id)` が `history.js` /
+  `config_editor.js` / `viewer.js` の 3 つにある
+- 機種セレクタの引き継ぎ（`ModelStore.pick()` で初期値を決め、`change` で
+  `save()`）が `storgan.js` / `history.js` / `config_editor.js` にある。
+  ただし `config_editor.js` だけ `save()` を呼ぶ場所が違う
+  （`loadModelIntoForm()` の中）
+
+置き場（`api.js` を新しく作るか、`alert.js` に相乗りさせるか）は
+着手時に `web` が決めて報告する。`alert.js` は「知らせの出し方」だけの
+モジュールなので、通信を混ぜると役割が 2 つになる。
+
+**画面の見た目と操作は変えない。** 変わったように見えたら、それは直し方が
+間違っている。
 
 ## == 完了済み
 
