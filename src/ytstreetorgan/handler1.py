@@ -155,11 +155,15 @@ class Handler1(StorganBaseHandler):
                          midi_name=midi_name,
                          msg=msg)
 
-    async def post(self):
+    def post(self):
         """MIDI を受け取って SVG を作る。
 
         履歴からの操作（`stored_svg` / `stored_midi`）もここで受ける。
         どちらもファイルは送られてこない。
+
+        **どこから来たかを見分けるだけ**にして、作るところは 3 つとも
+        別のメソッドに置く（TODO-097）。`async` にしてあったが `await`
+        するものが無く、tornado は同期の `post()` もそのまま受ける。
         """
         # 履歴の画面からの操作。どちらもファイルは送られてこない
         stored_svg = self.get_argument('stored_svg', '')
@@ -172,6 +176,10 @@ class Handler1(StorganBaseHandler):
             self._generate_from_stored(stored_midi)
             return
 
+        self._generate_from_upload()
+
+    def _generate_from_upload(self) -> None:
+        """送られてきた MIDI を置き場に保存して、SVG を作る。"""
         file1 = self.request.files['file1'][0]
         file1_fname = file1['filename']
         file1_path = self._webroot / 'midi' / file1_fname
@@ -187,25 +195,8 @@ class Handler1(StorganBaseHandler):
         if rollbook is None:
             return
 
-        # 同じ名前が既にあるときの扱いは、画面 (storgan.js) が先に訊いて
-        # overwrite / reuse のどちらかを立ててくる。
-        #
-        # - overwrite: 送られてきた中身で置き換える
-        # - reuse:     置き換えず、サーバーにある前回のファイルから作り直す
-        #
-        # どちらも無いまま同名を送るのは断る。かつては送られてきた中身を
-        # 捨てて古いほうを解析していたため、MIDI を直して同じ名前で上げ直すと
-        # **前回の結果がそのまま返っていた**。成功したように見えるぶん、
-        # エラーになるより質が悪い。
-        overwrite = self.get_argument('overwrite', '') == '1'
-        reuse = self.get_argument('reuse', '') == '1' and file1_path.exists()
-
-        if file1_path.exists() and not (overwrite or reuse):
-            self._render(
-                msg=f'{file1_fname} は既にあります。'
-                    '置き換えるか、名前を変えてください。',
-                msg_error=True,
-            )
+        reuse = self._reuse_stored(file1_fname, file1_path)
+        if reuse is None:
             return
 
         # reuse のときは、送られてきた中身を使わない（捨てる）。
@@ -216,20 +207,13 @@ class Handler1(StorganBaseHandler):
 
         src_size = size_text(file1_path)
 
-        try:
-            svg_data = rollbook.parse_to_file(file1_path, svg1_path)
-        except Exception as e:
-            # 捕まえないと tornado 既定の 500 ページに置き換わり、
-            # 画面ごと失われて選び直すこともできなくなる。
-            self.__log.error(exmsg(e))
-
-            # 読めなかったものは残さない。残すと、次に同じ名前で正しい
-            # ファイルを送るたびに「既にあります」と言われることになる。
-            file1_path.unlink(missing_ok=True)
-
-            self._render(
-                msg=self.UNREADABLE_MSG.format(file1_fname), msg_error=True
-            )
+        # 読めなかったものは残さない（unlink_on_error）。残すと、次に
+        # 同じ名前で正しいファイルを送るたびに「既にあります」と
+        # 言われることになる。
+        svg_data = self._parse_to_svg(
+            rollbook, file1_path, svg1_path, unlink_on_error=True
+        )
+        if svg_data is None:
             return
 
         self.__log.debug('len(svg_data)={}', len(svg_data))
@@ -243,6 +227,78 @@ class Handler1(StorganBaseHandler):
             candidates=rollbook.candidates,
             midi_name=file1_fname,
         )
+
+    def _reuse_stored(self, fname: str, path: Path) -> bool | None:
+        """同じ名前が既にあるときの扱いを決める。
+
+        画面 (storgan.js) が先に訊いて overwrite / reuse のどちらかを
+        立ててくる。
+
+        - overwrite: 送られてきた中身で置き換える
+        - reuse:     置き換えず、サーバーにある前回のファイルから作り直す
+
+        どちらも無いまま同名を送るのは断る。かつては送られてきた中身を
+        捨てて古いほうを解析していたため、MIDI を直して同じ名前で上げ直すと
+        **前回の結果がそのまま返っていた**。成功したように見えるぶん、
+        エラーになるより質が悪い。
+
+        Args:
+            fname (str): 送られてきたファイル名。
+            path (Path): 置き場での置き場所。
+
+        Returns:
+            bool | None: サーバーにある前回のファイルを使うなら True。
+                断ったときは None（描画はここで済ませてある）。
+        """
+        overwrite = self.get_argument('overwrite', '') == '1'
+        reuse = self.get_argument('reuse', '') == '1' and path.exists()
+
+        if path.exists() and not (overwrite or reuse):
+            self._render(
+                msg=f'{fname} は既にあります。'
+                    '置き換えるか、名前を変えてください。',
+                msg_error=True,
+            )
+            return None
+
+        return reuse
+
+    def _parse_to_svg(
+        self, rollbook: RollBook, midi_path: Path, svg_path: Path,
+        unlink_on_error: bool = False
+    ) -> str | None:
+        """MIDI を解析して SVG を書く。失敗したら理由を画面に出す。
+
+        捕まえないと tornado 既定の 500 ページに置き換わり、画面ごと
+        失われて選び直すこともできなくなる。
+
+        **消すかどうかだけが呼ぶ側で違う。** アップロードのぶんは
+        読めなかった MIDI を消し、履歴からの再生成では消さない
+        （元からある、他のものの元でもあるファイルなので）。
+
+        Args:
+            rollbook (RollBook): 機種と移調量を決めてある `RollBook`。
+            midi_path (Path): 元の MIDI。
+            svg_path (Path): 書き出す SVG。
+            unlink_on_error (bool): 読めなかったとき ``midi_path`` を
+                消すなら True。
+
+        Returns:
+            str | None: 書いた SVG。失敗したら None
+                （描画はここで済ませてある）。
+        """
+        try:
+            return rollbook.parse_to_file(midi_path, svg_path)
+        except Exception as e:
+            self.__log.error(exmsg(e))
+
+            if unlink_on_error:
+                midi_path.unlink(missing_ok=True)
+
+            self._render(
+                msg=self.UNREADABLE_MSG.format(midi_path.name), msg_error=True
+            )
+            return None
 
     def _rollbook_of(
         self, model: str, transpose: str = '0'
@@ -360,13 +416,8 @@ class Handler1(StorganBaseHandler):
 
         svg_path = self._webroot / 'svg' / f'{midi_path.name}.svg'
 
-        try:
-            svg_data = rollbook.parse_to_file(midi_path, svg_path)
-        except Exception as e:
-            self.__log.error(exmsg(e))
-            self._render(
-                msg=self.UNREADABLE_MSG.format(midi_path.name), msg_error=True
-            )
+        svg_data = self._parse_to_svg(rollbook, midi_path, svg_path)
+        if svg_data is None:
             return
 
         self._render(

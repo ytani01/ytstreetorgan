@@ -5,7 +5,6 @@
 
 `webroot/` の中を触るので、名前の検証は `storage.py` に任せる。
 """
-import json
 from pathlib import Path
 
 from .base_handler import StorganBaseHandler
@@ -52,13 +51,11 @@ class HistoryHandler(StorganBaseHandler):
 
     def post(self):
         """削除。JSON で受けて JSON で返す（設定エディタと同じ形）。"""
-        self.set_header('Content-Type', 'application/json')
-
         try:
-            req = json.loads(self.request.body.decode('utf-8'))
-        except Exception as e:
+            req = self.request_json()
+        except ValueError as e:
             self.__log.error(exmsg(e))
-            self._error(400, 'リクエストの形式が不正です（JSON として読めません）')
+            self.write_json_error(400, self.BAD_JSON_MSG)
             return
 
         kind = req.get('kind', '')
@@ -68,7 +65,7 @@ class HistoryHandler(StorganBaseHandler):
         try:
             target_dir = self._dir(kind)
         except ValueError as e:
-            self._error(400, str(e))
+            self.write_json_error(400, str(e))
             return
 
         try:
@@ -78,22 +75,22 @@ class HistoryHandler(StorganBaseHandler):
                 resolve_in(target_dir, name).unlink()
                 removed = 1
         except ValueError as e:
-            self._error(400, str(e))
+            self.write_json_error(400, str(e))
             return
         except FileNotFoundError:
-            self._error(404, f'{name} は見つかりません')
+            self.write_json_error(404, f'{name} は見つかりません')
             return
         except Exception as e:
             self.__log.error(exmsg(e))
-            self._error(500, f'削除できませんでした: {exmsg(e)}')
+            self.write_json_error(500, f'削除できませんでした: {exmsg(e)}')
             return
 
-        self.write(json.dumps({
+        self.write_json({
             'status': 'ok',
             'removed': removed,
             'midi_files': list_files(self._dir('midi')),
             'svg_files': list_files(self._dir('svg')),
-        }, ensure_ascii=False))
+        })
 
     def _delete_all(self, target_dir: Path) -> int:
         """置き場の中のファイルを全部消す（隠しファイルは残す）。"""
@@ -103,11 +100,3 @@ class HistoryHandler(StorganBaseHandler):
             removed += 1
 
         return removed
-
-    def _error(self, code: int, msg: str) -> None:
-        """エラーを JSON で返す。"""
-        self.__log.error('{}: {}', code, msg)
-        self.set_status(code)
-        self.write(json.dumps(
-            {'status': 'error', 'message': msg}, ensure_ascii=False
-        ))

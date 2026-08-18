@@ -103,6 +103,9 @@ class TestHistoryDelete(HistoryTestBase):
         )
 
         self.assertEqual(response.code, 400)
+        data = json.loads(response.body.decode('utf-8'))
+        self.assertEqual(data['status'], 'error')
+        self.assertIn('JSON', data['message'])
 
 
 class TestHistoryActions(HistoryTestBase):

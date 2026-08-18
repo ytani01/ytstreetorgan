@@ -37,14 +37,13 @@ class ConfigHandler(StorganBaseHandler):
             selected_model = self.get_argument('model', '')
             model_data = conf.get(selected_model) if selected_model else {}
 
-            self.set_header('Content-Type', 'application/json')
-            self.write(json.dumps({
+            self.write_json({
                 'status': 'ok',
                 'models': conf.models,
                 'data': conf.data,
                 'selected_model': selected_model,
                 'selected_data': model_data
-            }, ensure_ascii=False))
+            })
             return
 
         conf = Conf(self._conf_file)
@@ -62,13 +61,13 @@ class ConfigHandler(StorganBaseHandler):
         `action` は save / update / add / delete。結果は JSON で返し、
         **`message` はそのまま画面に出る**（日本語で書くこと）。
         """
-        self.set_header('Content-Type', 'application/json')
         self.__log.debug('request body={}', self.request.body)
 
         req_data = {}
         try:
+            # 本文が空ならフォームの引数から組み立てる
             if self.request.body:
-                req_data = json.loads(self.request.body.decode('utf-8'))
+                req_data = self.request_json()
             else:
                 req_data = {
                     'action': self.get_argument('action', 'save'),
@@ -77,11 +76,7 @@ class ConfigHandler(StorganBaseHandler):
                 }
         except Exception as ex:
             self.__log.error('リクエストを読めません: {}', exmsg(ex))
-            self.set_status(400)
-            self.write(json.dumps({
-                'status': 'error',
-                'message': 'リクエストの形式が不正です（JSON として読めません）'
-            }))
+            self.write_json_error(400, self.BAD_JSON_MSG)
             return
 
         action = req_data.get('action', 'save')
@@ -100,15 +95,11 @@ class ConfigHandler(StorganBaseHandler):
             ok, msg = False, f"不明な操作です: '{action}'"
 
         if ok:
-            self.write(json.dumps({
+            self.write_json({
                 'status': 'ok',
                 'message': msg,
                 'models': conf.models,
                 'data': conf.data
-            }, ensure_ascii=False))
+            })
         else:
-            self.set_status(400)
-            self.write(json.dumps({
-                'status': 'error',
-                'message': msg
-            }, ensure_ascii=False))
+            self.write_json_error(400, msg)

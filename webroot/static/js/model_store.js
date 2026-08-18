@@ -33,5 +33,22 @@ window.ModelStore = (function () {
     return names.indexOf(saved) >= 0 ? saved : fallback;
   }
 
-  return { load: load, save: save, pick: pick };
+  /* 機種セレクタに「前の画面の選択を引き継ぐ」を配線する。初期値を
+     pick() で決め、change のたびに save() する。それ以上の処理
+     （表示の更新など）は onChange に渡す。
+
+     config_editor.js は change のたびに保存する場所が違う
+     （loadModelIntoForm() の中）ので、これは使わない。 */
+  function wire(select, onChange) {
+    const names = Array.from(select.options).map(o => o.value);
+    select.value = pick(names, select.value);
+    select.addEventListener("change", () => {
+      save(select.value);
+      if (onChange) {
+        onChange(select.value);
+      }
+    });
+  }
+
+  return { load: load, save: save, pick: pick, wire: wire };
 })();

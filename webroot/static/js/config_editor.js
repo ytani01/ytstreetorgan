@@ -11,8 +11,6 @@ document.addEventListener("DOMContentLoaded", function () {
   let confData = window.INITIAL_CONF_DATA || [];
   let currentModel = "";
 
-  const $ = id => document.getElementById(id);
-
   const modelSelect = $("model-select");
   const copySelect = $("copy-from-model");
   const noteBody = $("note-table-body");
@@ -222,11 +220,9 @@ document.addEventListener("DOMContentLoaded", function () {
   /* ---- サーバーとのやり取り -------------------------------------------- */
 
   function postConfig(payload) {
-    return fetch(`${window.URL_PREFIX}/config/save`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(res => res.json());
+    return window.StorganApi.postJSON(
+      `${window.URL_PREFIX}/config/save`, payload
+    );
   }
 
   function setBusy(btn, busy, label) {
@@ -300,7 +296,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }).catch(err => {
       setBusy(saveBtn, false, "変更を保存");
-      showAlert(`通信エラーが発生しました: ${err}`, "danger");
+      window.StorganApi.reportError(err);
     });
   });
 
@@ -379,7 +375,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }).catch(err => {
       closeDialog();
-      showAlert(`通信エラーが発生しました: ${err}`, "danger");
+      window.StorganApi.reportError(err);
     });
   });
 
@@ -411,7 +407,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showAlert(`削除エラー: ${data.message}`, "danger");
       }
     }).catch(err => {
-      showAlert(`通信エラーが発生しました: ${err}`, "danger");
+      window.StorganApi.reportError(err);
     });
   });
 

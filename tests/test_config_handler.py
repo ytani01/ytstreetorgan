@@ -40,6 +40,7 @@ class TestConfigHandler(AsyncHTTPTestCase):
         assert response.code == 400
         data = json.loads(response.body.decode('utf-8'))
         assert data['status'] == 'error'
+        assert 'JSON' in data['message']
 
     def test_get_config_page(self):
         response = self.fetch(f'{TEST_URL_PREFIX}/config')

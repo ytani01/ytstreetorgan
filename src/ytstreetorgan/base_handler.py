@@ -12,13 +12,15 @@
     base_handler.py → handler1.py / download.py / history.py /
                       config_handler.py
 """
+import json
 from pathlib import Path
+from typing import Any
 
 import tornado.web
 
 from . import __author__, __copyright_year__
 from .mylog import exmsg, getLogger
-from .storage import resolve_in
+from .storage import content_disposition, resolve_in
 
 
 class StorganBaseHandler(tornado.web.RequestHandler):
@@ -28,6 +30,10 @@ class StorganBaseHandler(tornado.web.RequestHandler):
     """
 
     __log = getLogger(__qualname__)
+
+    # JSON として読めない本文に返す文言。history と config で同じものを
+    # 返していたので、経路によって文面が違わないようここに 1 つ置く
+    BAD_JSON_MSG = 'リクエストの形式が不正です（JSON として読めません）'
 
     def __init__(self, app, req, **kwargs):
         """設定を取り出してから、tornado の初期化を呼ぶ。
@@ -84,6 +90,68 @@ class StorganBaseHandler(tornado.web.RequestHandler):
             nav=nav,
             **kwargs,
         )
+
+    def request_json(self) -> dict[str, Any]:
+        """リクエストの本文を JSON として読む。
+
+        `ConfigHandler` は本文が空ならフォームの引数から組み立てるので、
+        **本文があるかどうかの判定は呼ぶ側に残してある**。
+
+        Returns:
+            dict[str, Any]: 読んだ中身。
+
+        Raises:
+            ValueError: JSON として読めないとき。理由は元の例外に付く。
+        """
+        try:
+            return json.loads(self.request.body.decode('utf-8'))
+        except Exception as e:
+            raise ValueError(self.BAD_JSON_MSG) from e
+
+    def write_json(self, data: dict[str, Any]) -> None:
+        """JSON で返す。
+
+        **`ensure_ascii=False`**（日本語のメッセージがそのまま画面に出る）。
+        かつて経路ごとに書いていて、1 か所だけ付け忘れていた（TODO-095）。
+
+        Args:
+            data (dict[str, Any]): 返す中身。
+        """
+        self.set_header('Content-Type', 'application/json')
+        self.write(json.dumps(data, ensure_ascii=False))
+
+    def write_json_error(self, code: int, msg: str) -> None:
+        """エラーを JSON で返す。
+
+        `message` は**そのまま画面に出る**ので日本語で書くこと。
+
+        Args:
+            code (int): HTTP のステータス。
+            msg (str): 画面に出す理由。
+        """
+        self.__log.error('{}: {}', code, msg)
+        self.set_status(code)
+        self.write_json({'status': 'error', 'message': msg})
+
+    def finish_download(
+        self, data: bytes, content_type: str, download_name: str
+    ) -> None:
+        """持ち帰らせるファイルを返して、応答を終える（TODO-096）。
+
+        **`AuditionMidi` はここを通さない。** 試聴用は
+        `Content-Disposition` を付けないのが決めごと（TODO-063）。
+
+        Args:
+            data (bytes): 中身。
+            content_type (str): `Content-Type` に入れる型。
+            download_name (str): 保存されるときのファイル名。
+        """
+        self.set_header('Content-Type', content_type)
+        # 名前をそのまま入れると、日本語のファイル名で 500 になる
+        self.set_header('Content-Disposition',
+                        content_disposition(download_name))
+        self.write(data)
+        self.finish()
 
     def uploaded_midi_names(self) -> list[str]:
         """これまでにアップロードされた MIDI のファイル名。

@@ -10,7 +10,14 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-from ytmidilib import NoteInfo, Player, mk_visual, parse, print_visual
+from ytmidilib import (
+    NoteInfo,
+    ParsedMidi,
+    Player,
+    mk_visual,
+    parse,
+    print_visual,
+)
 
 from .conf import ValidModelConf, load_model_conf
 from .mylog import getLogger
@@ -311,38 +318,20 @@ class MidiApp:
             parsed_data['note_info'] = self._convert_for_model(
                 parsed_data['note_info']
             )
-            # 候補の表は `parse`（調べるのが目的）だけ。再生中に 12 行流すと
-            # 邪魔なので、`play` は上の INFO 1 行で済ませる
-            if self._parse_only:
-                # 分母は**統合後**の数。候補の割合と揃えないと食い違って見える
-                print(f'機種: {self._model_name}'
-                      f'  移調: {self._transpose:+d} 半音'
-                      f'  鳴らせる音符: {len(parsed_data["note_info"])}'
-                      f'/{self._merged_count}',
-                      flush=True)
-                print(
-                    format_transpose_table(self._candidates, self._transpose),
-                    flush=True
-                )
 
-        # 音符 1 つずつの一覧は `parse`（中身を見るのが目的）だけ出す。
-        # `play` のときは -d を付けた場合のみ、DEBUG のログとして出る
+        # **解析までは `parse` も `play` も同じ手順で、違うのはここから下
+        # だけ。** かつては `parse_only` の分岐が 4 か所に散っていて、
+        # 何が違うのかが上から下まで読まないと分からなかった（TODO-098）
         if self._parse_only:
-            for i, data in enumerate(parsed_data['note_info']):
-                print(f'({i:4d}) {data}', flush=True)
-        else:
-            for i, data in enumerate(parsed_data['note_info']):
-                self.__log.debug('({:4d}) {}', i, data)
-
-        print('channel_set=', parsed_data['channel_set'], flush=True)
-
-        if self._visual_flag:
-            v_data = mk_visual(parsed_data['note_info'])
-            print()
-            print_visual(v_data, parsed_data['channel_set'])
-
-        if self._parse_only:
+            self._print_parsed(parsed_data)
             return
+
+        # 音符 1 つずつの一覧は、`play` では -d を付けた場合のみ
+        # DEBUG のログとして出る
+        for i, data in enumerate(parsed_data['note_info']):
+            self.__log.debug('({:4d}) {}', i, data)
+
+        self._print_channels(parsed_data)
 
         # `Player.play()` は既定では何も出さない（ytmidilib 0.1.0。
         # 音符ごとの行は向こうの DEBUG ログへ回った）。
@@ -350,6 +339,42 @@ class MidiApp:
         # loguru になり、`loggerInit()` が張ったシンクへ流れるため）
         self._player.play(parsed_data, self._pos_sec,
                           self._sec_min, self._sec_max)
+
+    def _print_parsed(self, parsed_data: ParsedMidi) -> None:
+        """`parse` のときだけ出すもの（TODO-098）。
+
+        候補の表も音符 1 つずつの一覧も「中身を調べるのが目的」の `parse`
+        だけに出す。再生中に何行も流すと邪魔なので、`play` では
+        `_convert_for_model()` の INFO 1 行で済ませる。
+        """
+        if self._model_conf is not None:
+            # 分母は**統合後**の数。候補の割合と揃えないと食い違って見える
+            print(f'機種: {self._model_name}'
+                  f'  移調: {self._transpose:+d} 半音'
+                  f'  鳴らせる音符: {len(parsed_data["note_info"])}'
+                  f'/{self._merged_count}',
+                  flush=True)
+            print(
+                format_transpose_table(self._candidates, self._transpose),
+                flush=True
+            )
+
+        for i, data in enumerate(parsed_data['note_info']):
+            print(f'({i:4d}) {data}', flush=True)
+
+        self._print_channels(parsed_data)
+
+    def _print_channels(self, parsed_data: ParsedMidi) -> None:
+        """使われているチャンネルと、`-v` のときの可視化。
+
+        **`parse` でも `play` でも同じものを出す**ので、分岐の外に置く。
+        """
+        print('channel_set=', parsed_data['channel_set'], flush=True)
+
+        if self._visual_flag:
+            v_data = mk_visual(parsed_data['note_info'])
+            print()
+            print_visual(v_data, parsed_data['channel_set'])
 
     def end(self) -> None:
         """後片付け（いまは何もしない）。`main()` と対で呼ぶ。"""

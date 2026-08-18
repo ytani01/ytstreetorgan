@@ -5,8 +5,6 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", function () {
-  const $ = id => document.getElementById(id);
-
   const modelSelect = $("model-select");
   const form = $("act-form");
 
@@ -18,12 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
   /* ---- 機種の選択を画面間で引き継ぐ（storgan.js / config_editor.js と同じ） */
 
   if (modelSelect) {
-    const names = Array.from(modelSelect.options).map(o => o.value);
-    modelSelect.value = window.ModelStore.pick(names, modelSelect.value);
-
-    modelSelect.addEventListener("change", () => {
-      window.ModelStore.save(modelSelect.value);
-    });
+    window.ModelStore.wire(modelSelect);
   }
 
   /* ---- 再生成 / 表示 ---------------------------------------------------- */
@@ -43,11 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
   /* ---- 削除 -------------------------------------------------------------- */
 
   function postDelete(payload) {
-    return fetch(`${window.URL_PREFIX}/history`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(res => res.json());
+    return window.StorganApi.postJSON(`${window.URL_PREFIX}/history`, payload);
   }
 
   function afterDelete(data, message) {
@@ -82,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       postDelete({ kind: kind, name: name })
         .then(data => afterDelete(data, `${name} を削除しました。`))
-        .catch(err => showAlert(`通信エラーが発生しました: ${err}`, "danger"));
+        .catch(err => window.StorganApi.reportError(err));
       return;
     }
 
@@ -96,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(data => afterDelete(
           data, `${LABEL[kind]} を ${data.removed} 件削除しました。`
         ))
-        .catch(err => showAlert(`通信エラーが発生しました: ${err}`, "danger"));
+        .catch(err => window.StorganApi.reportError(err));
     }
   });
 

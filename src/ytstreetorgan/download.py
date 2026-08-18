@@ -19,7 +19,6 @@ import tornado.web
 from .audition import playable_midi_bytes
 from .base_handler import StorganBaseHandler
 from .mylog import exmsg, getLogger
-from .storage import content_disposition
 from .transpose import (
     transpose_midi_bytes,
     transposed_midi_name,
@@ -59,20 +58,13 @@ class Download(StorganBaseHandler):
 
         self.__log.debug('path_name={}', path_name)
 
-        self.set_header('Content-Type', 'application/octet-stream')
-        # 名前をそのまま入れると、日本語のファイル名で 500 になる
-        self.set_header('Content-Disposition',
-                        content_disposition(path_name.name))
-
-        buf_size = 4096
-        with path_name.open('rb') as f:
-            while True:
-                data = f.read(buf_size)
-                if not data:
-                    break
-                self.write(data)
-
-        self.finish()
+        # write() は応答へ積むだけで finish() まで送り出さないので、
+        # 分けて読んでも同じ量がメモリに載る（TODO-096）
+        self.finish_download(
+            path_name.read_bytes(),
+            'application/octet-stream',
+            path_name.name,
+        )
 
 
 class DownloadTransposedMidi(StorganBaseHandler):
@@ -107,16 +99,11 @@ class DownloadTransposedMidi(StorganBaseHandler):
                 400, reason='cannot transpose'
             ) from e
 
-        self.set_header('Content-Type', 'application/octet-stream')
-        # 名前をそのまま入れると、日本語のファイル名で 500 になる
-        self.set_header(
-            'Content-Disposition',
-            content_disposition(
-                transposed_midi_name(path_name.name, semitones)
-            )
+        self.finish_download(
+            data,
+            'application/octet-stream',
+            transposed_midi_name(path_name.name, semitones),
         )
-        self.write(data)
-        self.finish()
 
 
 class DownloadTransposedMidiZip(StorganBaseHandler):
@@ -156,14 +143,11 @@ class DownloadTransposedMidiZip(StorganBaseHandler):
                 400, reason='cannot transpose'
             ) from e
 
-        self.set_header('Content-Type', 'application/zip')
-        # 名前をそのまま入れると、日本語のファイル名で 500 になる
-        self.set_header(
-            'Content-Disposition',
-            content_disposition(transposed_zip_name(path_name.name))
+        self.finish_download(
+            data,
+            'application/zip',
+            transposed_zip_name(path_name.name),
         )
-        self.write(data)
-        self.finish()
 
     def _parse_transpose(self, transpose: str) -> list[int]:
         """``-5,-2,0,3`` を整数の並びに直す。

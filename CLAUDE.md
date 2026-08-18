@@ -235,6 +235,16 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 （TODO-072。4 回写してあった）。**`Handler1._stored_path()` と混ぜないこと。**
 あちらは画面に理由を出す版で、こちらは HTTP のエラー（400 / 404）を投げる版。
 
+返すほうも土台にある（TODO-095 / TODO-096）。
+
+| `StorganBaseHandler` | 使うところ |
+|---|---|
+| `request_json()` / `write_json()` / `write_json_error()` | 履歴と機種設定の JSON API。**`ensure_ascii=False`** は `write_json()` に 1 つだけ（経路ごとに書いていて 1 か所付け忘れていた） |
+| `finish_download()` | 持ち帰り系の 3 つ。`Content-Type` ＋ `Content-Disposition` を付けて返す |
+
+**`AuditionMidi` は `finish_download()` を通さない。** 試聴用は
+`Content-Disposition` を付けないのが決めごと（TODO-063）。
+
 `webroot` / `workdir` は `WebServer` が `Path` に正規化し、`app.settings` にも
 `Path` のまま渡す。各ハンドラは `self._webroot / 'svg' / fname` のように組み立てる。
 

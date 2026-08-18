@@ -33,7 +33,6 @@
   const Z_MIN = 0.02;
   const Z_MAX = 10.0;
 
-  const $ = id => document.getElementById(id);
   const zoomEl = $("zoom");
   const zoomVal = $("zoomval");
   const posMM = $("pos-mm");
