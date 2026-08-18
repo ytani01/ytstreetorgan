@@ -1,7 +1,7 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""全ハンドラの土台（TODO-075）。
+"""全ハンドラの基底クラス（TODO-075）。
 
 `handler1.py` に置いてあったが、`history.py` と `config_handler.py` が
 **「ロールブックを作る画面」のモジュールから基底クラスを import する**
@@ -24,7 +24,7 @@ from .storage import content_disposition, resolve_in
 
 
 class StorganBaseHandler(tornado.web.RequestHandler):
-    """全ハンドラの土台。`app.settings` から共通の設定を取り出す。
+    """全ハンドラの基底クラス。`app.settings` から共通の設定を取り出す。
 
     `webroot` / `workdir` は `WebServer` が `Path` に正規化して渡している。
     """
@@ -136,7 +136,7 @@ class StorganBaseHandler(tornado.web.RequestHandler):
     def finish_download(
         self, data: bytes, content_type: str, download_name: str
     ) -> None:
-        """持ち帰らせるファイルを返して、応答を終える（TODO-096）。
+        """ダウンロードさせるファイルを返して、応答を終える（TODO-096）。
 
         **`AuditionMidi` はここを通さない。** 試聴用は
         `Content-Disposition` を付けないのが決めごと（TODO-063）。
@@ -175,7 +175,7 @@ class StorganBaseHandler(tornado.web.RequestHandler):
         （置き場の外を指していないか確かめる）。
 
         `Handler1._stored_path()` は同じことを画面に理由を出す形で
-        やっている。**あちらと混ぜないこと**（持ち帰りの経路で HTML を
+        やっている。**あちらと混ぜないこと**（ダウンロードの経路で HTML を
         返しても読まれない）。
 
         Args:

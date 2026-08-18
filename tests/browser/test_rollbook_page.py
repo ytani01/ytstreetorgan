@@ -303,7 +303,7 @@ def test_transpose_table_lets_you_compare_and_go_back(
 def test_transpose_table_rows_offer_transposed_midi(
     live_server: str, page: Page, sample_midi: Path
 ) -> None:
-    """候補の**全行**に、その調の MIDI を持ち帰るリンクがある（TODO-042）。
+    """候補の**全行**に、その調の MIDI をダウンロードするリンクがある（TODO-042）。
 
     ロールブックの音符ではなく、上げた元のファイルを移調したもの。
     ``±0`` の行にも出す（元のキーのまま MIDI だけ欲しい場合がある）。
@@ -336,7 +336,7 @@ def test_transpose_table_rows_offer_transposed_midi(
 def test_transpose_table_offers_all_candidates_as_zip(
     live_server: str, page: Page, sample_midi: Path
 ) -> None:
-    """候補ぶんの MIDI を、1 つの ZIP でまとめて持ち帰れる（TODO-050）。"""
+    """候補ぶんの MIDI を、1 つの ZIP でまとめてダウンロードできる（TODO-050）。"""
     upload_midi(page, live_server, sample_midi)
 
     href = page.locator('#transpose-zip').get_attribute('href')

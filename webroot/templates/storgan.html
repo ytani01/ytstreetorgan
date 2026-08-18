@@ -278,7 +278,7 @@
                     <th class="num">音符</th>
                     <th class="num" title="鳴らせる音符の長さ（秒）の合計。ブック全体の演奏時間とは別">音の長さ</th>
                     <th class="num">移調後の音域</th>
-                    <th class="act" title="元の MIDI をその移調量で移調して持ち帰る（ロールブックではありません）">MIDI</th>
+                    <th class="act" title="移調した MIDI をダウンロード（ロールブックではありません）">MIDI</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,7 +306,7 @@
                       {% if c['sec_pct'] < zero_sec_pct %}title="移調しない場合（{{ '%.1f' % zero_sec_pct }}%）より短い"{% end %}
                       >{{ '%.1f' % c['sec_pct'] }}%{% if c['sec_pct'] < zero_sec_pct %}<span aria-label="移調しない場合より短い"> ▼</span>{% end %}</td>
                     <td class="num">{{ c['lo'] }}–{{ c['hi'] }}</td>
-                    <!-- 元の MIDI をその移調量で移調して持ち帰る（TODO-042）。
+                    <!-- 元の MIDI をその移調量で移調してダウンロード（TODO-042）。
                          ロールブックの音符ではなく、上げた元のファイルを
                          移調するだけなので、音階に無い音も残る。
                          ±0 の行にも出す（元のキーのまま MIDI だけ欲しい

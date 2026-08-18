@@ -21,7 +21,7 @@ def test_player_loads_the_current_transpose(
     """プレーヤーには、いま出しているブックの移調量の音が入っている。
 
     「MIDI」列のリンクは従来どおり `/download/midi-transpose/` のままで、
-    試聴と持ち帰りが混ざっていないことも確かめる。
+    試聴とダウンロードが混ざっていないことも確かめる。
     """
     failed: list[str] = []
     page.on('response', lambda r: (
@@ -42,7 +42,7 @@ def test_player_loads_the_current_transpose(
     assert transpose is not None
     assert f'?t={transpose}&' in src
 
-    # 持ち帰る MIDI は別の経路のまま
+    # ダウンロードする MIDI は別の経路のまま
     midi_link = current.locator('a[href*="/download/midi-transpose/"]')
     assert '/audition/' not in (midi_link.get_attribute('href') or '')
 

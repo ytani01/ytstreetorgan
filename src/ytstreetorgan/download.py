@@ -1,7 +1,7 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""持ち帰りと試聴のハンドラ（TODO-075）。
+"""ダウンロードと試聴のハンドラ（TODO-075）。
 
 どれも「置き場のファイルを引いて、その場で作って返す」だけで、画面は
 持たない。`Handler1`（ロールブックを作る画面）とは役割が違うので分けた。
@@ -28,7 +28,7 @@ from .transpose import (
 
 
 class Download(StorganBaseHandler):
-    """生成した SVG と、アップロードした MIDI を持ち帰る。
+    """生成した SVG と、アップロードした MIDI をダウンロードする。
 
     URL は `/download/<name>`（SVG）と `/download/midi/<name>`。
     SVG 側に種別が入っていないのは、生成結果の画面のリンクが
@@ -68,7 +68,7 @@ class Download(StorganBaseHandler):
 
 
 class DownloadTransposedMidi(StorganBaseHandler):
-    """アップロード済みの MIDI を、指定の調に移調して持ち帰る（TODO-042）。
+    """アップロード済みの MIDI を、指定の調に移調してダウンロードする（TODO-042）。
 
     URL は `/download/midi-transpose/<name>?t=<半音数>`。
 
@@ -107,7 +107,7 @@ class DownloadTransposedMidi(StorganBaseHandler):
 
 
 class DownloadTransposedMidiZip(StorganBaseHandler):
-    """移調した MIDI を、まとめて ZIP で持ち帰る（TODO-050）。
+    """移調した MIDI を、まとめて ZIP でダウンロードする（TODO-050）。
 
     URL は `/download/midi-transpose-zip/<name>?t=-5,-2,0,3`。
 
@@ -178,12 +178,12 @@ class AuditionMidi(StorganBaseHandler):
 
     URL は `/audition/midi/<name>?t=<半音数>&model=<機種名>`。
 
-    **`DownloadTransposedMidi` とは別にしてある。** あちらは持ち帰る
+    **`DownloadTransposedMidi` とは別にしてある。** あちらはダウンロード用の
     素材（元のファイルを移調しただけ）で、こちらは実機の再現
     （音階に無い音は鳴らない）。目的が違うものを同じ URL から返すと、
     同じ名前で中身の違う MIDI が 2 種類出回ることになる。
 
-    **`Content-Disposition` は付けない**（持ち帰らせない。試聴のための
+    **`Content-Disposition` は付けない**（ダウンロードさせない。試聴のための
     ものなので、欲しくなったらここに足すのが答え）。**保存もしない。**
     """
 

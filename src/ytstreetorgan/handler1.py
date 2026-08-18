@@ -3,7 +3,7 @@
 #
 """ロールブックを作る画面（TODO-075）。
 
-土台のクラスは `base_handler.py`、持ち帰りと試聴は `download.py` にある。
+基底クラスは `base_handler.py`、ダウンロードと試聴は `download.py` にある。
 
 依存は一方向に保つこと::
 

@@ -44,7 +44,7 @@ def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
     組み立て直すと複数テンポの曲でズレる）。
 
     **ディスクには書かない**（`webroot/midi/` を太らせないため）。
-    候補は最大 7 行並ぶが、実際に持ち帰られるのは 1 つか 2 つ。
+    候補は最大 7 行並ぶが、実際にダウンロードされるのは 1 つか 2 つ。
 
     Args:
         src (Path): 元の MIDI ファイル。
@@ -57,7 +57,7 @@ def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
         ``clip=True`` で呼ぶので、0 .. 127 をはみ出す音は丸められる
         （既定の ``clip=False`` は 1 音でも外れると `ValueError`）。
         移調の候補は元の音域から作っているので実際に外れることはまず
-        無く、そのために持ち帰れなくなるほうが困る。
+        無く、そのためにダウンロードできなくなるほうが困る。
     """
     buf = io.BytesIO()
     with src.open('rb') as f:
@@ -70,7 +70,7 @@ def transpose_midi_bytes(src: Path, semitones: int) -> bytes:
 
 
 def transposed_midi_name(name: str, semitones: int) -> str:
-    """持ち帰る MIDI のファイル名（``holy.t+3.mid``）。
+    """ダウンロードする MIDI のファイル名（``holy.t+3.mid``）。
 
     同じ曲を複数の調で保存しても区別できるように、符号付きの半音数を
     入れる。``±0`` の行にもボタンを出すので、``t+0`` もありうる。
@@ -115,7 +115,7 @@ def transposed_midi_zip_bytes(
 
 
 def transposed_zip_name(name: str) -> str:
-    """まとめて持ち帰る ZIP のファイル名（``holy.transposed.zip``）。
+    """まとめてダウンロードする ZIP のファイル名（``holy.transposed.zip``）。
 
     中に何の調が入っているかは名前に入れない（最大 7 個ぶんの符号付き
     半音数が並ぶと読めなくなる）。中身のほうに `t+3` が付いている。

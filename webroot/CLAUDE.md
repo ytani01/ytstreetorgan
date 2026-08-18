@@ -76,7 +76,7 @@ html-midi-player.js）とバージョンは `docs/tech-stack.md`。
   後から属性を足すだけで出せる
 - **JS 側で音階を判定しない。** `note2scale()` を JS に複製することに
   なる
-- **試聴した音の MIDI は持ち帰らせない。** 欲しくなったら
+- **試聴した音の MIDI はダウンロードさせない。** 欲しくなったら
   `AuditionMidi` に `Content-Disposition` を足すのが答えで、
   `DownloadTransposedMidi` の中身を変えるのは答えではない
 

@@ -111,7 +111,7 @@ class WebServer:
              DownloadTransposedMidiZip),
             (rf'{self._urlprefix}/download/(.*)', Download, {'kind': 'svg'}),
             # ブラウザでの試聴（TODO-063）。実機で鳴る音だけを返す。
-            # 持ち帰る素材とは目的が違うので /download/ とは分けてある
+            # ダウンロード用の素材とは目的が違うので /download/ とは分けてある
             (rf'{self._urlprefix}/audition/midi/(.*)', AuditionMidi),
         ]
         if self._debug:

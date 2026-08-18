@@ -34,7 +34,7 @@
   必ず対になるように。1 つにまとめると呼ぶ側が形を組み立て直すことになる）
 - `BAD_JSON_MSG` — 2 か所で同じだった文面を定数に
 
-`HistoryHandler._error()` は削除して土台へ寄せ、`config_handler.py` の
+`HistoryHandler._error()` は削除して `StorganBaseHandler` へ寄せ、`config_handler.py` の
 直書き 2 か所も置き換えた。結果、付け忘れていた 1 か所も
 `ensure_ascii=False` に揃った。**画面に出る文面は変えていない。**
 

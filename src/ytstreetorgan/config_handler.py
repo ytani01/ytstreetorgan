@@ -22,7 +22,7 @@ class ConfigHandler(StorganBaseHandler):
     TITLE = 'Organ Model Config Editor'
 
     def __init__(self, app, req, **kwargs):
-        """設定ファイルの位置を決めてから、土台の初期化を呼ぶ。"""
+        """設定ファイルの位置を決めてから、基底クラスの初期化を呼ぶ。"""
         self._conf_file = RollBook.DEF_CONF_FILE
         super().__init__(app, req, **kwargs)
 

@@ -1,8 +1,8 @@
 """試聴用の MIDI（TODO-063）。
 
 **実機で鳴る音だけ**を集めたもの。移調 → 重なりの統合 → 音階での
-絞り込みを経ているので、元のファイルからは音が消える（持ち帰る MIDI
-とは別物）。ここでは「消えるべきものが消えているか」を見る。
+絞り込みを経ているので、元のファイルからは音が消える（ダウンロードする
+MIDI とは別物）。ここでは「消えるべきものが消えているか」を見る。
 """
 import io
 import tempfile
@@ -189,7 +189,7 @@ class TestAuditionMidi(WebAppTestCase):
         assert response.body[:4] == b'MThd'
 
     def test_no_content_disposition(self):
-        """試聴のためのものなので、持ち帰らせない。"""
+        """試聴のためのものなので、ダウンロードさせない。"""
         response = self.fetch(f'{URL}/sample.mid?t=0&model={MODEL}')
 
         assert 'Content-Disposition' not in response.headers

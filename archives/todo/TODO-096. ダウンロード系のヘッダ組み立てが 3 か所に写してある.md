@@ -1,4 +1,4 @@
-# TODO-096. 持ち帰り系のヘッダ組み立てが 3 か所に写してある
+# TODO-096. ダウンロード系のヘッダ組み立てが 3 か所に写してある
 
 作成: 2026-08-19
 決着: 2026-08-19
@@ -23,7 +23,7 @@
 - `download.py` から `content_disposition` の import が不要になった
 
 **`AuditionMidi` は寄せていない。** `Content-Disposition` を付けないのが
-TODO-063 で決めた仕様（試聴用で、持ち帰らせない）。`finish_download()` の
+TODO-063 で決めた仕様（試聴用で、ダウンロードさせない）。`finish_download()` の
 docstring にその旨を書いてある。
 
 ## サブエージェント

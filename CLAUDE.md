@@ -78,7 +78,7 @@ storage.py → utils.py ← handler1.py
 | `transpose.py` | 移調。候補の作成・絞り込み・注記、`plan_transpose()`。並び順は `transpose_rank_key()`（TODO-052）。候補から画面用の値を作る `transpose_view()`（TODO-076） |
 | `rollbook.py` | 穴の位置と SVG。`note2scale()` / `HoleInfo` / `RollBook` |
 | `audition.py` | 試聴用の MIDI。`playable_midi_bytes()` |
-| `base_handler.py` | 全ハンドラの土台（TODO-075） |
+| `base_handler.py` | 全ハンドラの基底クラス（TODO-075） |
 
 **`transpose.py` から `rollbook.py` を import しないこと**（循環する）。
 移調は「どの高さで鳴らすか」だけの話で、穴の位置や SVG とは関係が無い。
@@ -150,6 +150,7 @@ storage.py → utils.py ← handler1.py
 | 調 | 移調量のうち、キーを動かすぶん（-5〜+6）。**CLI の表示だけ** | （同上） |
 | 音の長さ | 鳴らせる音符の**長さの合計**が占める割合 | （同上） |
 | 試聴 | その機種で実際に鳴る音だけを、ブラウザで鳴らして確かめること | （設定項目ではない） |
+| ダウンロード | 生成した SVG や、移調した MIDI をファイルとして取得すること | （設定項目ではない） |
 
 - **「ノート」は必ず「MIDI ノート番号」と書く**（音名と紛れるため）。
   裸の「ノート」は使わない
@@ -197,7 +198,7 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 `_url_path` の**末尾のスラッシュは必須**（`Handler1.get()` がこれと突き合わせてリダイレクトする）。
 
 **ハンドラは画面ごとにモジュールを分ける**（TODO-075）。かつては
-`handler1.py` に土台も持ち帰りも入っていて、`history.py` と
+`handler1.py` に `StorganBaseHandler` もダウンロード処理も入っていて、`history.py` と
 `config_handler.py` が「ロールブックを作る画面」のモジュールから
 基底クラスを import していた。
 
@@ -205,7 +206,7 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 |---|---|
 | `base_handler.py` | `StorganBaseHandler` だけ |
 | `handler1.py` | `Handler1` だけ |
-| `download.py` | 持ち帰りと試聴の 4 つ |
+| `download.py` | ダウンロードと試聴の 4 つ |
 | `history.py` / `config_handler.py` | 履歴 / 機種設定の画面 |
 
 - `Handler1`（`handler1.py`） — MIDI アップロード → SVG 生成 → プレビュー。
@@ -217,7 +218,7 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 - `AuditionMidi` — `/audition/midi/<name>?t=<半音数>&model=<機種名>`。
   **その機種で実際に鳴る音だけ**を返す（移調・統合・音階での絞り込みを
   経たもの）。`Content-Type: audio/midi`、`Content-Disposition` は付けない、
-  **保存しない**（TODO-063）。`DownloadTransposedMidi`（持ち帰る素材）とは
+  **保存しない**（TODO-063）。`DownloadTransposedMidi`（ダウンロードする素材）とは
   目的が違うので経路を分けてある
 - `DownloadTransposedMidiZip` — `/download/midi-transpose-zip/<name>?t=-5,0,3`。
   候補ぶんをまとめて ZIP で返す（TODO-050）。**半音数はクエリで受け取り、
@@ -230,17 +231,17 @@ Tornado。URL プレフィックスは `/storgan2`（`WebServer.URL_PREFIX`）�
 `safe_name()` が区切り文字と `..` を弾き、`resolve_in()` が解決後も置き場の
 中にあることを確かめる。履歴は削除まであるので、ここを迂回すると事故になる。
 
-持ち帰り系の 4 つは、この確認とクエリの `t` の読み取りを
+ダウンロード系の 4 つは、この確認とクエリの `t` の読み取りを
 `StorganBaseHandler.stored_file()` / `.transpose_arg()` で済ませる
 （TODO-072。4 回写してあった）。**`Handler1._stored_path()` と混ぜないこと。**
 あちらは画面に理由を出す版で、こちらは HTTP のエラー（400 / 404）を投げる版。
 
-返すほうも土台にある（TODO-095 / TODO-096）。
+返すほうも `StorganBaseHandler` にある（TODO-095 / TODO-096）。
 
 | `StorganBaseHandler` | 使うところ |
 |---|---|
 | `request_json()` / `write_json()` / `write_json_error()` | 履歴と機種設定の JSON API。**`ensure_ascii=False`** は `write_json()` に 1 つだけ（経路ごとに書いていて 1 か所付け忘れていた） |
-| `finish_download()` | 持ち帰り系の 3 つ。`Content-Type` ＋ `Content-Disposition` を付けて返す |
+| `finish_download()` | ダウンロード系の 3 つ。`Content-Type` ＋ `Content-Disposition` を付けて返す |
 
 **`AuditionMidi` は `finish_download()` を通さない。** 試聴用は
 `Content-Disposition` を付けないのが決めごと（TODO-063）。

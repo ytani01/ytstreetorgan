@@ -74,7 +74,7 @@ class TestTransposeMidiBytes:
         """0 .. 127 をはみ出す音は丸める（`ValueError` にしない）。
 
         候補は元の音域から作っているので実際に外れることはまず無いが、
-        そのために持ち帰れなくなるほうが困る。
+        そのためにダウンロードできなくなるほうが困る。
         """
         mid = mido.MidiFile()
         track = mido.MidiTrack()
@@ -118,7 +118,7 @@ class TestTransposedMidiZipBytes:
         ]
 
     def test_each_entry_is_transposed(self):
-        """中身は 1 件ずつ持ち帰ったときと同じもの。"""
+        """中身は 1 件ずつダウンロードしたときと同じもの。"""
         data = transposed_midi_zip_bytes(SAMPLE_MIDI, [4])
 
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
