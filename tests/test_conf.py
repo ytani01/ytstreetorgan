@@ -125,7 +125,7 @@ class TestInit:
     def test_empty_config_file_not_found_anywhere_raises(
         self, isolated_search_path
     ):
-        """SEARCH_PATH のどこにも見つからない場合、FileNotFoundError が送出される"""
+        """SEARCH_PATH のどこにも見つからない場合、FileNotFoundError になる"""
         with pytest.raises(FileNotFoundError, match=Conf.CONF_FNAME):
             Conf(config_file="")
 

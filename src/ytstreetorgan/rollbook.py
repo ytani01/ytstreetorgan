@@ -41,7 +41,7 @@ META_PREFIX = 'data-storgan-'
 
 
 def note2scale(midi_note: int, notes: list[str]) -> int:
-    """MIDI ノート番号からトラック番号（インデックス）を取得する。
+    """MIDI ノート番号に対応するトラック番号を返す。
 
     音名がそのまま鳴る高さなので、``notes`` を MIDI ノート番号に直して
     突き合わせるだけでよい（TODO-067）。
@@ -125,7 +125,7 @@ def svg_square(
     stroke_dasharray: str = 'none',
     hairline: bool = True
 ) -> str:
-    """矩形描画用のSVGパス文字列を生成する。
+    """矩形を描く SVG のパス文字列を返す。
 
     Args:
         x (float): X座標（mm単位）。
@@ -139,7 +139,7 @@ def svg_square(
         hairline (bool, optional): ヘアライン指定。デフォルト 'True'
 
     Returns:
-        str: 生成されたSVGパス要素の文字列。
+        str: SVG のパス要素の文字列。
     """
     _log.debug('w={}', w)
 
@@ -231,7 +231,7 @@ class HoleInfo:
     __log = getLogger(__qualname__)
 
     def __init__(self, note_info: NoteInfo, conf: ValidModelConf) -> None:
-        """HoleInfoのインスタンスを初期化する。
+        """音符 1 つぶんの穴の位置と長さを求める。
 
         Args:
             note_info (NoteInfo): MIDIノート情報。
@@ -268,7 +268,7 @@ class HoleInfo:
         )
 
     def __str__(self) -> str:
-        """オブジェクトの文字列表現を取得する。
+        """デバッグ用に、穴の諸元を 1 行にまとめる。
 
         Returns:
             str: ノート情報や座標データを含むフォーマット済み文字列。
@@ -284,7 +284,7 @@ class HoleInfo:
 
     def svg(self, color: str = HOLE_COLOR,
             stroke_dasharray: str = 'none') -> str:
-        """穴描画用のSVGパス文字列を生成する。
+        """穴を描く SVG のパス文字列を返す。
 
         Args:
             color (str, optional): 線色。デフォルトは HOLE_COLOR（実線）。
@@ -292,7 +292,7 @@ class HoleInfo:
             stroke_dasharray (str, optional): 破線のスタイル。デフォルトは 'none'。
 
         Returns:
-            str: 生成されたSVGパス要素の文字列。
+            str: SVG のパス要素の文字列。
         """
         svg = ''
         for (x1, x2) in self.segments:
@@ -324,7 +324,7 @@ class RollBook:
         self, model: str = DEF_MODEL_NAME, conf_file: str = DEF_CONF_FILE,
         transpose: int | str = 0,
     ) -> None:
-        """RollBookインスタンスを初期化する。
+        """機種の設定を読み、移調量を決めておく。
 
         Args:
             model (str, optional): モデル名。
@@ -496,7 +496,7 @@ class RollBook:
         )
 
     def svg(self) -> str:
-        """ロールブック全体を描画するSVGドキュメント文字列を生成する。
+        """ブック全体の SVG を組み立てて返す。
 
         色と線の太さは module 定数で決まる（`BOOK_COLOR` / `HOLE_COLOR` /
         `OFF_SCALE_COLOR` / `DEF_LINE_WIDTH`）。**引数で差し替えられる形に
@@ -505,7 +505,7 @@ class RollBook:
         呼ぶ側ごとに変えられるほうがむしろ困る。
 
         Returns:
-            str: 生成されたSVG形式のテキスト文字列。
+            str: SVG のテキスト。
         """
         svg = '<svg xmlns="http://www.w3.org/2000/svg"'
         svg += f' width="{self._width:.2f}mm" height="{self._height:.2f}mm"'
@@ -602,7 +602,7 @@ class RollBook:
                 （None または空リストの場合は全チャンネル）。デフォルトは None。
 
         Returns:
-            str: 生成されたSVG形式のテキスト文字列。
+            str: SVG のテキスト。
         """
         self.load(midi_file, channel)
         return self.svg()
@@ -621,7 +621,7 @@ class RollBook:
                 デフォルトは None。
 
         Returns:
-            str: 生成されたSVG形式のテキスト文字列。
+            str: SVG のテキスト。
         """
         if channel is None:
             channel = []
