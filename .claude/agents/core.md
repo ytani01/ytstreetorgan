@@ -31,8 +31,10 @@ effort: high
   ロギング（`getLogger` を使い、`from loguru import logger` は書かない）。
 - **判断が要る点を勝手に決めない。** 指示に無い分岐に当たったら、暫定で
   どう書いたかを報告に明記する。
-- `uv run pytest -q`、`uv run ruff check src tests`、`uv run mypy src` を
-  通す。落ちたまま「完了」と書かない。
+- `uv run ruff check src`、`uv run mypy src` を通す。落ちたまま「完了」と
+  書かない。**`pytest` は回さない**（テストを回す担当は最後の 1 体にする。
+  並列で動いている `tests` 担当が書きかけのテストを拾って落ちるのを防ぐ）。
+  テストへの追従が要るときは、何が変わったかを報告する。
 
 ## ツール呼び出しの上限
 

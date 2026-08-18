@@ -7,31 +7,6 @@
 
 ## == 着手前 / 検討中
 
-### TODO-093. サブエージェント定義の検査コマンドが担当と食い違う
-
-- [ ] `core` に `pytest` を回させるかどうかを決めて直す
-- [ ] `web` の `ruff` の行を決めて直す
-
-モデル / effort: Sonnet 5 / low
-
-TODO-091 で `CLAUDE.md` に「テストを回す担当は最後の 1 体にする」と書いた
-のに、`.claude/agents/core.md` は `core` 自身に `uv run pytest -q` を
-通せと言っている（`tests` 担当も同じ 3 つを回す）。`core` と `web` を
-並列で動かすと、`tests/webapp_base.py` が `webroot/templates` と
-`webroot/static` を複製するため、`core` の `pytest` が `web` の書きかけの
-テンプレートを拾って落ちる。`core` は「落ちたまま完了と書かない」ので
-そこで止まるか、自分の変更のせいだと取り違える。
-
-`web.md` の `uv run ruff check src tests` も食い違っている。`web` が触れる
-のは `webroot/templates/` と `webroot/static/` だけで、ruff はテンプレート
-も JS も CSS も見ない。自分の仕事に対しては空振りで、`core` の書きかけを
-拾って違反が出た場合、`web` は `src/` も `tests/` も触れないので直しようが
-ない。
-
-決めること: `core` から `pytest` を削って `tests` に任せるか、`CLAUDE.md`
-の側に `core` は例外だと書くか。`web` の `ruff` は削るか、報告だけに
-するか。
-
 ### TODO-094. `src/ytstreetorgan/mylog-new.py` が残っている
 
 - [ ] 消すか、`src/` の外へ動かす
@@ -51,6 +26,7 @@ wheel を作れば同梱される。
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-093.** サブエージェント定義の検査コマンドが担当と食い違う](archives/todo/TODO-093.%20サブエージェント定義の検査コマンドが担当と食い違う.md)
 - [**TODO-092.** 起動時の残件表示が `###` の項目を数えていない](archives/todo/TODO-092.%20起動時の残件表示が%20%23%23%23%20の項目を数えていない.md)
 - [**TODO-091.** サブエージェントの使い分けを `CLAUDE.md` に書く](archives/todo/TODO-091.%20サブエージェントの使い分けを%20CLAUDE.md%20に書く.md)
 - [**TODO-090.** ビューアの説明の前半を `webroot/CLAUDE.md` へ移す](archives/todo/TODO-090.%20ビューアの説明の前半を%20webroot／CLAUDE.md%20へ移す.md)
