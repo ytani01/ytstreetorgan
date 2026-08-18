@@ -263,27 +263,15 @@ prefix が付くうえに `?v=<hash>` が付くので、更新したときに古
 
 ### ロールブックのビューア
 
-`webroot/static/js/viewer.js`。**transform で拡縮していない。SVG の描画サイズ
-（`.svgbox > svg` の `height: calc(var(--book-h) * var(--z))`）そのものを変える。**
-こうするとブラウザ標準のスクロールがそのまま効き、スクロールバーが全体の中の
-現在位置を示す。SVG が mm 単位で出力されているので倍率 1.0 が原寸になる。
-汎用の panzoom ライブラリは transform ベースで、縦横比 33:1 のロールブックでは
-スクロールバーが消えて現在位置を見失うので使わない。
+`webroot/static/js/viewer.js` の作り（transform で拡縮しない理由、初期表示の
+位置、拡縮の位置合わせ）は `webroot/CLAUDE.md` にある。ここに書くのは
+Python 側とまたがるところだけ。
 
-- **初期表示は右端**（`viewBox` が負で、曲の先頭が x=0 側 = 右端にあるため）。
-  既定の倍率は「高さ合わせ」。「全体」だと 7% になって何も読めない。
-  **先頭へ戻すのは初期表示のときだけ**（TODO-049）。「高さ合わせ」
-  「全体」のボタンは倍率を変えるだけで、位置は他の拡縮と同じく保つ
-- **拡縮の位置合わせは「ブック上の位置（mm）」で覚える**（`setZoom()`）。
-  基準の点が SVG の右端・上端から何 mm かを実測し、倍率を変えたあとの
-  `requestAnimationFrame` で引き戻す。**`scrollWidth` に対する比では駄目。**
-  `padding` は拡縮しないので比が倍率に対して一定にならず、はみ出して
-  いないときは `scrollWidth` が `clientWidth` で頭打ちになって中央へ飛ぶ
-- ブックの諸元は `RollBook` のプロパティから取り、`Handler1._render()` が
-  `book`（`storage.BookInfo`）として渡して、テンプレートが
-  `window.BOOK_DATA` に出している。
-  `width` / `height` は SVG の属性にも出ているが、**穴の数と
-  `mm_per_sec` は SVG からは取り出せない**ので、まとめてここで渡す
+ブックの諸元は `RollBook` のプロパティから取り、`Handler1._render()` が
+`book`（`storage.BookInfo`）として渡して、テンプレートが
+`window.BOOK_DATA` に出している。
+`width` / `height` は SVG の属性にも出ているが、**穴の数と
+`mm_per_sec` は SVG からは取り出せない**ので、まとめてここで渡す。
 
 `RollBook.svg()` は、**図からは求まらない値を `<svg>` の属性に埋める**
 （`data-storgan-model` / `-mm-per-sec` / `-notes` / `-hole-notes` /
