@@ -79,6 +79,10 @@
           <p class="drop__status{% if msg_error %} drop__status--error{% end %}"
             id="drop-status">{{ msg }}</p>
         </article>
+        <p class="field__hint">
+          アップロードした MIDI と生成した SVG はサーバーに残ります。
+          <a href="{{urlprefix}}/history">履歴</a>から削除できます。
+        </p>
       </section>
 
       {% else %}
