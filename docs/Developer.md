@@ -122,6 +122,18 @@ uv run basedpyright src && \
 uv run pytest -m ""
 ```
 
+## ドキュメントの画像を撮り直す
+
+`docs/User.md` に貼ってあるスクリーンショットは、次で撮り直す。
+
+```bash
+uv run python docs/images/make_shots.py
+```
+
+ブラウザテストと同じやり方でサーバーを隔離して起動するので、**利用者の
+実設定 `~/etc/storgan-conf.json` には触らない**。撮る MIDI は
+`tests/data/` のもの。**画面を変えたら走らせること。**
+
 ## タグを打つ
 
 版は **hatch-vcs が git タグから作る**ので、タグを打つこと自体が版を上げる

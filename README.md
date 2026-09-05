@@ -64,6 +64,7 @@ $ mkdir -p ~/.config && cp conf/storgan-conf.json ~/.config/
 ## 3. 使い方
 
 コマンドラインとWebインターフェースの2通り。
+**画面ごとの手順とオプションの一覧は [docs/User.md](docs/User.md) にある。**
 
 ```bash
 $ ytstreetorgan --help
@@ -88,7 +89,13 @@ $ ytstreetorgan webapp -p 10081
 
 起動したら <http://localhost:10081/storgan2/> を開く。
 
-開発者向けの情報（テスト・lint・依存）は `docs/` にある。
+### ドキュメント
+
+| 文書 | 中身 |
+|---|---|
+| [docs/User.md](docs/User.md) | 使い方（画面の手順、コマンドのオプション） |
+| [docs/Developer.md](docs/Developer.md) | テスト・lint・型チェックの走らせ方 |
+| [docs/tech-stack.md](docs/tech-stack.md) | 依存ライブラリと、その選定理由 |
 
 
 ## A. 手回しオルガン用ロール・ブック
