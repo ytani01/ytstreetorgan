@@ -32,6 +32,37 @@ uv run ytstreetorgan play FILE.mid        # MIDI 再生
 - **依存とその選定理由は `docs/tech-stack.md`** — `ytmidilib` が git 依存
   であること、hatch-vcs によるバージョン、フロントエンドの方針
 
+### トークン消費量の集計
+
+`~/.claude/CLAUDE.md` が求める、`archives/todo/` の担当ごとの表（`output` /
+`cache_creation` / 料金の割合）は `token-usage.py` で集計する（TODO-088）。
+実体は `~/dot.files/token-usage.py` で、`~/bin/` からリンクを張ってある
+（標準ライブラリだけで動くので `uv run` は要らない）。
+
+```bash
+token-usage.py TODO-088
+token-usage.py TODO-088 --since '2026-09-05 20:30:00'
+token-usage.py --list
+```
+
+**このリポジトリのトップで実行する。** cwd から
+`~/.claude/projects/-home-ytani-work-ytstreetorgan/` を割り出し、親セッションと
+サブエージェントの transcript を合わせて数える。
+
+範囲は git のコミット時刻で切る。始点は `docs(todo): … を TODO-NNN として
+立てる`、終点は `feat/fix/docs(...): …（TODO-NNN）`。**どちらもコミット
+メッセージの 1 行目だけを見る**（本文まで見ると、別の項目に触れている
+コミットを拾う）。
+
+- **立ててから着手まで空いた項目は `--since` で始点を指定する。**
+  そうしないと、間に挟まった他の項目の作業まで数に入る
+- 出力の最後の `（参考: cache_read …、メッセージ …）` は archives に貼らない。
+  画面で見るためのもの
+- 概算料金の単価は `token-usage.py` の `PRICING` にある。**単価が変わったら
+  そこを直す**
+- **TODO-087 以前は数字が出ない**（`この範囲の transcript がありません。`）。
+  transcript が 2026-09-05 以降しか残っていない
+
 ## アーキテクチャ
 
 ### レイヤー分離（意図的な規約）
