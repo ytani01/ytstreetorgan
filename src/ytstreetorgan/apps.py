@@ -196,8 +196,8 @@ class MidiApp:
             parse_only (bool): 解析結果を出すだけで再生しない（`parse`）。
             visual_flag (bool): 解析結果を図にして出す。
             rate (int): 再生のサンプリング周波数 [Hz]。
-            sec_min (float): 音の長さの下限 [秒]。
-            sec_max (float): 音の長さの上限 [秒]。
+            sec_min (float): 1 音を鳴らす時間の下限 [秒]。
+            sec_max (float): 1 音を鳴らす時間の上限 [秒]。
             pos_sec (float): 再生を始める位置 [秒]。
             model_name (str | None): 機種名。指定すると、その機種の音階に
                 無い MIDI ノート番号を再生前に取り除く（ロールブックで

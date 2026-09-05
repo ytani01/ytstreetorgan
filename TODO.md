@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目: TODO-092。** これまでに 91 件を決着させた。
+**残っている項目は無い。** これまでに 92 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-093` から。**
 
 **やらないと決めたものもある。** 目次で（対応しない）と付いたもののほか、
@@ -9,38 +9,12 @@ TODO-029 のホイール拡縮、TODO-031 の設定キャッシュなど、項�
 
 ---
 
-## TODO-092. docstring と、用語・実装の食い違いを直す
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | verifier |
-
-- [ ] `apps.py` の `sec_min` / `sec_max` の説明から「音の長さ」を外す
-- [ ] `handler1._show_stored_svg()` の docstring を実装に合わせる
-
-TODO-089 で `docs/User.md` を書いたときに見つけた 2 件。どちらも
-**docstring だけの話で、挙動は変えない**。
-
-- **`apps.py` の `sec_min` / `sec_max`** が「音の長さの下限 [秒]」
-  「音の長さの上限 [秒]」と書いている。`CLAUDE.md`「画面に出す用語」の
-  「音の長さ」は**移調の候補で使う割合**を指す語なので、1 音あたりの
-  再生時間に同じ語を使うとかぶる。`docs/User.md` では
-  「1 音を鳴らす時間の下限・上限 [秒]」と書いた。同じ言い方に揃える
-- **`handler1._show_stored_svg()`** が「諸元は SVG から読めるぶんだけ
-  （`width` / `height`）。穴の数と `mm_per_sec` は SVG に無いので None」と
-  書いている。TODO-026 で図から求まらない値を `<svg>` の属性に埋めるように
-  したので、いまは `storage.book_from_svg()` がそれを読む。`---` になるのは
-  **属性が無い古い SVG のとき**だけ
-
-決めること: 無い。どちらも直し方が決まっている。
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-092.** docstring と、用語・実装の食い違いを直す](archives/todo/TODO-092.%20docstring%20と、用語・実装の食い違いを直す.md)
 - [**TODO-091.** README を手入れする](archives/todo/TODO-091.%20README%20を手入れする.md)
 - [**TODO-090.** アーキテクチャの説明を `docs/Architecture.md` に切り出す](archives/todo/TODO-090.%20アーキテクチャの説明を%20Architecture.md%20に切り出す.md)
 - [**TODO-089.** 利用者向けの使い方を `docs/User.md` に書く](archives/todo/TODO-089.%20利用者向けの使い方を%20User.md%20に書く.md)
