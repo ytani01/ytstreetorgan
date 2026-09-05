@@ -1,8 +1,9 @@
 # Street Organ Roll Book Maker
 
-【未完成】
-
 MIDIデータを解析して、手回しオルガン用のロール・ブックを自動作成します。
+
+**開発中です。** 一通り動きますが、画面や設定ファイルの形式は
+変わることがあります。
 
 
 ## 1. 機能
@@ -16,7 +17,7 @@ MIDIデータを解析して、手回しオルガン用のロール・ブック�
 * **履歴** — アップロードしたMIDIと生成したSVGを一覧し、
   作り直し・再表示・ダウンロード・削除ができる。
 * **MIDIの解析・再生** — ロール・ブックにする前に、
-  音の一覧表示や試聴ができる。
+  音の一覧表示や再生ができる。
 
 オルガンの音階に無い音は、捨てずに破線で描画される。
 どの音が鳴らないかを目視で確認してから、MIDI側を調整できる。
@@ -72,7 +73,7 @@ $ ytstreetorgan SUB_COMMAND --help
 
 $ ytstreetorgan rollbook FILE.mid -m 34notes   # SVGを作る
 $ ytstreetorgan parse FILE.mid -v              # 解析結果を見る
-$ ytstreetorgan play FILE.mid                  # 試聴する
+$ ytstreetorgan play FILE.mid                  # 再生する
 ```
 
 `rollbook` は、出力先を省略すると `~/Desktop` に「MIDI名.svg」で書く。
@@ -89,26 +90,30 @@ $ ytstreetorgan webapp -p 10081
 
 起動したら <http://localhost:10081/storgan2/> を開く。
 
-### ドキュメント
+
+## 4. ドキュメント
 
 | 文書 | 中身 |
 |---|---|
 | [docs/User.md](docs/User.md) | 使い方（画面の手順、コマンドのオプション） |
-| [docs/Architecture.md](docs/Architecture.md) | 内部の作り（モジュールの分担、SVG 座標系、Web 層） |
+| [docs/Architecture.md](docs/Architecture.md) | 内部の作り（モジュールの分担、SVG座標系、Web層） |
 | [docs/Developer.md](docs/Developer.md) | テスト・lint・型チェックの走らせ方 |
 | [docs/tech-stack.md](docs/tech-stack.md) | 依存ライブラリと、その選定理由 |
 
 
-## A. 手回しオルガン用ロール・ブック
+## 5. 同梱の機種設定
 
-### A.1 基本
+`conf/storgan-conf.json` の `34notes` は、次のような機種を想定している。
 
-* 右から左
-* 34音、低音部で、一部半音がない
-* D#がない
-* 1秒 = 約5cm
+* ロール・ブックは右から左へ送る
+* 34音。低音部ほど半音が抜けていて、`D#` はどの高さにも無い
+* 送りの速さは1秒あたり50mm（設定項目 `mm_per_sec` の既定値）
+
+音の並びも送りの速さも設定項目なので、別の機種で使うときは
+ブラウザの「機種設定」から変える。同梱のテンプレートには、
+34音と20音の設定が計4つ入っている。
 
 
-## B. Reference
+## 6. 参考
 
 * [てまわしオルガン キノ(紀あさ)](http://www.temawashi.org/)
