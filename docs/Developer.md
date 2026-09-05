@@ -2,6 +2,10 @@
 
 lint とテストの実行方法。
 
+**内部の作りは [Architecture.md](Architecture.md) にある。**
+依存ライブラリと選定理由は [tech-stack.md](tech-stack.md)、
+使い方は [User.md](User.md) にある。
+
 ## セットアップ
 
 ```bash

@@ -94,6 +94,7 @@ $ ytstreetorgan webapp -p 10081
 | 文書 | 中身 |
 |---|---|
 | [docs/User.md](docs/User.md) | 使い方（画面の手順、コマンドのオプション） |
+| [docs/Architecture.md](docs/Architecture.md) | 内部の作り（モジュールの分担、SVG 座標系、Web 層） |
 | [docs/Developer.md](docs/Developer.md) | テスト・lint・型チェックの走らせ方 |
 | [docs/tech-stack.md](docs/tech-stack.md) | 依存ライブラリと、その選定理由 |
 

@@ -4,8 +4,9 @@ MIDI ファイルから、手回しオルガン用のロールブック（穴あ
 作る。操作はブラウザとコマンドラインの 2 通りある。
 
 インストールと設定ファイルの置き方は [README](../README.md) にある。
-開発者向けの情報は [Developer.md](Developer.md) と
-[tech-stack.md](tech-stack.md) にある。
+開発者向けの情報は [Architecture.md](Architecture.md)（内部の作り）、
+[Developer.md](Developer.md)（テストと lint）、
+[tech-stack.md](tech-stack.md)（依存ライブラリ）にある。
 
 ## 目次
 
