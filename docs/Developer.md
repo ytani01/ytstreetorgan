@@ -2,6 +2,10 @@
 
 lint とテストの実行方法。
 
+**内部の作りは [Architecture.md](Architecture.md) にある。**
+依存ライブラリと選定理由は [tech-stack.md](tech-stack.md)、
+使い方は [User.md](User.md) にある。
+
 ## セットアップ
 
 ```bash
@@ -121,6 +125,18 @@ uv run mypy src && \
 uv run basedpyright src && \
 uv run pytest -m ""
 ```
+
+## ドキュメントの画像を撮り直す
+
+`docs/User.md` に貼ってあるスクリーンショットは、次で撮り直す。
+
+```bash
+uv run python docs/images/make_shots.py
+```
+
+ブラウザテストと同じやり方でサーバーを隔離して起動するので、**利用者の
+実設定 `~/etc/storgan-conf.json` には触らない**。撮る MIDI は
+`tests/data/` のもの。**画面を変えたら走らせること。**
 
 ## タグを打つ
 

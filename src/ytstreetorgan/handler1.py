@@ -376,9 +376,10 @@ class Handler1(StorganBaseHandler):
     def _show_stored_svg(self, name: str) -> None:
         """保存済みの SVG を、生成し直さずにそのまま表示する。
 
-        諸元は SVG から読めるぶんだけ（`width` / `height`）。
-        穴の数と `mm_per_sec` は SVG に無いので None のまま渡し、
-        画面では `---` と出る。
+        諸元は `book_from_svg()` が読む。寸法と穴の数は図そのものから、
+        `mm_per_sec` のように図に現れない値は `<svg>` の属性から読む
+        （TODO-026）。属性が無い古い SVG では None のままで、画面に
+        `---` と出る。
         """
         path = self._stored_path('svg', name)
         if path is None:

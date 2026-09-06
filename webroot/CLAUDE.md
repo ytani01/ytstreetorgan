@@ -152,8 +152,16 @@ include されないまま残っていた。**出さないほうに揃えて、�
   `padding` は拡縮しないので比が倍率に対して一定にならず、はみ出して
   いないときは `scrollWidth` が `clientWidth` で頭打ちになって中央へ飛ぶ
 
+```mermaid
+flowchart TD
+    A["拡縮のボタン / スライダー"] --> B["基準の点が SVG の右端・上端から<br/>何 mm かを実測する"]
+    B --> C["倍率を変える<br/>--z を書き換える"]
+    C --> D["requestAnimationFrame"]
+    D --> E["同じ mm の位置へ引き戻す"]
+```
+
 ビューアに渡す諸元（`window.BOOK_DATA`）を組み立てているのは Python 側。
-その 2 か所と、SVG に埋めてある属性はルートの `CLAUDE.md` にある。
+その 2 か所と、SVG に埋めてある属性は `docs/Architecture.md` の 8 章にある。
 
 ## ロールブックの見え方（画面だけ）
 

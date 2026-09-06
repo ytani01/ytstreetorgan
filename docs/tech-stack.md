@@ -2,6 +2,9 @@
 
 `pyproject.toml` が正。ここはその要約と、なぜそれを選んでいるかの覚え書き。
 
+**内部の作りは [Architecture.md](Architecture.md) にある。**
+テスト・lint の走らせ方は [Developer.md](Developer.md) にある。
+
 ## 言語・ランタイム
 
 - Python >= 3.13
