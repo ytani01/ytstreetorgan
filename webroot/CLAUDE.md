@@ -20,6 +20,34 @@ CDN は 1 本も読まない（ローカルで動かす道具なので、ネッ�
 また、**Pico はボタン要素の中で `--pico-color` を上書きする**ので、自前の
 コントロールの色は `--hole` のような独自トークンから直接指定する。
 
+## JS のファイル構成（TODO-099）
+
+画面ごとの JS（`storgan.js` / `history.js` / `config_editor.js` /
+`viewer.js`）の下に、使い回す 3 本がある。
+
+| ファイル | 中身 |
+|---|---|
+| `alert.js` | `StorganAlert.show()` — 画面上部の知らせ |
+| `api.js` | `StorganApi.postJSON()` / `StorganApi.reportError()` と、`window.$` |
+| `model_store.js` | `ModelStore` — 選択中の機種を画面間で受け継ぐ |
+
+- **サーバーとの JSON のやり取りは `StorganApi.postJSON()` を通す。**
+  画面ごとの JS に `fetch` を書かない。以前は履歴と機種設定に、URL 以外
+  1 文字も違わない POST が写してあった
+- **`reportError()` は文面を出すだけ。** 後始末（`setBusy()` を戻す、
+  ダイアログを閉じる）が要るなら、それを済ませてから呼ぶ
+- **通信を `alert.js` に混ぜない。** あちらは「知らせの出し方」だけの
+  モジュールとして切り出した経緯があり、役割が 2 つになる
+- **`window.$`（`getElementById()` の短縮形）も `api.js` にある。**
+  画面ごとの JS で定義し直さない
+- **読み込む順は `alert.js` → `api.js` → `model_store.js` → 画面ごと。**
+  UMD ではないが、`api.js` が `StorganAlert` を、`viewer.js` が `$` を
+  参照する。**`storgan.html` だけ `alert.js` を読んでいない**（この画面は
+  知らせを出さない）。裏返して、**ここで `reportError()` は呼べない**
+- **機種セレクタの配線は `ModelStore.wire()`。** 初期値を `pick()` で
+  決め、`change` で `save()` する。**`config_editor.js` は使わない**
+  （保存する場所が `change` ハンドラではなく `loadModelIntoForm()` の中）
+
 ## 確認の出し方
 
 **Yes / No は `confirm()`、三択以上は `<dialog>` + `showModal()`**（Pico が
