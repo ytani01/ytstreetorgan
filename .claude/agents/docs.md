@@ -1,6 +1,6 @@
 ---
 name: docs
-description: 文書と設定ファイルの追従。CLAUDE.md・docs/ の記述、conf/ のテンプレート JSON を、実装に合わせて直す。判断の要らない書き換え専門。
+description: 文書と設定ファイルの追従。CLAUDE.md・docs/ の記述、conf/ のテンプレート JSON を、実装に合わせて直す。判断の要らない書き換え専門。管理者から名指しされたときだけ使う。自動で委譲しないこと。
 tools: Bash, Read, Write, Edit, Glob, Grep
 model: sonnet
 effort: low

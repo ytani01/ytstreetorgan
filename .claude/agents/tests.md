@@ -1,6 +1,6 @@
 ---
 name: tests
-description: テストの追加と追従、静的検査の実行。既存の書き方に合わせたテストの追加、仕様変更への追従、pytest / ruff / mypy を回して結果を報告することを受け持つ。
+description: テストの追加と追従、静的検査の実行。既存の書き方に合わせたテストの追加、仕様変更への追従、pytest / ruff / mypy を回して結果を報告することを受け持つ。管理者から名指しされたときだけ使う。自動で委譲しないこと。
 tools: Bash, Read, Write, Edit, Glob, Grep
 model: sonnet
 effort: medium

@@ -1,6 +1,6 @@
 ---
 name: core
-description: サーバー側（Python）の設計と実装。モジュールをまたぐ書き換え、関数の廃止と呼ぶ側の追従、ハンドラの追加、型の整合を受け持つ。判断が要る変更はここに集める。
+description: サーバー側（Python）の設計と実装。モジュールをまたぐ書き換え、関数の廃止と呼ぶ側の追従、ハンドラの追加、型の整合を受け持つ。判断が要る変更はここに集める。管理者から名指しされたときだけ使う。自動で委譲しないこと。
 tools: Bash, Read, Write, Edit, Glob, Grep
 model: opus
 effort: high
