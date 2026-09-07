@@ -100,23 +100,26 @@ body > main { flex: 1 0 auto; }
 .appbar {
   border-bottom: 1px solid var(--rule);
   background: var(--pico-card-background-color);
+  /* Pico は header,body>main に padding-block: 1rem を付ける。高さの大半は
+     これなので、打ち消して .appbar__inner の padding だけで決める（TODO-113） */
+  padding-block: 0;
 }
 .appbar__inner {
     max-width: 1180px; margin: 0 auto;
-    padding: .2rem 1rem;
+    padding: .1rem 1rem;
     display: flex;
     align-items: center;
     gap: 1rem;
 }
 .brand { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: inherit; }
-.brand__name { font-weight: 700; font-size: 1rem; letter-spacing: .01em; }
+.brand__name { font-weight: 700; font-size: .92rem; letter-spacing: .01em; }
 .brand__sub {
   font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
   color: var(--pico-muted-color); text-transform: uppercase;
 }
 .appbar nav { margin-left: auto; display: flex; gap: .25rem; align-items: center; }
 .appbar nav a {
-  padding: .35rem .8rem; border-radius: 5px; font-size: .88rem;
+  padding: .15rem .7rem; border-radius: 5px; font-size: .84rem;
   text-decoration: none; color: var(--pico-muted-color);
 }
 .appbar nav a:hover { background: var(--cut-weak); color: var(--cut); }
